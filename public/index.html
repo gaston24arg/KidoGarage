@@ -1,0 +1,1882 @@
+<!DOCTYPE html>
+<html lang="es" class="dark scroll-smooth">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KIDO GARAGE | Die-Cast 1:64, 1:18, Remeras JDM, Stickers & Rifas</title>
+
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+
+  <!-- Tailwind CSS por CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['"Outfit"', 'sans-serif'],
+            fuji: ['"Fuji Quake Zone"', '"Outfit"', 'sans-serif'],
+          },
+          colors: {
+            brandDark: '#0a0a0d',
+            brandSurface: '#121217',
+            brandCard: '#18181f',
+            brandCardHover: '#20202a',
+            brandBorder: '#272733',
+            brandAccent: '#e63946',
+            brandAccentHover: '#d90429',
+            brandGold: '#f59e0b',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @font-face {
+      font-family: 'Fuji Quake Zone';
+      src: url('/fonts/Fuji_Quake_Zone.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    .font-fuji {
+      font-family: 'Fuji Quake Zone', 'Outfit', sans-serif;
+      letter-spacing: 0.04em;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0a0a0d;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #272733;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #e63946;
+    }
+
+    .glow-accent {
+      box-shadow: 0 0 25px -5px rgba(230, 57, 70, 0.35);
+    }
+
+    .badge-chase {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+    }
+
+    .badge-preventa {
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      box-shadow: 0 0 12px rgba(37, 99, 235, 0.4);
+    }
+
+    .badge-stock {
+      background: linear-gradient(135deg, #059669, #10b981);
+    }
+
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+
+<body
+  class="bg-brandDark text-gray-100 font-sans antialiased min-h-screen flex flex-col selection:bg-brandAccent selection:text-white">
+
+  <!-- 1. BARRA INFORMATIVA SUPERIOR (TRUST BANNER) -->
+  <aside class="bg-black/95 py-2 px-4 sm:px-6 lg:px-8 border-b border-brandBorder text-xs text-gray-300">
+    <div class="max-w-[1600px] mx-auto flex justify-between items-center flex-wrap gap-2 text-[11px] sm:text-xs">
+      <div class="flex items-center gap-2">
+        <span class="text-blue-400">💳</span>
+        <span class="font-semibold text-gray-200">Mercado Pago Verificado</span>
+        <span class="text-gray-500 hidden sm:inline">• Hasta 3 cuotas • Pagos Parciales</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-amber-400">📦</span>
+        <span class="font-semibold text-gray-200">Envío Blindado para Coleccionistas</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2">
+          <span class="text-emerald-400">⭐</span>
+          <span class="font-semibold text-gray-200">Club Cliente Frecuente:</span>
+          <span class="text-amber-400 font-bold">1 Rifa GRATIS</span>
+        </div>
+        <a href="https://wa.me/5492994517097?text=Hola%20vengo%20de%20la%20Pagina%20de%20KIDO%20Garage%20y%20quiero%20consultar%3A"
+          target="_blank" rel="noopener noreferrer"
+          class="flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 font-bold transition border-l border-gray-800 pl-3">
+          <span>💬</span> WhatsApp: +54 9 2994 51-7097
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 2. HEADER Y NAVEGACIÓN -->
+  <header class="sticky top-0 z-40 bg-brandDark/90 backdrop-blur-xl border-b border-brandBorder shadow-xl">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
+
+      <!-- Brand Logo -->
+      <a href="index.html" class="flex items-center gap-3 group">
+        <img src="kido-logo.jpeg" alt="KIDO"
+          class="h-10 w-10 rounded-lg object-cover ring-2 ring-brandAccent/60 group-hover:scale-105 transition duration-200"
+          onerror="this.style.display='none'">
+        <div class="flex flex-col">
+          <span class="text-2xl font-black tracking-wider text-white font-fuji leading-none">
+            KIDO <span class="text-brandAccent">GARAGE</span>
+          </span>
+          <span class="text-[10px] tracking-widest text-gray-400 uppercase font-semibold">Calidad Premium</span>
+        </div>
+      </a>
+
+      <!-- Buscador Desktop -->
+      <div class="hidden md:flex flex-1 max-w-lg lg:max-w-xl mx-4 lg:mx-8 relative">
+        <input id="searchInput" type="text" placeholder="Buscar GT-R, Kaido House, Remeras, 1:64..."
+          class="w-full bg-brandSurface border border-brandBorder rounded-xl py-2 px-4 pl-10 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-brandAccent transition"
+          oninput="handleSearch(this.value)">
+        <span class="absolute left-3.5 top-2.5 text-gray-500 text-sm">🔍</span>
+        <button id="clearSearchBtn" onclick="clearSearch()"
+          class="hidden absolute right-3 top-2.5 text-xs text-gray-400 hover:text-white">✕</button>
+      </div>
+
+      <!-- Menú Navegación -->
+      <nav class="hidden lg:flex items-center space-x-6 font-semibold text-xs">
+        <a href="#catalogo" onclick="filterByStatus('ALL')"
+          class="hover:text-brandAccent transition text-gray-300">Catálogo</a>
+        <a href="#catalogo" onclick="filterByStatus('PRE_VENTA')"
+          class="hover:text-brandAccent transition text-gray-300">Pre-Ventas</a>
+        <a href="#catalogo" onclick="filterByType('Remera')"
+          class="hover:text-brandAccent transition text-gray-300">Remeras</a>
+        <a href="#catalogo" onclick="filterByType('Sticker')"
+          class="hover:text-brandAccent transition text-gray-300">Stickers</a>
+
+        <button onclick="openRafflesModal()"
+          class="text-amber-400 font-bold hover:text-amber-300 transition flex items-center gap-1.5 bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/20">
+          <span>🎟️</span> Rifas & Sorteos
+        </button>
+
+        <button onclick="openRankingsModal()" class="text-gray-300 hover:text-white transition flex items-center gap-1">
+          <span>🏆</span> Rankings
+        </button>
+      </nav>
+
+      <!-- Botones de Acción (Usuario & Carrito) -->
+      <div class="flex items-center space-x-3">
+
+        <!-- Auth / Perfil Button -->
+        <div id="authHeaderContainer">
+          <!-- Rendered by JS: either 'Ingresar' button or user profile avatar -->
+          <button onclick="openAuthModal('login')"
+            class="bg-brandSurface hover:bg-brandBorder border border-brandBorder text-gray-200 px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+            <span>👤</span> Ingresar
+          </button>
+        </div>
+
+        <!-- Carrito -->
+        <button id="cartBtn" onclick="toggleCartDrawer(true)"
+          class="relative bg-brandCard hover:bg-brandCardHover p-2 rounded-xl border border-brandBorder hover:border-brandAccent transition duration-200 flex items-center gap-2 group"
+          aria-label="Ver Carrito">
+          <span class="text-base">🛒</span>
+          <span class="hidden sm:inline text-xs font-bold text-gray-200">Carrito</span>
+          <span id="cartCountBadge"
+            class="bg-brandAccent text-white text-[11px] min-w-[20px] h-5 px-1 rounded-full font-black flex items-center justify-center">0</span>
+        </button>
+
+        <!-- Link al Panel Admin -->
+        <a href="admin.html"
+          class="hidden sm:inline-flex items-center gap-1 bg-brandCard hover:bg-brandBorder text-gray-400 hover:text-white px-2.5 py-1.5 rounded-xl text-xs font-bold border border-brandBorder transition"
+          title="Módulo de Administración">
+          <span>⚙️</span>
+        </a>
+      </div>
+
+    </div>
+
+    <!-- Buscador Mobile -->
+    <div class="md:hidden px-4 pb-3">
+      <input type="text" placeholder="Buscar autitos, marcas, remeras..."
+        class="w-full bg-brandSurface border border-brandBorder rounded-xl py-2 px-3 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-brandAccent"
+        oninput="handleSearch(this.value)">
+    </div>
+  </header>
+
+  <!-- ======================================================== -->
+  <!-- 3. CARRUSEL DE PRODUCTOS DESTACADOS                      -->
+  <!-- ======================================================== -->
+  <section class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2 w-full">
+    <div
+      class="relative bg-gradient-to-r from-red-950/30 via-brandCard to-neutral-900 border border-brandBorder rounded-3xl overflow-hidden shadow-2xl min-h-[380px] lg:min-h-[440px] flex items-center">
+
+      <!-- Slide Container -->
+      <div id="featuredSlideContainer"
+        class="w-full h-full p-6 md:p-10 lg:p-14 flex flex-col md:flex-row items-center justify-between gap-8 transition-opacity duration-500">
+        <!-- Rendered by JS -->
+      </div>
+
+      <!-- Controls -->
+      <button onclick="prevFeaturedSlide()"
+        class="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 hover:bg-brandAccent text-white border border-brandBorder flex items-center justify-center font-bold text-sm transition">
+        ‹
+      </button>
+      <button onclick="nextFeaturedSlide()"
+        class="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 hover:bg-brandAccent text-white border border-brandBorder flex items-center justify-center font-bold text-sm transition">
+        ›
+      </button>
+
+      <!-- Dots -->
+      <div id="featuredDots" class="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2">
+        <!-- Dots rendered by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================== -->
+  <!-- 4. CARRUSEL DE MARCAS CON LAS QUE TRABAJAMOS             -->
+  <!-- ======================================================== -->
+  <section class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-xs uppercase tracking-widest text-gray-400 font-extrabold flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-brandAccent inline-block"></span> Marcas Oficiales con las que Trabajamos
+      </h2>
+      <button onclick="resetFilters()" class="text-xs text-gray-400 hover:text-brandAccent underline">Ver todas</button>
+    </div>
+
+    <!-- Carrusel Horizontal de Marcas -->
+    <div class="relative">
+      <div id="brandCarousel" class="flex gap-3 overflow-x-auto hide-scrollbar scroll-smooth py-1">
+        <button onclick="filterByBrand('Kaido House')"
+          class="flex-shrink-0 bg-brandCard border border-brandBorder hover:border-brandAccent px-5 py-3 rounded-2xl text-center font-bold text-xs hover:bg-brandCardHover transition duration-200 group min-w-[150px]">
+          <span class="block text-white group-hover:text-brandAccent text-sm font-black font-display">KAIDO HOUSE</span>
+          <span class="text-[10px] text-gray-500">Jun Imai Works</span>
+        </button>
+        <button onclick="filterByBrand('Pop Race')"
+          class="flex-shrink-0 bg-brandCard border border-brandBorder hover:border-brandAccent px-5 py-3 rounded-2xl text-center font-bold text-xs hover:bg-brandCardHover transition duration-200 group min-w-[150px]">
+          <span class="block text-white group-hover:text-brandAccent text-sm font-black font-display">POP RACE</span>
+          <span class="text-[10px] text-gray-500">Stage Customs</span>
+        </button>
+        <button onclick="filterByBrand('Mini GT')"
+          class="flex-shrink-0 bg-brandCard border border-brandBorder hover:border-brandAccent px-5 py-3 rounded-2xl text-center font-bold text-xs hover:bg-brandCardHover transition duration-200 group min-w-[150px]">
+          <span class="block text-white group-hover:text-brandAccent text-sm font-black font-display">MINI GT</span>
+          <span class="text-[10px] text-gray-500">TSM Models</span>
+        </button>
+        <button onclick="filterByBrand('Spark')"
+          class="flex-shrink-0 bg-brandCard border border-brandBorder hover:border-brandAccent px-5 py-3 rounded-2xl text-center font-bold text-xs hover:bg-brandCardHover transition duration-200 group min-w-[150px]">
+          <span class="block text-white group-hover:text-brandAccent text-sm font-black font-display">SPARK</span>
+          <span class="text-[10px] text-gray-500">1:18 Resin & GT3</span>
+        </button>
+        <button onclick="filterByBrand('Tarmac Works')"
+          class="flex-shrink-0 bg-brandCard border border-brandBorder hover:border-brandAccent px-5 py-3 rounded-2xl text-center font-bold text-xs hover:bg-brandCardHover transition duration-200 group min-w-[150px]">
+          <span class="block text-white group-hover:text-brandAccent text-sm font-black font-display">TARMAC
+            WORKS</span>
+          <span class="text-[10px] text-gray-500">Global64 / Hobby</span>
+        </button>
+        <button onclick="filterByBrand('Hot Wheels')"
+          class="flex-shrink-0 bg-brandCard border border-brandBorder hover:border-brandAccent px-5 py-3 rounded-2xl text-center font-bold text-xs hover:bg-brandCardHover transition duration-200 group min-w-[150px]">
+          <span class="block text-white group-hover:text-brandAccent text-sm font-black font-display">HOT WHEELS</span>
+          <span class="text-[10px] text-gray-500">Premium / RLC</span>
+        </button>
+        <button onclick="filterByBrand('Ignition Model')"
+          class="flex-shrink-0 bg-brandCard border border-brandBorder hover:border-brandAccent px-5 py-3 rounded-2xl text-center font-bold text-xs hover:bg-brandCardHover transition duration-200 group min-w-[150px]">
+          <span class="block text-white group-hover:text-brandAccent text-sm font-black font-display">IGNITION
+            MODEL</span>
+          <span class="text-[10px] text-gray-500">High Precision Japan</span>
+        </button>
+        <button onclick="filterByBrand('KIDO')"
+          class="flex-shrink-0 bg-brandCard border border-brandBorder hover:border-brandAccent px-5 py-3 rounded-2xl text-center font-bold text-xs hover:bg-brandCardHover transition duration-200 group min-w-[150px]">
+          <span class="block text-white group-hover:text-brandAccent text-sm font-black font-display">KIDO
+            APPAREL</span>
+          <span class="text-[10px] text-gray-500">Remeras & Stickers</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================== -->
+  <!-- 5. BARRA DE FILTROS & TIPOS DE ARTÍCULO                  -->
+  <!-- ======================================================== -->
+  <section class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-2 w-full">
+    <div
+      class="bg-brandSurface border border-brandBorder rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+
+      <!-- Categorías / Tipo -->
+      <div class="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 text-xs font-semibold">
+        <button onclick="filterByType('ALL')"
+          class="type-pill px-3 py-2 rounded-xl bg-brandAccent text-white whitespace-nowrap transition">Todos los
+          Artículos</button>
+        <button onclick="filterByType('Autito'); filterByScale('1:64');"
+          class="type-pill px-3 py-2 rounded-xl bg-brandCard text-gray-300 hover:text-white hover:bg-brandCardHover border border-brandBorder whitespace-nowrap transition">🚗
+          Autitos 1:64</button>
+        <button onclick="filterByType('Autito'); filterByScale('1:18');"
+          class="type-pill px-3 py-2 rounded-xl bg-brandCard text-gray-300 hover:text-white hover:bg-brandCardHover border border-brandBorder whitespace-nowrap transition">🏎️
+          Autitos 1:18</button>
+        <button onclick="filterByType('Remera')"
+          class="type-pill px-3 py-2 rounded-xl bg-brandCard text-gray-300 hover:text-white hover:bg-brandCardHover border border-brandBorder whitespace-nowrap transition">👕
+          Remeras & Hoodies</button>
+        <button onclick="filterByType('Sticker')"
+          class="type-pill px-3 py-2 rounded-xl bg-brandCard text-gray-300 hover:text-white hover:bg-brandCardHover border border-brandBorder whitespace-nowrap transition">⚡
+          Stickers</button>
+      </div>
+
+      <!-- Estado: Pre-Venta vs Stock -->
+      <div class="flex items-center gap-2 self-start md:self-auto text-xs font-semibold">
+        <span class="text-gray-400">Disponibilidad:</span>
+        <button onclick="filterByStatus('ALL')"
+          class="status-btn px-2.5 py-1 rounded-lg bg-brandBorder text-white">Todos</button>
+        <button onclick="filterByStatus('PRE_VENTA')"
+          class="status-btn px-2.5 py-1 rounded-lg bg-brandCard text-blue-400 hover:bg-brandCardHover">Pre-Ventas</button>
+        <button onclick="filterByStatus('STOCK')"
+          class="status-btn px-2.5 py-1 rounded-lg bg-brandCard text-emerald-400 hover:bg-brandCardHover">En
+          Stock</button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ======================================================== -->
+  <!-- 6. GRID PRINCIPAL DE PRODUCTOS                           -->
+  <!-- ======================================================== -->
+  <main id="catalogo" class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-grow">
+
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
+      <div>
+        <h1 class="text-2xl font-black text-white font-display flex items-center gap-3">
+          <span>Catálogo KIDO Garage</span>
+          <span id="productCountBadge"
+            class="text-xs font-semibold bg-brandSurface px-2.5 py-1 rounded-full text-gray-400 border border-brandBorder">Cargando...</span>
+        </h1>
+        <p id="activeFilterLabel" class="text-xs text-gray-400 mt-0.5">Mostrando todos los modelos e indumentaria
+          disponibles</p>
+      </div>
+
+      <div class="flex items-center gap-3 text-xs">
+        <label for="sortBySelect" class="text-gray-400">Ordenar por:</label>
+        <select id="sortBySelect" onchange="handleSort(this.value)"
+          class="bg-brandCard border border-brandBorder text-gray-200 rounded-xl px-3 py-1.5 focus:outline-none focus:border-brandAccent text-xs">
+          <option value="featured">Destacados</option>
+          <option value="price-asc">Menor precio</option>
+          <option value="price-desc">Mayor precio</option>
+          <option value="title-asc">Nombre A-Z</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Product Grid Container: 1 col mobile, 2 sm, 3 md, 4 lg, 5 en pantallas anchas (xl/2xl) -->
+    <div id="productGrid"
+      class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-5 gap-6">
+      <div class="col-span-full py-16 text-center text-gray-400">
+        <div class="inline-block animate-spin text-3xl mb-3">⚙️</div>
+        <p class="text-sm font-semibold">Cargando catálogo oficial...</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- 7. FOOTER                                                -->
+  <!-- ======================================================== -->
+  <footer class="bg-black border-t border-brandBorder mt-12 py-10 text-gray-400 text-xs">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
+      <div>
+        <div class="text-2xl font-black text-white font-fuji mb-3 tracking-wider">KIDO <span class="text-brandAccent">GARAGE</span>
+        </div>
+        <p class="text-gray-400 leading-relaxed">
+          Tu destino para modelos Die-Cast 1:64, 1:18 y 1:43, piezas Chase exclusivas, remeras oversize JDM, stickers y
+          rifas transparentes para coleccionistas.
+        </p>
+      </div>
+      <div>
+        <h4 class="text-white font-bold uppercase tracking-wider mb-3">Club Cliente Frecuente</h4>
+        <p class="text-gray-400 leading-relaxed mb-3">
+          Comprá durante más de 3 meses seguidos para acceder a descuentos automáticos y un número de rifa gratis en
+          cada sorteo oficial.
+        </p>
+        <button onclick="openRankingsModal()" class="text-amber-400 hover:underline font-bold">Ver Tabla de Rankings
+          →</button>
+      </div>
+      <div>
+        <h4 class="text-white font-bold uppercase tracking-wider mb-3">Atención & Consultas</h4>
+        <ul class="space-y-1.5">
+          <li>
+            <a href="https://wa.me/5492994517097?text=Hola%20vengo%20de%20la%20Pagina%20de%20KIDO%20Garage%20y%20quiero%20consultar%3A"
+              target="_blank" rel="noopener noreferrer"
+              class="text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1.5 transition">
+              <span>💬</span> WhatsApp: +54 9 2994 51-7097
+            </a>
+          </li>
+          <li><span>💳 Mercado Pago (Débito, Crédito, Cuotas)</span></li>
+          <li><span>🔒 Pagos Parciales / Señas para Pre-Ventas</span></li>
+          <li><span>📦 Embalaje con triple protección</span></li>
+          <li><span>🚚 Envíos a todo el país</span></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="text-white font-bold uppercase tracking-wider mb-3">Administración</h4>
+        <p class="mb-3">Panel para gestión de inventario, stock masivo, contaduría y emisión de rifas:</p>
+        <a href="admin.html"
+          class="inline-block bg-brandCard border border-brandBorder hover:border-brandAccent text-white px-4 py-2 rounded-xl font-bold transition">
+          Ingresar al Panel Admin →
+        </a>
+      </div>
+    </div>
+    <div
+      class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 mt-8 pt-6 border-t border-gray-900 text-center text-gray-500">
+      © 2026 KIDO DIECAST & COLLECTIBLES. Todos los derechos reservados.
+    </div>
+  </footer>
+
+  <!-- ======================================================== -->
+  <!-- MODAL DE AUTENTICACIÓN (LOGIN / REGISTRO / GOOGLE)       -->
+  <!-- ======================================================== -->
+  <div id="authModal"
+    class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="bg-brandCard border border-brandBorder rounded-3xl max-w-md w-full p-6 md:p-8 shadow-2xl relative">
+      <button onclick="closeAuthModal()"
+        class="absolute top-4 right-4 text-gray-400 hover:text-white font-bold">✕</button>
+
+      <div class="text-center mb-6">
+        <img src="kido-logo.jpeg" alt="KIDO"
+          class="w-12 h-12 rounded-xl mx-auto mb-2 object-cover ring-2 ring-brandAccent/50"
+          onerror="this.style.display='none'">
+        <h3 id="authModalTitle" class="text-xl font-black text-white font-display">Ingresar a tu Cuenta</h3>
+        <p class="text-xs text-gray-400 mt-1">Accedé a tus pre-ventas, historial y estado de Cliente Frecuente</p>
+      </div>
+
+      <!-- Botón de Google OAuth -->
+      <button onclick="handleGoogleSignIn()"
+        class="w-full bg-white hover:bg-gray-100 text-gray-900 font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-3 transition shadow mb-4">
+        <svg class="w-4 h-4" viewBox="0 0 24 24">
+          <path fill="#4285F4"
+            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+          <path fill="#34A853"
+            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+          <path fill="#FBBC05"
+            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+          <path fill="#EA4335"
+            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+        </svg>
+        <span>Continuar con Google</span>
+      </button>
+
+      <div class="flex items-center my-3 text-gray-500 text-[10px] uppercase font-bold tracking-wider">
+        <div class="flex-1 border-t border-brandBorder"></div>
+        <span class="px-3">o con tu correo</span>
+        <div class="flex-1 border-t border-brandBorder"></div>
+      </div>
+
+      <!-- Formulario Login / Registro -->
+      <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block text-gray-400 font-semibold mb-1">Correo Electrónico (Tu Usuario)</label>
+          <input required type="email" id="authEmail" placeholder="ejemplo@kido.com.ar"
+            class="w-full bg-brandSurface border border-brandBorder rounded-xl p-2.5 text-white focus:outline-none focus:border-brandAccent">
+        </div>
+        <div>
+          <label class="block text-gray-400 font-semibold mb-1">Contraseña</label>
+          <input required type="password" id="authPassword" placeholder="••••••••"
+            class="w-full bg-brandSurface border border-brandBorder rounded-xl p-2.5 text-white focus:outline-none focus:border-brandAccent">
+        </div>
+
+        <!-- Campos adicionales si es Registro -->
+        <div id="registerExtraFields" class="hidden space-y-3 pt-2">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-gray-400 font-semibold mb-1">Nombre</label>
+              <input type="text" id="regFirstName" placeholder="Martín"
+                class="w-full bg-brandSurface border border-brandBorder rounded-xl p-2.5 text-white">
+            </div>
+            <div>
+              <label class="block text-gray-400 font-semibold mb-1">Apellido</label>
+              <input type="text" id="regLastName" placeholder="Gómez"
+                class="w-full bg-brandSurface border border-brandBorder rounded-xl p-2.5 text-white">
+            </div>
+          </div>
+          <div>
+            <label class="block text-gray-400 font-semibold mb-1">Teléfono Celular</label>
+            <input type="text" id="regPhone" placeholder="+54 11 4444-1234"
+              class="w-full bg-brandSurface border border-brandBorder rounded-xl p-2.5 text-white">
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <div class="col-span-1">
+              <label class="block text-gray-400 font-semibold mb-1">Localidad</label>
+              <input type="text" id="regLocality" placeholder="CABA"
+                class="w-full bg-brandSurface border border-brandBorder rounded-xl p-2.5 text-white">
+            </div>
+            <div class="col-span-1">
+              <label class="block text-gray-400 font-semibold mb-1">Calle</label>
+              <input type="text" id="regStreet" placeholder="Av. Cabildo"
+                class="w-full bg-brandSurface border border-brandBorder rounded-xl p-2.5 text-white">
+            </div>
+            <div class="col-span-1">
+              <label class="block text-gray-400 font-semibold mb-1">Altura</label>
+              <input type="text" id="regNumber" placeholder="2400"
+                class="w-full bg-brandSurface border border-brandBorder rounded-xl p-2.5 text-white">
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" id="authSubmitBtn"
+          class="w-full bg-brandAccent hover:bg-brandAccentHover text-white py-3 rounded-xl font-bold uppercase tracking-wider text-xs transition mt-2">
+          Iniciar Sesión
+        </button>
+      </form>
+
+      <div class="text-center mt-4 text-xs text-gray-400">
+        <span id="authToggleText">¿No tenés cuenta?</span>
+        <button onclick="toggleAuthMode()" id="authToggleBtn" class="text-brandAccent font-bold hover:underline ml-1">
+          Crear cuenta de cliente
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL DE PERFIL DE CLIENTE & CLIENTE FRECUENTE           -->
+  <!-- ======================================================== -->
+  <div id="profileModal"
+    class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div
+      class="bg-brandCard border border-brandBorder rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl max-h-[90vh] overflow-y-auto relative">
+      <button onclick="closeProfileModal()"
+        class="absolute top-4 right-4 text-gray-400 hover:text-white font-bold">✕</button>
+
+      <div id="profileContent">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL DE RANKINGS DE LA COMUNIDAD                        -->
+  <!-- ======================================================== -->
+  <div id="rankingsModal"
+    class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div
+      class="bg-brandCard border border-brandBorder rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl max-h-[90vh] overflow-y-auto relative">
+      <button onclick="closeRankingsModal()"
+        class="absolute top-4 right-4 text-gray-400 hover:text-white font-bold">✕</button>
+
+      <div class="flex items-center gap-3 mb-4">
+        <span class="text-3xl">🏆</span>
+        <div>
+          <h3 class="font-display font-bold text-xl text-white">Rankings de Coleccionistas KIDO</h3>
+          <p class="text-xs text-gray-400">Gamificación y fidelidad de clientes frecuentes</p>
+        </div>
+      </div>
+
+      <!-- Explicación de Reglas -->
+      <div class="bg-brandSurface p-3.5 rounded-2xl border border-brandBorder text-xs text-gray-300 mb-6 space-y-1.5">
+        <div class="font-bold text-amber-400 flex items-center gap-1.5">
+          <span>📜</span> Reglas del Club de Clientes Frecuentes:
+        </div>
+        <p>• <b>Cliente Frecuente:</b> Se alcanza al comprar al menos 1 vez por mes durante más de 3 meses consecutivos.
+        </p>
+        <p>• <b>Puntos Frecuentes:</b> 1 punto por cada mes adicional después de los 3 meses.</p>
+        <p>• <b>Puntos por Compras:</b> 1 punto por cada compra realizada en la tienda.</p>
+        <p>• <b>Beneficios:</b> Descuentos exclusivos y <b>1 número de rifa GRATIS</b> por cada sorteo oficial.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        <!-- Ranking 1 -->
+        <div class="bg-brandSurface p-4 rounded-2xl border border-brandBorder">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-amber-400 mb-3 flex items-center gap-1.5">
+            <span>⭐</span> Ranking Clientes Frecuentes
+          </h4>
+          <div id="frequentRankingList" class="space-y-2 text-xs">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Ranking 2 -->
+        <div class="bg-brandSurface p-4 rounded-2xl border border-brandBorder">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-blue-400 mb-3 flex items-center gap-1.5">
+            <span>🛒</span> Ranking por Compras Hechas
+          </h4>
+          <div id="purchasesRankingList" class="space-y-2 text-xs">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL DE RIFAS & SORTEOS (SELECCIÓN DE NÚMEROS)          -->
+  <!-- ======================================================== -->
+  <div id="rafflesModal"
+    class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div
+      class="bg-brandCard border border-brandBorder rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl max-h-[90vh] overflow-y-auto relative">
+      <button onclick="closeRafflesModal()"
+        class="absolute top-4 right-4 text-gray-400 hover:text-white font-bold">✕</button>
+
+      <div id="raffleModalContent">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL DE DETALLE DE PRODUCTO (QUICK VIEW)                -->
+  <!-- ======================================================== -->
+  <div id="productModal"
+    class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div
+      class="bg-brandCard border border-brandBorder rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl relative">
+      <button onclick="closeProductModal()"
+        class="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-black/60 border border-brandBorder text-gray-300 hover:text-white flex items-center justify-center font-bold">✕</button>
+
+      <div id="modalContent" class="p-6 md:p-8">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- DRAWER DEL CARRITO & PAGOS PARCIALES                     -->
+  <!-- ======================================================== -->
+  <div id="cartDrawer" class="fixed inset-0 z-50 overflow-hidden hidden">
+    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity" onclick="toggleCartDrawer(false)">
+    </div>
+
+    <div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
+      <div class="w-screen max-w-md bg-brandSurface border-l border-brandBorder shadow-2xl flex flex-col">
+
+        <div class="p-5 border-b border-brandBorder flex items-center justify-between bg-brandDark">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🛒</span>
+            <h3 class="font-display font-bold text-lg text-white">Carrito de Colección</h3>
+          </div>
+          <button onclick="toggleCartDrawer(false)" class="text-gray-400 hover:text-white text-lg font-bold">✕</button>
+        </div>
+
+        <div id="cartItemsList" class="flex-1 overflow-y-auto p-5 space-y-4">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <div class="p-5 border-t border-brandBorder bg-brandDark space-y-3">
+
+          <!-- Opciones de Pago (Total vs Parcial / Seña) -->
+          <div class="bg-brandCard p-3 rounded-2xl border border-brandBorder space-y-2 text-xs">
+            <span class="font-bold text-gray-300 block">Modalidad de Pago:</span>
+
+            <label
+              class="flex items-center justify-between p-2 rounded-xl bg-brandSurface border border-brandBorder cursor-pointer">
+              <div class="flex items-center gap-2">
+                <input type="radio" name="cartPaymentMode" id="payModeFull" checked onchange="updateCartUI()"
+                  class="text-brandAccent">
+                <span class="font-semibold text-white">Pago Total (100%)</span>
+              </div>
+              <span class="text-[10px] text-emerald-400 font-bold">Despacho Inmediato</span>
+            </label>
+
+            <label
+              class="flex items-center justify-between p-2 rounded-xl bg-brandSurface border border-brandBorder cursor-pointer">
+              <div class="flex items-center gap-2">
+                <input type="radio" name="cartPaymentMode" id="payModePartial" onchange="updateCartUI()"
+                  class="text-brandAccent">
+                <div>
+                  <span class="font-semibold text-white block">Pago Parcial / Seña (30%)</span>
+                  <span class="text-[10px] text-gray-400">Congela precio y reserva</span>
+                </div>
+              </div>
+              <span class="text-[10px] text-amber-400 font-bold">Entrega al completar</span>
+            </label>
+          </div>
+
+          <div class="flex justify-between items-center text-sm">
+            <span class="text-gray-400">Total del Pedido:</span>
+            <span id="cartTotalARS" class="font-bold text-white">$0</span>
+          </div>
+
+          <div class="flex justify-between items-center text-base pt-1 border-t border-brandBorder">
+            <span class="font-bold text-white">Abonar Ahora con MP:</span>
+            <span id="cartPayNowARS" class="font-black text-2xl text-brandAccent font-display">$0</span>
+          </div>
+
+          <button id="checkoutBtn" onclick="openCheckoutModal()"
+            class="w-full bg-brandAccent hover:bg-brandAccentHover text-white py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider transition shadow-lg flex items-center justify-center gap-2">
+            <span>Pagar con Mercado Pago</span> →
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL DE CHECKOUT MERCADO PAGO                           -->
+  <!-- ======================================================== -->
+  <div id="checkoutModal"
+    class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="bg-brandCard border border-brandBorder rounded-3xl max-w-lg w-full p-6 md:p-8 shadow-2xl relative">
+      <button onclick="closeCheckoutModal()"
+        class="absolute top-4 right-4 text-gray-400 hover:text-white font-bold">✕</button>
+
+      <div id="checkoutModalContent">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTÓN FLOTANTE DE WHATSAPP -->
+  <aside aria-label="Contacto por WhatsApp" class="fixed bottom-6 right-6 z-40">
+    <a href="https://wa.me/5492994517097?text=Hola%20vengo%20de%20la%20Pagina%20de%20KIDO%20Garage%20y%20quiero%20consultar%3A"
+      target="_blank" rel="noopener noreferrer" id="whatsappFloatingBtn"
+      class="bg-[#25D366] hover:bg-[#20ba5a] text-white p-3.5 sm:px-4 sm:py-3 rounded-full sm:rounded-2xl shadow-[0_10px_25px_rgba(37,211,102,0.4)] flex items-center gap-3 transition-all duration-300 hover:scale-105 group border border-emerald-400/40 glow-accent"
+      aria-label="Consultar por WhatsApp" title="Consultar por WhatsApp: +54 9 2994 51-7097">
+      <div class="relative flex-shrink-0">
+        <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24">
+          <path
+            d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.13.564 4.129 1.547 5.867l-1.644 6.004 6.168-1.618c1.677.915 3.597 1.433 5.635 1.433 6.627 0 12-5.373 12-12 0-6.627-5.373-12-12-12zm0 21.692c-1.892 0-3.654-.539-5.148-1.468l-.369-.23-3.834 1.006 1.024-3.738-.25-.399c-1.026-1.637-1.567-3.535-1.567-5.503 0-5.334 4.34-9.674 9.676-9.674 5.334 0 9.674 4.34 9.674 9.674 0 5.335-4.34 9.676-9.676 9.676z" />
+        </svg>
+        <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-white rounded-full animate-ping"></span>
+      </div>
+      <div class="hidden sm:flex flex-col text-left leading-tight">
+        <span class="text-xs font-black tracking-wide">KIDO</span>
+        <span class="text-[10px] text-white/90 font-semibold"></span>
+      </div>
+    </a>
+  </aside>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast"
+    class="fixed bottom-24 right-6 z-50 bg-brandCard border border-brandAccent text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 transform translate-y-24 opacity-0 transition duration-300 pointer-events-none">
+    <span class="text-xl">✅</span>
+    <span id="toastMsg" class="text-xs font-semibold">Mensaje</span>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- JAVASCRIPT PRINCIPAL DEL FRONTEND                        -->
+  <!-- ======================================================== -->
+  <script>
+    // Estado de la aplicación
+    let allProducts = [];
+    let displayedProducts = [];
+    let featuredProducts = [];
+    let featuredSlideIndex = 0;
+    let featuredTimer = null;
+    let cart = JSON.parse(localStorage.getItem('kido_cart') || '[]');
+    let currentUser = JSON.parse(localStorage.getItem('kido_user') || 'null');
+    let activeRaffles = [];
+
+    let currentFilter = {
+      brand: '',
+      scale: 'ALL',
+      type: 'ALL',
+      status: 'ALL',
+      search: '',
+      sort: 'featured'
+    };
+
+    function formatARS(val) {
+      return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(val);
+    }
+
+    // Inicializar
+    async function initApp() {
+      await loadProducts();
+      await loadRaffles();
+      updateAuthUI();
+      updateCartUI();
+    }
+
+    // Cargar Productos
+    async function loadProducts() {
+      try {
+        const res = await fetch('/api/products');
+        if (res.ok) {
+          const data = await res.json();
+          allProducts = data.products || [];
+        } else {
+          const resLocal = await fetch('./products_sample.json');
+          const data = await resLocal.json();
+          allProducts = data.products || [];
+        }
+      } catch (e) {
+        console.error('Error cargando catálogo:', e);
+      }
+
+      // Preparar productos destacados para el carrusel
+      featuredProducts = allProducts.filter(p =>
+        p.has_chase_chance || p.status === 'PRE_VENTA' || p.price_ars > 20000 || p.product_type === 'Remera'
+      ).slice(0, 5);
+
+      initFeaturedCarousel();
+      applyFilters();
+    }
+
+    // Cargar Rifas
+    async function loadRaffles() {
+      try {
+        const res = await fetch('/api/raffles');
+        if (res.ok) {
+          const data = await res.json();
+          activeRaffles = data.raffles || [];
+        }
+      } catch (e) {
+        console.error('Error cargando rifas:', e);
+      }
+    }
+
+    // Carrusel Destacados
+    function initFeaturedCarousel() {
+      if (featuredProducts.length === 0) return;
+      renderFeaturedSlide();
+
+      const dotsContainer = document.getElementById('featuredDots');
+      dotsContainer.innerHTML = featuredProducts.map((_, i) => `
+        <button onclick="setFeaturedSlide(${i})" class="w-2.5 h-2.5 rounded-full transition ${i === featuredSlideIndex ? 'bg-brandAccent w-6' : 'bg-gray-600'}"></button>
+      `).join('');
+
+      clearInterval(featuredTimer);
+      featuredTimer = setInterval(nextFeaturedSlide, 5000);
+    }
+
+    function renderFeaturedSlide() {
+      const p = featuredProducts[featuredSlideIndex];
+      if (!p) return;
+
+      const container = document.getElementById('featuredSlideContainer');
+      const img = (p.images && p.images[0] && p.images[0].src) ? p.images[0].src : 'https://via.placeholder.com/500x300';
+
+      container.innerHTML = `
+        <div class="max-w-xl lg:max-w-2xl xl:max-w-3xl">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="bg-brandAccent text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full">Destacado KIDO</span>
+            <span class="text-xs text-gray-400 font-bold">${p.vendor}</span>
+            ${p.has_chase_chance ? '<span class="badge-chase text-black text-[9px] font-black px-2 py-0.5 rounded">CHASE 1/24</span>' : ''}
+          </div>
+          <h2 class="text-2xl md:text-4xl lg:text-5xl font-black text-white font-display leading-tight">${p.title}</h2>
+          <p class="text-xs md:text-sm text-gray-300 mt-3 line-clamp-2 md:line-clamp-3 leading-relaxed">${p.body_html.replace(/<[^>]*>?/gm, '') || 'Modelo premium coleccionable con detalles de precisión y pintura especial.'}</p>
+          
+          <div class="mt-5 flex items-baseline gap-4">
+            <span class="text-3xl md:text-4xl font-black text-white font-display">${formatARS(p.price_ars)}</span>
+            <span class="text-xs text-gray-400 font-semibold">USD $${p.price_usd} ref.</span>
+            <span class="text-xs text-emerald-400 font-semibold">30% Seña disponible</span>
+          </div>
+
+          <div class="mt-6 flex flex-wrap gap-3">
+            <button onclick="addToCart(${p.id})" class="bg-brandAccent hover:bg-brandAccentHover text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition shadow-lg flex items-center gap-2">
+              <span>🛒</span> ${p.status === 'PRE_VENTA' ? 'Reservar Preventa' : 'Comprar Ahora'}
+            </button>
+            <button onclick="openProductDetail(${p.id})" class="bg-brandSurface hover:bg-brandBorder text-gray-200 border border-brandBorder px-4 py-3 rounded-xl font-semibold text-xs transition">
+              Ver Detalles
+            </button>
+          </div>
+        </div>
+
+        <div class="relative w-64 h-64 md:w-80 md:h-80 lg:w-96 lg:h-96 xl:w-[440px] xl:h-[440px] flex-shrink-0 flex items-center justify-center p-6 bg-black/40 rounded-3xl border border-brandBorder glow-accent">
+          <img src="${img}" alt="${p.title}" class="max-h-56 md:max-h-72 lg:max-h-80 xl:max-h-96 max-w-full object-contain">
+        </div>
+      `;
+
+      // Update dots
+      const dots = document.querySelectorAll('#featuredDots button');
+      dots.forEach((dot, i) => {
+        if (i === featuredSlideIndex) {
+          dot.className = 'w-6 h-2.5 rounded-full bg-brandAccent transition';
+        } else {
+          dot.className = 'w-2.5 h-2.5 rounded-full bg-gray-600 transition';
+        }
+      });
+    }
+
+    function nextFeaturedSlide() {
+      featuredSlideIndex = (featuredSlideIndex + 1) % featuredProducts.length;
+      renderFeaturedSlide();
+    }
+    function prevFeaturedSlide() {
+      featuredSlideIndex = (featuredSlideIndex - 1 + featuredProducts.length) % featuredProducts.length;
+      renderFeaturedSlide();
+    }
+    function setFeaturedSlide(idx) {
+      featuredSlideIndex = idx;
+      renderFeaturedSlide();
+    }
+
+    // Filtrado y Renderizado del Catálogo
+    function applyFilters() {
+      displayedProducts = allProducts.filter(p => {
+        if (currentFilter.brand && !p.vendor.toLowerCase().includes(currentFilter.brand.toLowerCase())) {
+          return false;
+        }
+        if (currentFilter.status !== 'ALL' && p.status !== currentFilter.status) {
+          return false;
+        }
+        if (currentFilter.scale !== 'ALL' && p.scale !== currentFilter.scale) {
+          return false;
+        }
+        if (currentFilter.type !== 'ALL' && p.product_type !== currentFilter.type) {
+          return false;
+        }
+        if (currentFilter.search) {
+          const q = currentFilter.search.toLowerCase();
+          const target = `${p.title} ${p.vendor} ${p.product_type} ${p.scale || ''} ${p.apparel_size || ''}`.toLowerCase();
+          if (!target.includes(q)) return false;
+        }
+        return true;
+      });
+
+      if (currentFilter.sort === 'price-asc') displayedProducts.sort((a, b) => a.price_ars - b.price_ars);
+      else if (currentFilter.sort === 'price-desc') displayedProducts.sort((a, b) => b.price_ars - a.price_ars);
+      else if (currentFilter.sort === 'title-asc') displayedProducts.sort((a, b) => a.title.localeCompare(b.title));
+
+      renderProductGrid();
+      updateFilterLabels();
+    }
+
+    function renderProductGrid() {
+      const container = document.getElementById('productGrid');
+      const countBadge = document.getElementById('productCountBadge');
+
+      countBadge.textContent = `${displayedProducts.length} artículos`;
+
+      if (displayedProducts.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full py-16 text-center">
+            <span class="text-4xl mb-3 block">🏎️💨</span>
+            <h3 class="text-base font-bold text-white">No hay productos que coincidan con la búsqueda</h3>
+            <button onclick="resetFilters()" class="mt-4 bg-brandAccent text-white px-4 py-2 rounded-xl text-xs font-bold">
+              Ver Todos los Artículos
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = displayedProducts.map(p => {
+        const img = (p.images && p.images[0] && p.images[0].src) ? p.images[0].src : (p.gallery_images && p.gallery_images[0] ? p.gallery_images[0] : 'https://via.placeholder.com/300');
+
+        let statusBadge = '';
+        if (p.stock_quantity === 0 || p.status === 'AGOTADO') {
+          statusBadge = '<span class="bg-gray-700 text-gray-300 text-[10px] font-black px-2 py-0.5 rounded tracking-wider uppercase">AGOTADO</span>';
+        } else if (p.status === 'PRE_VENTA') {
+          statusBadge = '<span class="badge-preventa text-white text-[10px] font-black px-2 py-0.5 rounded tracking-wider uppercase">PRE-VENTA</span>';
+        } else {
+          statusBadge = '<span class="badge-stock text-white text-[10px] font-black px-2 py-0.5 rounded tracking-wider uppercase">STOCK</span>';
+        }
+
+        const chaseBadge = p.has_chase_chance
+          ? '<span class="badge-chase text-black text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider uppercase flex items-center gap-1">⭐ CHASE 1/24</span>'
+          : '';
+
+        const typeInfo = p.product_type === 'Autito' ? (p.scale || '1:64') : (p.product_type === 'Remera' ? (p.apparel_size || 'Talles S-XL') : 'Sticker Vinilo');
+
+        return `
+          <div class="bg-brandCard border border-brandBorder rounded-2xl overflow-hidden flex flex-col justify-between hover:border-gray-600 transition-all duration-300 group hover:-translate-y-1 shadow-lg">
+            
+            <div class="relative p-4 bg-black/40 overflow-hidden cursor-pointer" onclick="openProductDetail(${p.id})">
+              <div class="absolute top-3 left-3 z-10 flex flex-col gap-1 items-start">
+                ${statusBadge}
+                ${chaseBadge}
+              </div>
+
+              <span class="absolute top-3 right-3 z-10 text-[10px] font-bold bg-brandSurface/90 text-gray-300 border border-brandBorder px-2 py-0.5 rounded">
+                ${typeInfo}
+              </span>
+
+              <img 
+                src="${img}" 
+                alt="${p.title}" 
+                loading="lazy"
+                class="w-full h-48 object-contain group-hover:scale-105 transition-transform duration-500"
+              >
+            </div>
+
+            <div class="p-4 flex flex-col flex-grow justify-between bg-brandCard">
+              <div onclick="openProductDetail(${p.id})" class="cursor-pointer">
+                <p class="text-[11px] text-gray-400 uppercase font-bold tracking-wider">${p.vendor}</p>
+                <h3 class="font-bold text-sm text-white mt-1 line-clamp-2 group-hover:text-brandAccent transition" title="${p.title}">
+                  ${p.title}
+                </h3>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-brandBorder flex items-center justify-between">
+                <div>
+                  <span class="text-lg font-black text-white font-display block leading-none">${formatARS(p.price_ars)}</span>
+                  <span class="text-[10px] text-gray-400 font-medium">USD $${p.price_usd}</span>
+                </div>
+                
+                <button 
+                  onclick="addToCart(${p.id})"
+                  class="bg-brandAccent hover:bg-brandAccentHover text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow"
+                  ${p.stock_quantity === 0 && p.status !== 'PRE_VENTA' ? 'disabled' : ''}
+                >
+                  <span>🛒</span> ${p.status === 'PRE_VENTA' ? 'Reservar' : 'Comprar'}
+                </button>
+              </div>
+            </div>
+
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateFilterLabels() {
+      const label = document.getElementById('activeFilterLabel');
+      let parts = [];
+      if (currentFilter.brand) parts.push(`Marca: <b>${currentFilter.brand}</b>`);
+      if (currentFilter.type !== 'ALL') parts.push(`Tipo: <b>${currentFilter.type}</b>`);
+      if (currentFilter.scale !== 'ALL') parts.push(`Escala: <b>${currentFilter.scale}</b>`);
+      if (currentFilter.status !== 'ALL') parts.push(`Estado: <b>${currentFilter.status}</b>`);
+      if (currentFilter.search) parts.push(`Búsqueda: "<b>${currentFilter.search}</b>"`);
+
+      label.innerHTML = parts.length > 0 ? parts.join(' • ') : 'Mostrando todos los modelos e indumentaria disponibles';
+    }
+
+    function filterByBrand(b) { currentFilter.brand = b; applyFilters(); document.getElementById('catalogo').scrollIntoView({ behavior: 'smooth' }); }
+    function filterByType(t) { currentFilter.type = t; if (t !== 'Autito') currentFilter.scale = 'ALL'; applyFilters(); }
+    function filterByScale(s) { currentFilter.scale = s; applyFilters(); }
+    function filterByStatus(s) { currentFilter.status = s; applyFilters(); }
+    function handleSearch(val) { currentFilter.search = val.trim(); applyFilters(); }
+    function clearSearch() { document.getElementById('searchInput').value = ''; currentFilter.search = ''; applyFilters(); }
+    function handleSort(val) { currentFilter.sort = val; applyFilters(); }
+    function resetFilters() {
+      currentFilter = { brand: '', scale: 'ALL', type: 'ALL', status: 'ALL', search: '', sort: 'featured' };
+      const el = document.getElementById('searchInput'); if (el) el.value = '';
+      applyFilters();
+    }
+
+    // Modal de Detalle de Producto
+    function openProductDetail(id) {
+      const p = allProducts.find(x => x.id == id);
+      if (!p) return;
+
+      const modal = document.getElementById('productModal');
+      const content = document.getElementById('modalContent');
+      const images = p.gallery_images && p.gallery_images.length > 0 ? p.gallery_images : (p.images && p.images.length > 0 ? p.images.map(i => i.src) : ['https://via.placeholder.com/500']);
+
+      const thumbs = images.length > 1 ? `
+        <div class="flex gap-2 mt-3 overflow-x-auto pb-1">
+          ${images.map(img => `
+            <img src="${img}" onclick="document.getElementById('modalMainImg').src='${img}'" class="w-16 h-12 object-contain bg-black/50 border border-brandBorder rounded-lg cursor-pointer hover:border-brandAccent transition">
+          `).join('')}
+        </div>
+      ` : '';
+
+      const videoSection = p.short_video_url ? `
+        <div class="mt-4 p-3 bg-brandSurface rounded-2xl border border-brandBorder">
+          <span class="text-[11px] font-bold text-gray-300 block mb-1">📹 Video de Demostración del Artículo:</span>
+          <video src="${p.short_video_url}" controls class="w-full h-36 rounded-xl object-cover bg-black" muted autoplay loop></video>
+        </div>
+      ` : '';
+
+      content.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+          <div>
+            <div class="bg-black/60 border border-brandBorder rounded-2xl p-4 flex items-center justify-center min-h-[260px]">
+              <img id="modalMainImg" src="${images[0]}" alt="${p.title}" class="max-h-72 object-contain">
+            </div>
+            ${thumbs}
+            ${videoSection}
+          </div>
+
+          <div class="flex flex-col justify-between h-full">
+            <div>
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-xs uppercase font-extrabold text-brandAccent">${p.vendor}</span>
+                <span class="text-xs text-gray-500">•</span>
+                <span class="text-xs text-gray-400 font-semibold">${p.product_type}</span>
+                ${p.scale ? `<span class="text-xs text-gray-400">(${p.scale})</span>` : ''}
+                ${p.apparel_size ? `<span class="text-xs text-blue-400 font-bold">(Talle: ${p.apparel_size})</span>` : ''}
+              </div>
+
+              <h2 class="text-xl font-black text-white font-display leading-snug">${p.title}</h2>
+              
+              <div class="mt-4 flex items-baseline gap-3">
+                <span class="text-3xl font-black text-white font-display">${formatARS(p.price_ars)}</span>
+                <span class="text-xs text-gray-400 font-semibold">USD $${p.price_usd}</span>
+              </div>
+
+              <div class="mt-4 grid grid-cols-2 gap-2 text-xs">
+                <div class="bg-brandSurface p-2.5 rounded-xl border border-brandBorder">
+                  <span class="text-gray-500 block text-[10px]">Stock Disponible</span>
+                  <span class="${p.stock_quantity > 0 ? 'text-emerald-400' : 'text-red-400'} font-bold">
+                    ${p.stock_quantity > 0 ? `${p.stock_quantity} unidades` : 'Agotado'}
+                  </span>
+                </div>
+                <div class="bg-brandSurface p-2.5 rounded-xl border border-brandBorder">
+                  <span class="text-gray-500 block text-[10px]">Opción de Seña</span>
+                  <span class="text-amber-400 font-bold">30% Disponible</span>
+                </div>
+              </div>
+
+              <div class="mt-4 text-xs text-gray-300 leading-relaxed border-t border-brandBorder pt-3 max-h-36 overflow-y-auto">
+                ${p.body_html || '<p>Artículo de alta calidad con empaque oficial para coleccionistas.</p>'}
+              </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-brandBorder space-y-2">
+              <button 
+                onclick="addToCart(${p.id}); closeProductModal(); toggleCartDrawer(true);"
+                class="w-full bg-brandAccent hover:bg-brandAccentHover text-white py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition shadow-lg flex items-center justify-center gap-2"
+              >
+                <span>🛒</span> Agregar al Carrito & Reservar
+              </button>
+              
+              <a 
+                href="https://wa.me/5492994517097?text=${encodeURIComponent('Hola vengo de la Pagina de KIDO Garage y quiero consultar por: ' + p.title)}" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                class="w-full bg-[#25D366]/15 hover:bg-[#25D366]/25 text-emerald-400 border border-[#25D366]/30 py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2"
+              >
+                <span>💬</span> Consultar este artículo por WhatsApp
+              </a>
+            </div>
+          </div>
+        </div>
+      `;
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeProductModal() {
+      document.getElementById('productModal').classList.add('hidden');
+    }
+
+    // Carrito y Pagos Parciales
+    function addToCart(id) {
+      const p = allProducts.find(x => x.id == id);
+      if (!p) return;
+
+      const existing = cart.find(x => x.id == id);
+      if (existing) {
+        existing.quantity += 1;
+      } else {
+        const img = (p.images && p.images[0] && p.images[0].src) ? p.images[0].src : (p.gallery_images && p.gallery_images[0] ? p.gallery_images[0] : '');
+        cart.push({
+          id: p.id,
+          title: p.title,
+          vendor: p.vendor,
+          price_ars: p.price_ars,
+          image: img,
+          quantity: 1,
+          product_type: p.product_type,
+          scale_or_size: p.scale || p.apparel_size || 'N/A'
+        });
+      }
+
+      saveCart();
+      showToast(`"${p.title.slice(0, 25)}..." agregado al carrito`);
+    }
+
+    function updateCartQty(id, delta) {
+      const it = cart.find(x => x.id == id);
+      if (!it) return;
+      it.quantity += delta;
+      if (it.quantity <= 0) cart = cart.filter(x => x.id != id);
+      saveCart();
+    }
+
+    function removeCartItem(id) {
+      cart = cart.filter(x => x.id != id);
+      saveCart();
+    }
+
+    function saveCart() {
+      localStorage.setItem('kido_cart', JSON.stringify(cart));
+      updateCartUI();
+    }
+
+    function updateCartUI() {
+      const badge = document.getElementById('cartCountBadge');
+      const list = document.getElementById('cartItemsList');
+      const totalElem = document.getElementById('cartTotalARS');
+      const payNowElem = document.getElementById('cartPayNowARS');
+      const checkoutBtn = document.getElementById('checkoutBtn');
+
+      const count = cart.reduce((a, b) => a + b.quantity, 0);
+      badge.textContent = count;
+
+      let total = 0;
+      cart.forEach(i => total += i.price_ars * i.quantity);
+
+      const isPartial = document.getElementById('payModePartial') && document.getElementById('payModePartial').checked;
+      const payNow = isPartial ? Math.round(total * 0.3) : total;
+
+      if (cart.length === 0) {
+        list.innerHTML = `
+          <div class="text-center py-16 text-gray-500">
+            <span class="text-4xl block mb-2">🏎️</span>
+            <p class="font-bold text-white text-sm">Tu carrito está vacío</p>
+            <p class="text-xs text-gray-400 mt-1">Explorá los autitos, remeras y stickers.</p>
+          </div>
+        `;
+        if (checkoutBtn) checkoutBtn.disabled = true;
+      } else {
+        if (checkoutBtn) checkoutBtn.disabled = false;
+        list.innerHTML = cart.map(i => `
+          <div class="flex items-center gap-3 bg-brandCard p-3 rounded-2xl border border-brandBorder">
+            <img src="${i.image}" alt="${i.title}" class="w-14 h-12 object-contain bg-black/40 rounded-lg p-1 border border-brandBorder">
+            <div class="flex-1 min-w-0">
+              <span class="text-[9px] uppercase font-bold text-brandAccent">${i.vendor}</span>
+              <h4 class="text-xs font-bold text-white truncate">${i.title}</h4>
+              <div class="text-xs font-black text-brandAccent">${formatARS(i.price_ars)}</div>
+            </div>
+            <div class="flex items-center gap-1.5 bg-brandSurface border border-brandBorder rounded-xl p-1">
+              <button onclick="updateCartQty(${i.id}, -1)" class="w-5 h-5 rounded bg-brandCard text-gray-300 flex items-center justify-center font-bold text-xs">-</button>
+              <span class="text-xs font-bold px-1 text-white">${i.quantity}</span>
+              <button onclick="updateCartQty(${i.id}, 1)" class="w-5 h-5 rounded bg-brandCard text-gray-300 flex items-center justify-center font-bold text-xs">+</button>
+            </div>
+            <button onclick="removeCartItem(${i.id})" class="text-gray-500 hover:text-red-400 p-1 text-sm">🗑️</button>
+          </div>
+        `).join('');
+      }
+
+      totalElem.textContent = formatARS(total);
+      payNowElem.textContent = formatARS(payNow);
+    }
+
+    function toggleCartDrawer(open) {
+      const drawer = document.getElementById('cartDrawer');
+      if (open) {
+        drawer.classList.remove('hidden');
+        updateCartUI();
+      } else {
+        drawer.classList.add('hidden');
+      }
+    }
+
+    // Modal de Checkout con Mercado Pago
+    function openCheckoutModal() {
+      if (cart.length === 0) return;
+      toggleCartDrawer(false);
+
+      const isPartial = document.getElementById('payModePartial') && document.getElementById('payModePartial').checked;
+      let total = 0;
+      cart.forEach(i => total += i.price_ars * i.quantity);
+      const payNow = isPartial ? Math.round(total * 0.3) : total;
+
+      const customerName = currentUser ? `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() : 'Martín Coleccionista';
+      const customerEmail = currentUser ? currentUser.email : 'cliente@kido.com.ar';
+
+      document.getElementById('checkoutModalContent').innerHTML = `
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black">MP</div>
+          <div>
+            <h3 class="font-display font-bold text-lg text-white">Mercado Pago Checkout</h3>
+            <p class="text-xs text-gray-400">Verificación y procesamiento de pago seguro</p>
+          </div>
+        </div>
+
+        <div class="bg-brandSurface p-3.5 rounded-2xl border border-brandBorder mb-4 text-xs">
+          <div class="flex justify-between text-gray-300 mb-1">
+            <span>Total de los Artículos:</span>
+            <span class="font-bold text-white">${formatARS(total)}</span>
+          </div>
+          <div class="flex justify-between text-brandAccent font-bold text-sm">
+            <span>Abonar en esta operación:</span>
+            <span>${formatARS(payNow)}</span>
+          </div>
+          ${isPartial ? `
+            <div class="mt-2 pt-2 border-t border-brandBorder text-[11px] text-amber-300">
+              ⚠️ <b>PAGO PARCIAL (SEÑA 30%):</b> Saldo restante: <b>${formatARS(total - payNow)}</b>.<br>
+              El artículo queda reservado a tu nombre. <b>No se despachará hasta cancelar el 100%</b>.
+            </div>
+          ` : `
+            <div class="mt-2 pt-2 border-t border-brandBorder text-[11px] text-emerald-400">
+              ✅ <b>PAGO TOTAL (100%):</b> El pedido se despachará inmediatamente.
+            </div>
+          `}
+        </div>
+
+        <form onsubmit="handleExecuteOrder(event, ${isPartial}, ${payNow})" class="space-y-3 text-xs">
+          <div>
+            <label class="block text-gray-400 font-semibold mb-1">Nombre Completo</label>
+            <input required id="chkName" type="text" value="${customerName}" class="w-full bg-brandSurface border border-brandBorder rounded-xl p-2.5 text-white">
+          </div>
+          <div>
+            <label class="block text-gray-400 font-semibold mb-1">Correo Electrónico</label>
+            <input required id="chkEmail" type="email" value="${customerEmail}" class="w-full bg-brandSurface border border-brandBorder rounded-xl p-2.5 text-white">
+          </div>
+          <div>
+            <label class="block text-gray-400 font-semibold mb-1">Tarjeta / Medio Mercado Pago</label>
+            <div class="p-3 bg-brandSurface border border-brandAccent rounded-xl flex items-center justify-between">
+              <span class="text-white font-semibold">💳 Tarjeta de Crédito / Débito MP</span>
+              <span class="text-[10px] text-emerald-400 font-bold">Verificación Inmediata</span>
+            </div>
+          </div>
+
+          <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl uppercase tracking-wider text-xs transition mt-2 shadow-lg">
+            Confirmar y Pagar ${formatARS(payNow)}
+          </button>
+        </form>
+      `;
+
+      document.getElementById('checkoutModal').classList.remove('hidden');
+    }
+
+    function closeCheckoutModal() {
+      document.getElementById('checkoutModal').classList.add('hidden');
+    }
+
+    async function handleExecuteOrder(e, isPartial, paidNow) {
+      e.preventDefault();
+      const name = document.getElementById('chkName').value;
+      const email = document.getElementById('chkEmail').value;
+
+      const payload = {
+        customer_id: currentUser ? currentUser.id : 99,
+        customer_email: email,
+        customer_name: name,
+        pay_partial: isPartial,
+        partial_amount: paidNow,
+        order_type: isPartial ? 'PRE_VENTA_CON_SEÑA' : 'VENTA_DIRECTA',
+        items: cart.map(i => ({
+          product_id: i.id,
+          product_title: i.title,
+          quantity: i.quantity,
+          unit_price_ars: i.price_ars,
+          subtotal_ars: i.price_ars * i.quantity,
+          product_type: i.product_type,
+          scale_or_size: i.scale_or_size
+        }))
+      };
+
+      try {
+        const res = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        // Mostrar pantalla de éxito
+        document.getElementById('checkoutModalContent').innerHTML = `
+          <div class="text-center py-6">
+            <span class="text-5xl block mb-3 animate-bounce">🎉</span>
+            <h3 class="text-xl font-black text-white font-display">¡Pago Confirmado con Mercado Pago!</h3>
+            <p class="text-xs text-brandAccent font-bold mt-1">Pedido Nº: ${data.order.order_number}</p>
+            
+            <div class="my-4 p-3 bg-brandSurface rounded-2xl border border-brandBorder text-xs text-left">
+              <div class="flex justify-between text-gray-300"><span>Abonado hoy:</span><b class="text-emerald-400">${formatARS(data.order.total_paid_ars)}</b></div>
+              <div class="flex justify-between text-gray-300 mt-1"><span>Saldo pendiente:</span><b class="text-amber-400">${formatARS(data.order.remaining_balance_ars)}</b></div>
+              <div class="flex justify-between text-gray-300 mt-1"><span>Estado de entrega:</span><b class="${data.order.is_fully_paid ? 'text-emerald-400' : 'text-blue-400'}">${data.order.delivery_status}</b></div>
+            </div>
+
+            <p class="text-[11px] text-gray-400 leading-relaxed">
+              Enviamos el comprobante a <b>${email}</b>.<br>
+              ${!data.order.is_fully_paid ? 'Podrás abonar el saldo restante en cualquier momento desde tu perfil para liberar el despacho.' : 'Tu pedido ya fue enviado a preparación para despacho seguro.'}
+            </p>
+
+            <button onclick="cart = []; saveCart(); closeCheckoutModal();" class="mt-6 bg-brandAccent text-white px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider">
+              Listo, volver a la tienda
+            </button>
+          </div>
+        `;
+
+        if (currentUser) {
+          currentUser.total_purchases_count = (currentUser.total_purchases_count || 0) + 1;
+          localStorage.setItem('kido_user', JSON.stringify(currentUser));
+          updateAuthUI();
+        }
+
+      } catch (err) {
+        alert('Orden registrada localmente.');
+        cart = [];
+        saveCart();
+        closeCheckoutModal();
+      }
+    }
+
+    // ==========================================
+    // GESTIÓN DE RIFAS & NÚMEROS
+    // ==========================================
+    function openRafflesModal() {
+      if (activeRaffles.length === 0) {
+        alert('No hay rifas activas en este momento.');
+        return;
+      }
+      const raf = activeRaffles[0];
+      const content = document.getElementById('raffleModalContent');
+
+      const isFrequent = currentUser && currentUser.is_frequent_customer;
+      const hasFree = isFrequent && !currentUser.has_claimed_free_raffle;
+
+      // Generar grilla de números (ej: 0 al 99)
+      const numbers = [];
+      for (let n = raf.min_number; n <= raf.max_number; n++) {
+        const isTaken = raf.taken_numbers && raf.taken_numbers.includes(n);
+        numbers.push({ number: n, taken: isTaken });
+      }
+
+      content.innerHTML = `
+        <div class="flex items-center justify-between mb-3">
+          <span class="bg-amber-500/20 text-amber-400 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md border border-amber-500/30">
+            ${raf.raffle_number}
+          </span>
+          <span class="text-xs text-gray-400">Sorteo: <b>${raf.draw_datetime}</b></span>
+        </div>
+
+        <h3 class="text-xl font-bold font-display text-white">${raf.title}</h3>
+        <p class="text-xs text-gray-300 mt-1">${raf.prize_description}</p>
+
+        <!-- Barra de progreso -->
+        <div class="my-4 p-4 rounded-2xl bg-black/40 border border-brandBorder">
+          <div class="flex justify-between items-center text-xs mb-2">
+            <span class="text-gray-400">Precio por número: <b class="text-white">${formatARS(raf.ticket_price_ars)}</b></span>
+            <span class="text-amber-400 font-bold">${raf.sold_numbers} / ${raf.total_numbers} vendidos (${Math.round(raf.sold_percentage)}%)</span>
+          </div>
+          <div class="w-full bg-brandBorder h-2.5 rounded-full overflow-hidden">
+            <div class="bg-amber-500 h-full transition-all duration-500" style="width: ${raf.sold_percentage}%"></div>
+          </div>
+        </div>
+
+        ${hasFree ? `
+          <div class="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2">
+              <span class="text-lg">⭐</span>
+              <span class="text-amber-300 font-bold">¡Tenés 1 NÚMERO GRATIS por ser Cliente Frecuente!</span>
+            </div>
+            <span class="text-[10px] text-gray-400">Elegí tu número abajo y reclámalo sin cargo</span>
+          </div>
+        ` : ''}
+
+        <div class="text-xs font-bold text-gray-400 mb-2">Seleccioná tu número de la suerte:</div>
+        
+        <!-- Cuadrícula de Números -->
+        <div class="grid grid-cols-5 sm:grid-cols-10 gap-1.5 max-h-56 overflow-y-auto p-2.5 bg-brandSurface rounded-xl border border-brandBorder text-xs text-center">
+          ${numbers.map(n => {
+        if (n.taken) {
+          return `<span class="p-1.5 rounded bg-brandBorder text-gray-600 line-through cursor-not-allowed select-none" title="Vendido">${n.number < 10 ? '0' + n.number : n.number}</span>`;
+        } else {
+          return `<button onclick="confirmBuyRaffleTicket(${raf.id}, ${n.number}, ${hasFree})" class="p-1.5 rounded bg-brandCard hover:bg-amber-500 hover:text-black text-amber-300 font-bold border border-brandBorder hover:border-amber-400 transition">${n.number < 10 ? '0' + n.number : n.number}</button>`;
+        }
+      }).join('')}
+        </div>
+      `;
+
+      document.getElementById('rafflesModal').classList.remove('hidden');
+    }
+
+    function closeRafflesModal() {
+      document.getElementById('rafflesModal').classList.add('hidden');
+    }
+
+    async function confirmBuyRaffleTicket(raffleId, number, claimFree) {
+      if (!currentUser) {
+        alert('Por favor iniciá sesión o registrate para comprar o reclamar tu número de rifa.');
+        openAuthModal('login');
+        return;
+      }
+
+      const costText = claimFree ? 'GRATIS (Beneficio de Cliente Frecuente)' : '$2.500 ARS vía Mercado Pago';
+      if (!confirm(`¿Confirmás la selección del número #${number} (${costText})?`)) return;
+
+      try {
+        const res = await fetch('/api/raffles/buy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            raffle_id: raffleId,
+            number: number,
+            customer_id: currentUser.id,
+            customer_email: currentUser.email,
+            customer_name: `${currentUser.first_name} ${currentUser.last_name}`,
+            claim_free: claimFree
+          })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          showToast(`¡Número #${number} asignado correctamente!`);
+          if (claimFree) {
+            currentUser.has_claimed_free_raffle = true;
+            localStorage.setItem('kido_user', JSON.stringify(currentUser));
+          }
+          await loadRaffles();
+          openRafflesModal();
+        } else {
+          alert(data.message || 'No se pudo asignar el número.');
+        }
+      } catch (err) {
+        alert('Error conectando con el servidor de rifas.');
+      }
+    }
+
+    // ==========================================
+    // RANKINGS & GAMIFICACIÓN
+    // ==========================================
+    async function openRankingsModal() {
+      const modal = document.getElementById('rankingsModal');
+      try {
+        const res = await fetch('/api/rankings');
+        const data = await res.json();
+
+        // Frequent ranking
+        const fList = document.getElementById('frequentRankingList');
+        fList.innerHTML = (data.frequent_ranking || []).map((r, i) => `
+          <div class="flex items-center justify-between p-2 rounded-xl bg-brandCard border border-brandBorder">
+            <div class="flex items-center gap-2">
+              <span class="font-black text-xs ${i === 0 ? 'text-amber-400' : (i === 1 ? 'text-gray-300' : 'text-amber-700')}">#${i + 1}</span>
+              <img src="${r.avatar_url}" class="w-6 h-6 rounded-full object-cover">
+              <span class="text-white font-semibold">${r.name}</span>
+            </div>
+            <div class="text-right">
+              <span class="font-black text-brandAccent">${r.frequent_points} pts</span>
+              <span class="text-[10px] text-gray-400 block">${r.consecutive_months} meses</span>
+            </div>
+          </div>
+        `).join('');
+
+        // Purchases ranking
+        const pList = document.getElementById('purchasesRankingList');
+        pList.innerHTML = (data.purchases_ranking || []).map((r, i) => `
+          <div class="flex items-center justify-between p-2 rounded-xl bg-brandCard border border-brandBorder">
+            <div class="flex items-center gap-2">
+              <span class="font-black text-xs ${i === 0 ? 'text-blue-400' : 'text-gray-400'}">#${i + 1}</span>
+              <img src="${r.avatar_url}" class="w-6 h-6 rounded-full object-cover">
+              <span class="text-white font-semibold">${r.name}</span>
+            </div>
+            <div class="text-right">
+              <span class="font-black text-blue-400">${r.total_purchases} compras</span>
+              <span class="text-[10px] text-gray-400 block">${r.total_purchases} pts</span>
+            </div>
+          </div>
+        `).join('');
+
+      } catch (err) {
+        console.error(err);
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeRankingsModal() {
+      document.getElementById('rankingsModal').classList.add('hidden');
+    }
+
+    // ==========================================
+    // AUTENTICACIÓN & PERFIL DE USUARIO
+    // ==========================================
+    let isRegisterMode = false;
+
+    function openAuthModal(mode) {
+      isRegisterMode = (mode === 'register');
+      updateAuthModalFields();
+      document.getElementById('authModal').classList.remove('hidden');
+    }
+
+    function closeAuthModal() {
+      document.getElementById('authModal').classList.add('hidden');
+    }
+
+    function toggleAuthMode() {
+      isRegisterMode = !isRegisterMode;
+      updateAuthModalFields();
+    }
+
+    function updateAuthModalFields() {
+      const title = document.getElementById('authModalTitle');
+      const submitBtn = document.getElementById('authSubmitBtn');
+      const extraFields = document.getElementById('registerExtraFields');
+      const toggleText = document.getElementById('authToggleText');
+      const toggleBtn = document.getElementById('authToggleBtn');
+
+      if (isRegisterMode) {
+        title.textContent = 'Crear Cuenta de Cliente';
+        submitBtn.textContent = 'Registrarse en KIDO';
+        extraFields.classList.remove('hidden');
+        toggleText.textContent = '¿Ya tenés cuenta?';
+        toggleBtn.textContent = 'Iniciar Sesión';
+      } else {
+        title.textContent = 'Ingresar a tu Cuenta';
+        submitBtn.textContent = 'Iniciar Sesión';
+        extraFields.classList.add('hidden');
+        toggleText.textContent = '¿No tenés cuenta?';
+        toggleBtn.textContent = 'Crear cuenta de cliente';
+      }
+    }
+
+    async function handleAuthSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('authEmail').value;
+      const password = document.getElementById('authPassword').value;
+
+      if (isRegisterMode) {
+        const payload = {
+          email: email,
+          password: password,
+          first_name: document.getElementById('regFirstName').value || 'Coleccionista',
+          last_name: document.getElementById('regLastName').value || '',
+          phone: document.getElementById('regPhone').value || '',
+          locality: document.getElementById('regLocality').value || 'CABA',
+          street: document.getElementById('regStreet').value || 'Av. Corrientes',
+          street_number: document.getElementById('regNumber').value || '1000',
+        };
+
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          currentUser = data.user;
+          localStorage.setItem('kido_user', JSON.stringify(currentUser));
+          closeAuthModal();
+          updateAuthUI();
+          showToast(`¡Bienvenido a KIDO, ${currentUser.first_name}!`);
+        } else {
+          alert(data.message || 'Error en el registro');
+        }
+      } else {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, password: password })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          currentUser = data.user;
+          localStorage.setItem('kido_user', JSON.stringify(currentUser));
+          closeAuthModal();
+          updateAuthUI();
+          showToast(`¡Hola de nuevo, ${currentUser.first_name}!`);
+        } else {
+          alert('Correo o contraseña incorrectos.');
+        }
+      }
+    }
+
+    async function handleGoogleSignIn() {
+      // Simulación de OAuth Google
+      const simulatedGoogleUser = {
+        email: "coleccionista.google@gmail.com",
+        first_name: "Gonzalo",
+        last_name: "Diecast",
+        avatar_url: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80"
+      };
+
+      const res = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(simulatedGoogleUser)
+      });
+      const data = await res.json();
+      if (data.success) {
+        currentUser = data.user;
+        localStorage.setItem('kido_user', JSON.stringify(currentUser));
+        closeAuthModal();
+        updateAuthUI();
+        showToast(`¡Sesión iniciada con Google (${currentUser.email})!`);
+      }
+    }
+
+    function logoutUser() {
+      currentUser = null;
+      localStorage.removeItem('kido_user');
+      updateAuthUI();
+      closeProfileModal();
+      showToast('Sesión cerrada.');
+    }
+
+    function updateAuthUI() {
+      const container = document.getElementById('authHeaderContainer');
+      if (!currentUser) {
+        container.innerHTML = `
+          <button onclick="openAuthModal('login')" class="bg-brandSurface hover:bg-brandBorder border border-brandBorder text-gray-200 px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+            <span>👤</span> Ingresar
+          </button>
+        `;
+      } else {
+        const isFreq = currentUser.is_frequent_customer;
+        container.innerHTML = `
+          <button onclick="openProfileModal()" class="flex items-center gap-2 bg-brandCard hover:bg-brandCardHover border border-brandBorder hover:border-brandAccent p-1.5 pr-3 rounded-xl transition">
+            <img src="${currentUser.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'}" class="w-6 h-6 rounded-lg object-cover ring-1 ${isFreq ? 'ring-amber-400' : 'ring-brandBorder'}">
+            <div class="text-left leading-tight hidden sm:block">
+              <span class="text-xs font-bold text-white block">${currentUser.first_name || 'Mi Perfil'}</span>
+              <span class="text-[9px] ${isFreq ? 'text-amber-400 font-black' : 'text-gray-400'}">${isFreq ? '⭐ Frecuente' : 'Cliente'}</span>
+            </div>
+          </button>
+        `;
+      }
+    }
+
+    // Modal de Perfil Completo
+    async function openProfileModal() {
+      if (!currentUser) return;
+      const modal = document.getElementById('profileModal');
+      const content = document.getElementById('profileContent');
+
+      // Consultar pedidos del usuario
+      let userOrders = [];
+      try {
+        const res = await fetch(`/api/orders?email=${encodeURIComponent(currentUser.email)}`);
+        if (res.ok) userOrders = await res.json();
+      } catch (e) { }
+
+      // Cálculo de progreso visual para Cliente Frecuente
+      const months = currentUser.consecutive_months || 1;
+      const isFreq = currentUser.is_frequent_customer;
+      const progressPercent = isFreq ? 100 : Math.min(100, Math.round((months / 3) * 100));
+
+      content.innerHTML = `
+        <div class="flex items-start justify-between border-b border-brandBorder pb-4 mb-5">
+          <div class="flex items-center gap-4">
+            <img src="${currentUser.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'}" class="w-16 h-16 rounded-2xl object-cover ring-2 ${isFreq ? 'ring-amber-400' : 'ring-brandBorder'}">
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-lg font-black text-white font-display">${currentUser.first_name} ${currentUser.last_name}</h3>
+                ${isFreq ? '<span class="bg-amber-500/20 text-amber-400 text-[10px] font-black uppercase px-2 py-0.5 rounded border border-amber-500/30">⭐ Cliente Frecuente</span>' : '<span class="bg-brandSurface text-gray-400 text-[10px] px-2 py-0.5 rounded border border-brandBorder">Cliente Estándar</span>'}
+              </div>
+              <p class="text-xs text-gray-400">${currentUser.email} • ${currentUser.phone || 'Sin celular registrado'}</p>
+              <p class="text-[11px] text-gray-400 mt-0.5">📍 ${currentUser.street || ''} ${currentUser.street_number || ''}, ${currentUser.locality || ''}</p>
+            </div>
+          </div>
+          <button onclick="logoutUser()" class="text-xs text-red-400 hover:text-red-300 font-bold border border-red-500/20 bg-red-500/10 px-3 py-1.5 rounded-xl">
+            Cerrar Sesión
+          </button>
+        </div>
+
+        <!-- GAMIFICACIÓN: PROGRESO CLIENTE FRECUENTE -->
+        <div class="bg-brandSurface p-4 rounded-2xl border border-brandBorder mb-6">
+          <div class="flex items-center justify-between text-xs mb-2">
+            <span class="font-bold text-white flex items-center gap-1.5">
+              <span>🎯</span> Objetivo de Cliente Frecuente:
+            </span>
+            <span class="${isFreq ? 'text-amber-400 font-black' : 'text-gray-300 font-bold'}">
+              ${isFreq ? '¡Objetivo Alcanzado! (Socio Activo)' : `${months} de 3 meses completados`}
+            </span>
+          </div>
+
+          <div class="w-full bg-brandCard h-3 rounded-full overflow-hidden border border-brandBorder p-0.5 mb-2">
+            <div class="h-full rounded-full transition-all duration-500 ${isFreq ? 'bg-gradient-to-r from-amber-500 to-amber-300' : 'bg-brandAccent'}" style="width: ${progressPercent}%"></div>
+          </div>
+
+          <p class="text-[11px] text-gray-400 leading-relaxed">
+            ${isFreq
+          ? `🔥 ¡Felicidades! Llevás <b>${months} meses consecutivos</b> comprando. Tenés acumulados <b>${currentUser.frequent_points || 1} puntos frecuentes</b> en el ranking y <b>1 número gratis habilitado</b> en cada sorteo de rifa.`
+          : `Comprá durante <b>3 meses seguidos</b> para convertirte en Cliente Frecuente. ¡Te falta(n) solo <b>${3 - months} mes(es)</b> para desbloquear descuentos y números de rifa sin costo!`
+        }
+          </p>
+        </div>
+
+        <!-- HISTORIAL DE PEDIDOS Y PAGOS PARCIALES -->
+        <div>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3 flex items-center gap-1.5">
+            <span>📦</span> Historial de Compras & Pagos Parciales
+          </h4>
+
+          ${userOrders.length === 0 ? `
+            <div class="p-6 text-center text-gray-500 bg-brandSurface rounded-2xl border border-brandBorder text-xs">
+              Aún no registrás compras con esta cuenta.
+            </div>
+          ` : `
+            <div class="space-y-3">
+              ${userOrders.map(ord => {
+          const isComplete = ord.is_fully_paid;
+          const paidPct = Math.min(100, Math.round((ord.total_paid_ars / ord.total_ars) * 100));
+
+          return `
+                  <div class="bg-brandSurface p-4 rounded-2xl border border-brandBorder">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="font-mono text-xs font-bold text-white">${ord.order_number}</span>
+                      <span class="text-[10px] font-bold px-2 py-0.5 rounded ${isComplete ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}">
+                        ${ord.delivery_status}
+                      </span>
+                    </div>
+
+                    <div class="text-xs text-gray-300 space-y-1 my-2">
+                      ${ord.items.map(it => `
+                        <div class="flex justify-between">
+                          <span>${it.quantity}x ${it.product_title}</span>
+                          <b>${formatARS(it.subtotal_ars)}</b>
+                        </div>
+                      `).join('')}
+                    </div>
+
+                    <!-- Barra de Pago Parcial -->
+                    <div class="mt-3 pt-3 border-t border-brandBorder">
+                      <div class="flex justify-between text-[11px] mb-1">
+                        <span class="text-gray-400">Progreso de Pago (${paidPct}%):</span>
+                        <span><b>${formatARS(ord.total_paid_ars)}</b> de ${formatARS(ord.total_ars)}</span>
+                      </div>
+                      <div class="w-full bg-brandCard h-2 rounded-full overflow-hidden mb-2">
+                        <div class="h-full ${isComplete ? 'bg-emerald-500' : 'bg-amber-500'}" style="width: ${paidPct}%"></div>
+                      </div>
+
+                      ${!isComplete ? `
+                        <div class="flex items-center justify-between mt-2 pt-2 border-t border-brandBorder/50">
+                          <span class="text-[11px] text-amber-400 font-bold">Saldo Pendiente: ${formatARS(ord.remaining_balance_ars)}</span>
+                          <button onclick="payRemainingBalance(${ord.id}, ${ord.remaining_balance_ars})" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1 rounded-lg text-xs transition">
+                            Abonar Saldo con Mercado Pago
+                          </button>
+                        </div>
+                      ` : `
+                        <div class="text-[10px] text-emerald-400 font-semibold mt-1">
+                          ✅ Pedido 100% cancelado. Preparando embalaje especial para coleccionistas.
+                        </div>
+                      `}
+                    </div>
+                  </div>
+                `;
+        }).join('')}
+            </div>
+          `}
+        </div>
+      `;
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeProfileModal() {
+      document.getElementById('profileModal').classList.add('hidden');
+    }
+
+    async function payRemainingBalance(orderId, remaining) {
+      if (!confirm(`¿Deseas abonar el saldo pendiente de ${formatARS(remaining)} a través de Mercado Pago para liberar la entrega?`)) return;
+
+      try {
+        const res = await fetch('/api/orders/pay-partial', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order_id: orderId, amount_ars: remaining })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('¡Saldo cancelado con éxito! Pedido liberado para despacho.');
+          openProfileModal();
+        }
+      } catch (err) {
+        alert('Error registrando pago parcial.');
+      }
+    }
+
+    // Toast
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = msg;
+      toast.classList.remove('translate-y-24', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-24', 'opacity-0');
+      }, 2800);
+    }
+
+    document.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+
+</html>

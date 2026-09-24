@@ -1,0 +1,454 @@
+﻿{
+    "collections":  [
+                        {
+                            "id":  521145385236,
+                            "title":  "1:18 Scale",
+                            "handle":  "1-18-scale",
+                            "description":  "\u003cdiv class=\"\" data-turn-id-container=\"request-69bda494-9400-8333-8fa6-d2a497c5a3ad-40\" data-is-intersecting=\"true\"\u003e\n\u003cdiv class=\"relative w-full overflow-visible\"\u003e\n\u003csection class=\"text-token-text-primary w-full focus:outline-none [--shadow-height:45px] has-data-writing-block:pointer-events-none has-data-writing-block:-mt-(--shadow-height) has-data-writing-block:pt-(--shadow-height) [\u0026amp;:has([data-writing-block])\u0026gt;*]:pointer-events-auto R6Vx5W_threadScrollVars scroll-mb-[calc(var(--scroll-root-safe-area-inset-bottom,0px)+var(--thread-response-height))] scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]\" dir=\"auto\" data-turn-id=\"request-69bda494-9400-8333-8fa6-d2a497c5a3ad-40\" data-turn-id-container=\"request-69bda494-9400-8333-8fa6-d2a497c5a3ad-40\" data-testid=\"conversation-turn-484\" data-scroll-anchor=\"false\" data-turn=\"assistant\"\u003e\n\u003cdiv class=\"text-base my-auto mx-auto pb-10 [--thread-content-margin:var(--thread-content-margin-xs,calc(var(--spacing)*4))] @w-sm/main:[--thread-content-margin:var(--thread-content-margin-sm,calc(var(--spacing)*6))] @w-lg/main:[--thread-content-margin:var(--thread-content-margin-lg,calc(var(--spacing)*16))] px-(--thread-content-margin)\"\u003e\n\u003cdiv class=\"[--thread-content-max-width:40rem] @w-lg/main:[--thread-content-max-width:48rem] mx-auto max-w-(--thread-content-max-width) flex-1 group/turn-messages focus-visible:outline-hidden relative flex w-full min-w-0 flex-col agent-turn\"\u003e\n\u003cdiv class=\"flex max-w-full flex-col gap-4 grow\"\u003e\n\u003cdiv data-message-author-role=\"assistant\" data-message-id=\"3ece1e22-88ce-40ce-8cd4-20330f954558\" dir=\"auto\" data-message-model-slug=\"gpt-5-5\" class=\"min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+\u0026amp;]:mt-1\" data-turn-start-message=\"true\" tabindex=\"0\"\u003e\n\u003cdiv class=\"flex w-full flex-col gap-1 empty:hidden\"\u003e\n\u003cdiv class=\"markdown prose dark:prose-invert wrap-break-word w-full dark markdown-new-styling\"\u003e\n\u003cp data-start=\"0\" data-end=\"425\" data-is-last-node=\"\" data-is-only-node=\"\"\u003e1:18 scale offers some of the most lifelike detail and display presence in the diecast world. The larger size allows manufacturers to capture finer features and more realistic proportions, often delivering exceptional value compared to smaller scales where intricate details must be heavily miniaturized. The trade-off is simple: these centerpiece models demand a bit more shelf space, but the added realism is well worth it.\u003c/p\u003e\n\u003c/div\u003e\n\u003c/div\u003e\n\u003c/div\u003e\n\u003c/div\u003e\n\u003cdiv class=\"z-0 flex min-h-[46px] justify-start\"\u003e\u003cbr\u003e\u003c/div\u003e\n\u003cdiv class=\"mt-3 w-full empty:hidden\"\u003e\n\u003cdiv class=\"text-center\"\u003e\u003cbr\u003e\u003c/div\u003e\n\u003c/div\u003e\n\u003c/div\u003e\n\u003c/div\u003e\n\u003c/section\u003e\n\u003cdiv class=\"contents\"\u003e\u003cbr\u003e\u003c/div\u003e\n\u003c/div\u003e\n\u003c/div\u003e\n\u003cdiv aria-hidden=\"true\" class=\"pointer-events-none -mt-px h-px translate-y-[calc(var(--scroll-root-safe-area-inset-bottom)-14*var(--spacing))]\"\u003e\u003cbr\u003e\u003c/div\u003e",
+                            "published_at":  "2025-11-18T16:34:12-08:00",
+                            "updated_at":  "2026-09-24T04:18:38-07:00",
+                            "image":  {
+                                          "id":  1753396281620,
+                                          "created_at":  "2025-12-01T00:59:01-08:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/Kai_s_scale_model_size_chart_f58cd2e7-2b2a-44ce-ac5e-c166e87242a0.png?v=1768584090",
+                                          "alt":  null
+                                      },
+                            "products_count":  19
+                        },
+                        {
+                            "id":  521145352468,
+                            "title":  "1:43 Scale",
+                            "handle":  "1-43-scale",
+                            "description":  "\u003cp data-start=\"312\" data-end=\"584\"\u003eA natural step up from 1:64, 1:43 scale offers greater detail and stronger display presence without a dramatic increase in cost or shelf space. It strikes an ideal balance for collectors who want more realism while keeping their collections practical and easy to showcase.\u003c/p\u003e",
+                            "published_at":  "2025-11-18T16:33:35-08:00",
+                            "updated_at":  "2026-09-19T04:18:17-07:00",
+                            "image":  {
+                                          "id":  1753396347156,
+                                          "created_at":  "2025-12-01T01:02:06-08:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/Kai_s_scale_model_size_chart_713377de-14fc-4811-99b9-3f67617adcba.png?v=1768583313",
+                                          "alt":  null
+                                      },
+                            "products_count":  8
+                        },
+                        {
+                            "id":  521145319700,
+                            "title":  "1:64 Scale",
+                            "handle":  "1-64-scale",
+                            "description":  "\u003cp data-start=\"298\" data-end=\"520\"\u003eThe heart of modern diecast collecting lives in 1:64 scale. From everyday legends to race-winning machines and wild widebody builds, this collection brings together the most popular scale in premium collector-focused form.\u003c/p\u003e",
+                            "published_at":  "2025-11-18T16:32:48-08:00",
+                            "updated_at":  "2026-09-24T04:18:38-07:00",
+                            "image":  {
+                                          "id":  1753396314388,
+                                          "created_at":  "2025-12-01T01:01:28-08:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/Kai_s_scale_model_size_chart_47d566ce-812e-48f0-aa84-8932f35bfbd6.png?v=1768583333",
+                                          "alt":  null
+                                      },
+                            "products_count":  281
+                        },
+                        {
+                            "id":  542847861012,
+                            "title":  "Almost Real",
+                            "handle":  "almost-real",
+                            "description":  "\u003cp class=\"PDq2pG_selectionAnchorContainer\"\u003eAlmost Real ARBox delivers premium 1:64 models with detailed motorsport liveries, realistic proportions, and standout special editions made for serious collectors.\u003cspan class=\"PDq2pG_selectionAnchor\"\u003e\u003c/span\u003e\u003c/p\u003e",
+                            "published_at":  "2026-09-03T00:37:28-07:00",
+                            "updated_at":  "2026-09-20T04:17:59-07:00",
+                            "image":  {
+                                          "id":  1759291572500,
+                                          "created_at":  "2026-09-03T00:37:27-07:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/Almost_Real.png?v=1788421696",
+                                          "alt":  ""
+                                      },
+                            "products_count":  6
+                        },
+                        {
+                            "id":  534526918932,
+                            "title":  "American Performance",
+                            "handle":  "american-performance",
+                            "description":  "\u003cp data-start=\"48\" data-end=\"289\"\u003e\u003cstrong data-start=\"48\" data-end=\"289\"\u003eShop American performance diecast models built around muscle, speed, racing heritage, and modern collector appeal. From classic icons to track-focused machines, this collection highlights bold American cars with serious display presence.\u003c/strong\u003e\u003c/p\u003e",
+                            "published_at":  "2026-05-18T17:48:48-07:00",
+                            "updated_at":  "2026-09-24T04:18:38-07:00",
+                            "image":  {
+                                          "id":  1756816769300,
+                                          "created_at":  "2026-05-18T17:48:47-07:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/galstad-imsa-dis-0125-042950-jpg-67a4c14b5d556.jpg?v=1779151727",
+                                          "alt":  null
+                                      },
+                            "products_count":  16
+                        },
+                        {
+                            "id":  542899306772,
+                            "title":  "Aston Martin",
+                            "handle":  "aston-martin",
+                            "description":  "\u003cp\u003eExplore Aston Martin diecast models that capture the brand’s unmistakable blend of British elegance, racing heritage, and high-performance design. From iconic grand tourers to modern GT racers, each model brings refined style to your collection.\u003c/p\u003e",
+                            "published_at":  "2026-09-03T19:49:56-07:00",
+                            "updated_at":  "2026-09-21T04:18:09-07:00",
+                            "image":  {
+                                          "id":  1759308546324,
+                                          "created_at":  "2026-09-03T19:49:55-07:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/Aston_Martin_72212c9c-de9e-43cf-985b-eecf47233403.jpg?v=1788490196",
+                                          "alt":  ""
+                                      },
+                            "products_count":  3
+                        },
+                        {
+                            "id":  534519316756,
+                            "title":  "Audi",
+                            "handle":  "audi",
+                            "description":  "\u003cp data-start=\"32\" data-end=\"276\"\u003e\u003cstrong data-start=\"32\" data-end=\"276\"\u003eShop Audi diecast models built around quattro heritage, clean European design, and motorsport-proven performance. From street icons to GT racing machines, this collection highlights Audi models with sharp detail and true collector presence.\u003c/strong\u003e\u003c/p\u003e",
+                            "published_at":  "2026-05-18T12:57:13-07:00",
+                            "updated_at":  "2026-09-24T04:18:38-07:00",
+                            "image":  {
+                                          "id":  1756815294740,
+                                          "created_at":  "2026-05-18T12:57:12-07:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/Audi-badge-black.webp?v=1779134233",
+                                          "alt":  null
+                                      },
+                            "products_count":  3
+                        },
+                        {
+                            "id":  532506280212,
+                            "title":  "BBR",
+                            "handle":  "bbr",
+                            "description":  "\u003cp data-start=\"298\" data-end=\"608\"\u003eBBR Models is widely regarded as one of the most prestigious names in high-end model collecting. Known for extraordinary craftsmanship, museum-quality finishes, and exceptional attention to detail, BBR produces centerpiece models that represent the pinnacle of automotive miniatures.\u003c/p\u003e",
+                            "published_at":  "2026-04-22T21:15:30-07:00",
+                            "updated_at":  "2026-09-03T15:50:41-07:00",
+                            "image":  {
+                                          "id":  1756282552596,
+                                          "created_at":  "2026-04-22T21:15:29-07:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/BBR_logo_white.jpg?v=1788475841",
+                                          "alt":  null
+                                      },
+                            "products_count":  1
+                        },
+                        {
+                            "id":  520967225620,
+                            "title":  "BMW",
+                            "handle":  "bmw",
+                            "description":  "\u003cp data-start=\"305\" data-end=\"526\"\u003eExplore BMW’s performance heritage in diecast form. From legendary M cars and touring icons to modern GT racers and cutting-edge hypercars, this collection showcases the engineering and motorsport success that define BMW.\u003c/p\u003e",
+                            "published_at":  "2025-11-14T21:08:30-08:00",
+                            "updated_at":  "2026-09-23T04:18:56-07:00",
+                            "image":  {
+                                          "id":  1753048449300,
+                                          "created_at":  "2025-11-14T21:08:30-08:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/BMW_logo.jpg?v=1763183310",
+                                          "alt":  null
+                                      },
+                            "products_count":  27
+                        },
+                        {
+                            "id":  534065250580,
+                            "title":  "Bugatti",
+                            "handle":  "bugatti",
+                            "description":  "\u003cp data-start=\"35\" data-end=\"146\"\u003eShop Bugatti diecast models built around extreme speed, luxury engineering, and unmistakable hypercar presence.\u003c/p\u003e\n\u003cp data-start=\"148\" data-end=\"461\"\u003eFrom the legendary \u003cstrong data-start=\"167\" data-end=\"177\"\u003eVeyron\u003c/strong\u003e and \u003cstrong data-start=\"182\" data-end=\"192\"\u003eChiron\u003c/strong\u003e to modern track-focused machines and special-edition releases, Bugatti models bring a premium feel to any exotic diecast lineup. This collection is for collectors who appreciate record-breaking performance, sculpted design, and display pieces that instantly stand out.\u003c/p\u003e\n\u003cp data-start=\"463\" data-end=\"646\"\u003eWhether you’re building a hypercar collection or adding one of the world’s most recognizable performance brands to your shelf, start here to shop Bugatti models at Kai’s Kollectibles.\u003c/p\u003e",
+                            "published_at":  "2026-05-11T23:22:05-07:00",
+                            "updated_at":  "2026-08-02T04:21:05-07:00",
+                            "image":  {
+                                          "id":  1756679045396,
+                                          "created_at":  "2026-05-11T23:22:04-07:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/476289098_1982434458934848_1548369022120042652_n.jpg?v=1778566924",
+                                          "alt":  null
+                                      },
+                            "products_count":  1
+                        },
+                        {
+                            "id":  534026486036,
+                            "title":  "Chevrolet",
+                            "handle":  "chevrolet",
+                            "description":  "",
+                            "published_at":  "2026-05-11T17:57:52-07:00",
+                            "updated_at":  "2026-09-24T04:18:38-07:00",
+                            "image":  {
+                                          "id":  1756678193428,
+                                          "created_at":  "2026-05-11T17:57:52-07:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/chevy_2_cropped.jpg?v=1778547472",
+                                          "alt":  null
+                                      },
+                            "products_count":  7
+                        },
+                        {
+                            "id":  521919070484,
+                            "title":  "CM Model",
+                            "handle":  "cm-model",
+                            "description":  "\u003cp\u003eCM Model has earned a strong reputation among collectors for producing highly detailed 1:64 models with impressive realism and standout presentation.\u003c/p\u003e",
+                            "published_at":  "2025-12-01T02:37:07-08:00",
+                            "updated_at":  "2026-09-24T04:18:38-07:00",
+                            "image":  {
+                                          "id":  1753396609300,
+                                          "created_at":  "2025-12-01T02:37:06-08:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/CM_Model.png?v=1776581184",
+                                          "alt":  null
+                                      },
+                            "products_count":  5
+                        },
+                        {
+                            "id":  534521676052,
+                            "title":  "Collections",
+                            "handle":  "collections",
+                            "description":  "\u003cp\u003e\u003cstrong\u003eBrowse Kai’s Kollectibles by collecting style, from JDM icons and European performance to motorsports, widebody builds, pop culture releases, and premium diecast brands.\u003c/strong\u003e\u003c/p\u003e",
+                            "published_at":  "2026-05-18T14:13:00-07:00",
+                            "updated_at":  "2026-09-24T04:18:38-07:00",
+                            "image":  {
+                                          "id":  1757158015252,
+                                          "created_at":  "2026-06-04T14:25:35-07:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/561262699_809399312052211_8776991346017672467_n_b6dd2dca-22ef-47e1-873b-023797e51366.jpg?v=1780608335",
+                                          "alt":  null
+                                      },
+                            "products_count":  142
+                        },
+                        {
+                            "id":  534520561940,
+                            "title":  "Diecast Brands",
+                            "handle":  "diecast-brands",
+                            "description":  "\u003cp\u003eShop diecast by brand and explore collector-focused releases from the hottest makers.\u003c/p\u003e",
+                            "published_at":  "2026-05-18T13:27:13-07:00",
+                            "updated_at":  "2026-09-24T04:18:38-07:00",
+                            "image":  {
+                                          "id":  1756815491348,
+                                          "created_at":  "2026-05-18T13:27:12-07:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/all-diecast-brands-collage-orange-underline-1600x900.jpg?v=1779136156",
+                                          "alt":  null
+                                      },
+                            "products_count":  288
+                        },
+                        {
+                            "id":  534523773204,
+                            "title":  "Diorama Accessories",
+                            "handle":  "diorama-accessories",
+                            "description":  "\u003cp data-start=\"570\" data-end=\"809\"\u003e\u003cstrong data-start=\"570\" data-end=\"809\"\u003eBuild out the details around your collection with diorama accessories made for garage scenes, display setups, and model car photography. From tools and props to scene pieces, these small details help your diecast display feel complete.\u003c/strong\u003e\u003c/p\u003e",
+                            "published_at":  "2026-05-18T15:44:34-07:00",
+                            "updated_at":  "2026-09-07T04:18:33-07:00",
+                            "image":  {
+                                          "id":  1756816245012,
+                                          "created_at":  "2026-05-18T15:44:33-07:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/T64A-TL001-HRC_a44d12ee-b3f3-415c-9e59-56600b736571.jpg?v=1779144274",
+                                          "alt":  null
+                                      },
+                            "products_count":  2
+                        },
+                        {
+                            "id":  534522134804,
+                            "title":  "Diorama Figures",
+                            "handle":  "figures",
+                            "description":  "\u003cp data-start=\"51\" data-end=\"273\"\u003e\u003cstrong data-start=\"51\" data-end=\"273\"\u003eBring your diecast scenes to life with diorama figures built for garage setups, paddock displays, street scenes, and collector photography. Perfect for adding scale, movement, and personality to your model car display.\u003c/strong\u003e\u003c/p\u003e",
+                            "published_at":  "2026-05-18T14:41:53-07:00",
+                            "updated_at":  "2026-09-24T04:18:38-07:00",
+                            "image":  {
+                                          "id":  1756815753492,
+                                          "created_at":  "2026-05-18T14:41:52-07:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/20260224_183202_resized.jpg?v=1779140513",
+                                          "alt":  null
+                                      },
+                            "products_count":  8
+                        },
+                        {
+                            "id":  534532915476,
+                            "title":  "Disney",
+                            "handle":  "disney",
+                            "description":  "\u003cp data-start=\"34\" data-end=\"285\"\u003e\u003cstrong data-start=\"34\" data-end=\"285\"\u003eShop Disney-inspired diecast cars and collectible releases featuring fan-favorite characters, themed liveries, and pop culture designs. From display-ready pieces to fun crossover models, this collection brings a playful side to any diecast lineup.\u003c/strong\u003e\u003c/p\u003e",
+                            "published_at":  "2026-05-18T19:39:36-07:00",
+                            "updated_at":  "2026-09-24T04:18:38-07:00",
+                            "image":  {
+                                          "id":  1756822864148,
+                                          "created_at":  "2026-05-18T19:39:36-07:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/T64G-018-MN.jpg?v=1779158376",
+                                          "alt":  null
+                                      },
+                            "products_count":  6
+                        },
+                        {
+                            "id":  532617330964,
+                            "title":  "Drift Legends",
+                            "handle":  "drifting",
+                            "description":  "\u003cp data-start=\"1142\" data-end=\"1361\"\u003eSideways style has become one of the most influential forces in enthusiast culture. From Silvia and AE86 legends to modern drift builds, this collection celebrates the cars that defined drifting in premium diecast form.\u003c/p\u003e",
+                            "published_at":  "2026-04-25T19:24:17-07:00",
+                            "updated_at":  "2026-09-24T04:18:38-07:00",
+                            "image":  {
+                                          "id":  1756804382996,
+                                          "created_at":  "2026-05-18T01:20:48-07:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/Drift.jpg?v=1779092448",
+                                          "alt":  null
+                                      },
+                            "products_count":  11
+                        },
+                        {
+                            "id":  532623556884,
+                            "title":  "European Performance",
+                            "handle":  "european-performance",
+                            "description":  "\u003cp data-start=\"956\" data-end=\"1265\"\u003eExplore European performance icons in 1:64 scale, from precision German engineering to Italian supercar design. This collection features BMW, Porsche, Ferrari, Lamborghini, and more, blending speed, style, and heritage. Built for collectors who appreciate refined performance and global automotive excellence.\u003c/p\u003e",
+                            "published_at":  "2026-04-26T01:25:46-07:00",
+                            "updated_at":  "2026-09-24T04:18:38-07:00",
+                            "image":  {
+                                          "id":  1756804317460,
+                                          "created_at":  "2026-05-18T01:16:05-07:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/689787289_1374458484714288_1868913489861774182_n.jpg?v=1779092165",
+                                          "alt":  null
+                                      },
+                            "products_count":  160
+                        },
+                        {
+                            "id":  522203332884,
+                            "title":  "Everything Diorama",
+                            "handle":  "everything-diorama",
+                            "description":  "\u003cp data-start=\"978\" data-end=\"1189\"\u003eBring your displays to life with premium diorama accessories and scale figures. From mechanics and drivers to garage tools and display details, this collection adds realism and storytelling to any diecast scene.\u003c/p\u003e",
+                            "published_at":  "2025-12-05T14:45:45-08:00",
+                            "updated_at":  "2026-09-24T04:18:38-07:00",
+                            "image":  {
+                                          "id":  1753489703188,
+                                          "created_at":  "2025-12-05T14:45:44-08:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/T64A-TL001-HRC.jpg?v=1779338329",
+                                          "alt":  null
+                                      },
+                            "products_count":  41
+                        },
+                        {
+                            "id":  527712289044,
+                            "title":  "Exotics / Supercars",
+                            "handle":  "exotics-supercars",
+                            "description":  "\u003cp data-start=\"2508\" data-end=\"2797\"\u003eBrowse exotic and hypercar diecast models from the world’s most elite automotive brands. Featuring Bugatti, Lamborghini, and other high-performance icons, this collection blends cutting-edge design with speed and luxury. Built for collectors who appreciate top-tier automotive engineering.\u003c/p\u003e",
+                            "published_at":  "2026-02-18T01:27:09-08:00",
+                            "updated_at":  "2026-09-24T04:18:38-07:00",
+                            "image":  {
+                                          "id":  1754988314900,
+                                          "created_at":  "2026-02-18T01:27:09-08:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/Koeniggsegg_emblem.jpg?v=1771406829",
+                                          "alt":  null
+                                      },
+                            "products_count":  25
+                        },
+                        {
+                            "id":  534533800212,
+                            "title":  "Fast \u0026 Furious",
+                            "handle":  "fast-furious",
+                            "description":  "\u003cp data-start=\"42\" data-end=\"316\"\u003e\u003cstrong data-start=\"42\" data-end=\"316\"\u003eShop Fast \u0026amp; Furious diecast cars inspired by one of the most recognizable movie car franchises in collector culture. From JDM icons and street builds to muscle cars and screen-inspired releases, this collection brings high-energy film favorites into display-ready scale.\u003c/strong\u003e\u003c/p\u003e",
+                            "published_at":  "2026-05-18T19:53:53-07:00",
+                            "updated_at":  "2026-09-24T04:18:38-07:00",
+                            "image":  {
+                                          "id":  1756822929684,
+                                          "created_at":  "2026-05-18T19:53:52-07:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/641g5bt6i9ye1.jpg?v=1779159232",
+                                          "alt":  null
+                                      },
+                            "products_count":  13
+                        },
+                        {
+                            "id":  527712092436,
+                            "title":  "Ferrari",
+                            "handle":  "ferrari",
+                            "description":  "\u003cp data-start=\"320\" data-end=\"597\"\u003eExplore Ferrari’s unmatched blend of performance, design, and racing heritage in diecast form. From timeless road cars like the F40 and 250 GTO to modern GT racers and endurance legends, this collection captures some of the most celebrated cars ever to wear the Prancing Horse.\u003c/p\u003e",
+                            "published_at":  "2026-02-18T01:21:25-08:00",
+                            "updated_at":  "2026-09-24T04:18:38-07:00",
+                            "image":  {
+                                          "id":  1754988282132,
+                                          "created_at":  "2026-02-18T01:21:24-08:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/Ferrari_Logo.jpg?v=1788490149",
+                                          "alt":  null
+                                      },
+                            "products_count":  12
+                        },
+                        {
+                            "id":  534026322196,
+                            "title":  "Ford",
+                            "handle":  "ford",
+                            "description":  "\u003cp data-start=\"32\" data-end=\"138\"\u003eShop Ford diecast models built around American performance, racing heritage, and collector-favorite icons.\u003c/p\u003e\n\u003cp data-start=\"140\" data-end=\"473\"\u003eFrom the legendary \u003cstrong data-start=\"159\" data-end=\"170\"\u003eMustang\u003c/strong\u003e and \u003cstrong data-start=\"175\" data-end=\"183\"\u003eGT40\u003c/strong\u003e to modern \u003cstrong data-start=\"194\" data-end=\"205\"\u003eFord GT\u003c/strong\u003e race cars, rally machines, trucks, and specialty builds, Ford models bring a wide mix of muscle, motorsport, and everyday automotive culture to the shelf. This collection is for collectors who appreciate bold designs, historic liveries, and models with real presence.\u003c/p\u003e\n\u003cp data-start=\"475\" data-end=\"640\"\u003eWhether you’re building a Mustang lineup, adding a Le Mans icon, or expanding your American diecast collection, start here to shop Ford models at Kai’s Kollectibles.\u003c/p\u003e",
+                            "published_at":  "2026-05-11T17:45:35-07:00",
+                            "updated_at":  "2026-09-17T04:19:36-07:00",
+                            "image":  {
+                                          "id":  1756678062356,
+                                          "created_at":  "2026-05-11T17:45:34-07:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/Ford.jpg?v=1778546734",
+                                          "alt":  null
+                                      },
+                            "products_count":  8
+                        },
+                        {
+                            "id":  532614414612,
+                            "title":  "GT \u0026 Hypercar Racing",
+                            "handle":  "gt-hypercar-racing",
+                            "description":  "\u003cp data-start=\"1484\" data-end=\"1706\"\u003eExplore the world of modern endurance racing in miniature. From GT3 and GT4 machines to cutting-edge hypercars, this collection brings together the best of IMSA, Le Mans, DTM and GT World Challenge in premium diecast form.\u003c/p\u003e",
+                            "published_at":  "2026-04-25T16:16:58-07:00",
+                            "updated_at":  "2026-09-24T04:18:38-07:00",
+                            "image":  {
+                                          "id":  1756804415764,
+                                          "created_at":  "2026-05-18T01:21:53-07:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/557801966_803023956023080_2566288316942234391_n.jpg?v=1779092513",
+                                          "alt":  null
+                                      },
+                            "products_count":  73
+                        },
+                        {
+                            "id":  532615528724,
+                            "title":  "Historic Racing",
+                            "handle":  "historic-racing",
+                            "description":  "\u003cp data-start=\"3627\" data-end=\"3916\"\u003eStep back into motorsport history with diecast models inspired by legendary race cars and iconic moments. Featuring classic liveries and championship-winning machines, this collection celebrates the roots of racing culture. Ideal for collectors who value heritage and timeless performance.\u003c/p\u003e",
+                            "published_at":  "2026-04-25T17:26:09-07:00",
+                            "updated_at":  "2026-09-24T04:18:38-07:00",
+                            "image":  {
+                                          "id":  1756804579604,
+                                          "created_at":  "2026-05-18T01:35:14-07:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/T64S-024-75LM58_M03_540x_98653551-d4dc-48b9-9fd1-a222988c0fa5.webp?v=1779093314",
+                                          "alt":  null
+                                      },
+                            "products_count":  8
+                        },
+                        {
+                            "id":  521145090324,
+                            "title":  "Honda/Acura",
+                            "handle":  "honda",
+                            "description":  "\u003cp\u003eFew brands have shaped enthusiast culture like \u003cspan class=\"hover:entity-accent entity-underline inline cursor-pointer align-baseline\"\u003e\u003cspan class=\"whitespace-normal\"\u003eHonda\u003c/span\u003e\u003c/span\u003e and \u003cspan class=\"hover:entity-accent entity-underline inline cursor-pointer align-baseline\"\u003e\u003cspan class=\"whitespace-normal\"\u003eAcura\u003c/span\u003e\u003c/span\u003e. From high-revving Type R legends and the groundbreaking NSX to modern performance icons, this collection captures the engineering precision and motorsport spirit that made these names legendary.\u003c/p\u003e",
+                            "published_at":  "2025-11-18T16:26:50-08:00",
+                            "updated_at":  "2026-09-24T04:18:38-07:00",
+                            "image":  {
+                                          "id":  1753126699284,
+                                          "created_at":  "2025-11-18T16:26:49-08:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/photo-1751601395184-c0e4d0661696.jpg?v=1763512010",
+                                          "alt":  null
+                                      },
+                            "products_count":  23
+                        },
+                        {
+                            "id":  520967487764,
+                            "title":  "Hot Wheels",
+                            "handle":  "hot-wheels",
+                            "description":  "\u003cdiv class=\"flex flex-col text-sm pb-25\"\u003e\n\u003csection class=\"text-token-text-primary w-full focus:outline-none [--shadow-height:45px] has-data-writing-block:pointer-events-none has-data-writing-block:-mt-(--shadow-height) has-data-writing-block:pt-(--shadow-height) [\u0026amp;:has([data-writing-block])\u0026gt;*]:pointer-events-auto scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]\" dir=\"auto\"\u003e\n\u003cdiv class=\"text-base my-auto mx-auto pb-10 [--thread-content-margin:var(--thread-content-margin-xs,calc(var(--spacing)*4))] @w-sm/main:[--thread-content-margin:var(--thread-content-margin-sm,calc(var(--spacing)*6))] @w-lg/main:[--thread-content-margin:var(--thread-content-margin-lg,calc(var(--spacing)*16))] px-(--thread-content-margin)\"\u003e\n\u003cdiv class=\"[--thread-content-max-width:40rem] @w-lg/main:[--thread-content-max-width:48rem] mx-auto max-w-(--thread-content-max-width) flex-1 group/turn-messages focus-visible:outline-hidden relative flex w-full min-w-0 flex-col agent-turn\"\u003e\n\u003cdiv class=\"flex max-w-full flex-col gap-4 grow\"\u003e\n\u003cdiv dir=\"auto\" class=\"min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+\u0026amp;]:mt-1\" tabindex=\"0\"\u003e\n\u003cdiv class=\"flex w-full flex-col gap-1 empty:hidden\"\u003e\n\u003cdiv class=\"markdown prose dark:prose-invert w-full wrap-break-word dark markdown-new-styling\"\u003e\n\u003cdiv class=\"flex flex-col text-sm pb-25\"\u003e\n\u003csection class=\"text-token-text-primary w-full focus:outline-none [--shadow-height:45px] has-data-writing-block:pointer-events-none has-data-writing-block:-mt-(--shadow-height) has-data-writing-block:pt-(--shadow-height) [\u0026amp;:has([data-writing-block])\u0026gt;*]:pointer-events-auto scroll-mt-[calc(var(--header-height)+min(200px,max(70px,20svh)))]\" dir=\"auto\"\u003e\n\u003cdiv class=\"text-base my-auto mx-auto pb-10 [--thread-content-margin:var(--thread-content-margin-xs,calc(var(--spacing)*4))] @w-sm/main:[--thread-content-margin:var(--thread-content-margin-sm,calc(var(--spacing)*6))] @w-lg/main:[--thread-content-margin:var(--thread-content-margin-lg,calc(var(--spacing)*16))] px-(--thread-content-margin)\"\u003e\n\u003cdiv class=\"[--thread-content-max-width:40rem] @w-lg/main:[--thread-content-max-width:48rem] mx-auto max-w-(--thread-content-max-width) flex-1 group/turn-messages focus-visible:outline-hidden relative flex w-full min-w-0 flex-col agent-turn\"\u003e\n\u003cdiv class=\"flex max-w-full flex-col gap-4 grow\"\u003e\n\u003cdiv dir=\"auto\" class=\"min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+\u0026amp;]:mt-1\" tabindex=\"0\"\u003e\n\u003cdiv class=\"flex w-full flex-col gap-1 empty:hidden\"\u003e\n\u003cdiv class=\"markdown prose dark:prose-invert w-full wrap-break-word dark markdown-new-styling\"\u003e\n\u003cp\u003eHot Wheels brings bold design, collector history, and unmatched variety to diecast. Shop premium Car Culture, Team Transport, and enthusiast-focused releases in one place.\u003c/p\u003e\n\u003c/div\u003e\n\u003c/div\u003e\n\u003c/div\u003e\n\u003c/div\u003e\n\u003c/div\u003e\n\u003c/div\u003e\n\u003c/section\u003e\n\u003c/div\u003e\n\u003cdiv class=\"pointer-events-none h-px w-px absolute bottom-0\"\u003e\u003cbr\u003e\u003c/div\u003e\n\u003c/div\u003e\n\u003c/div\u003e\n\u003c/div\u003e\n\u003c/div\u003e\n\u003cdiv class=\"z-0 flex min-h-[46px] justify-start\"\u003e\u003cbr\u003e\u003c/div\u003e\n\u003cdiv class=\"mt-3 w-full empty:hidden\"\u003e\n\u003cdiv class=\"text-center\"\u003e\u003cbr\u003e\u003c/div\u003e\n\u003c/div\u003e\n\u003c/div\u003e\n\u003c/div\u003e\n\u003c/section\u003e\n\u003c/div\u003e",
+                            "published_at":  "2025-11-14T21:20:44-08:00",
+                            "updated_at":  "2026-09-24T04:18:38-07:00",
+                            "image":  {
+                                          "id":  1753048482068,
+                                          "created_at":  "2025-11-14T21:20:44-08:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/Hot_Wheels_1200x1200_06db57a0-0cfe-42cd-9fe4-59685ba7baf2.png?v=1779045433",
+                                          "alt":  null
+                                      },
+                            "products_count":  28
+                        },
+                        {
+                            "id":  521144893716,
+                            "title":  "Ignition Model",
+                            "handle":  "ignition-model",
+                            "description":  "\u003cp\u003eIgnition Model is revered among collectors for its meticulous craftsmanship and deep connection to Japanese car culture. Known for ultra-detailed, limited-production models, Ignition Model captures iconic JDM legends, tuner builds, and motorsport heroes with exceptional realism and display presence.\u003c/p\u003e",
+                            "published_at":  "2025-11-18T16:21:20-08:00",
+                            "updated_at":  "2026-09-22T04:17:37-07:00",
+                            "image":  {
+                                          "id":  1753126666516,
+                                          "created_at":  "2025-11-18T16:21:20-08:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/Ignition_Model.png?v=1788475867",
+                                          "alt":  null
+                                      },
+                            "products_count":  5
+                        },
+                        {
+                            "id":  527710421268,
+                            "title":  "Jada Toys",
+                            "handle":  "jada-toys",
+                            "description":  "\u003cp\u003eJada Toys brings together automotive culture and entertainment with highly recognizable releases inspired by movies, TV, and enthusiast favorites. \u003c/p\u003e",
+                            "published_at":  "2026-02-18T00:42:32-08:00",
+                            "updated_at":  "2026-09-24T04:18:38-07:00",
+                            "image":  {
+                                          "id":  1754988052756,
+                                          "created_at":  "2026-02-18T00:42:31-08:00",
+                                          "src":  "https://cdn.shopify.com/s/files/1/0978/6929/9988/collections/Jada_logo.jpg?v=1771404152",
+                                          "alt":  null
+                                      },
+                            "products_count":  7
+                        }
+                    ]
+}

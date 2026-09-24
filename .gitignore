@@ -1,0 +1,15 @@
+# Binaries and installers
+*.exe
+*.msi
+*.zip
+*.dll
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# IDE and temp files
+.vscode/
+.idea/
+*.log
