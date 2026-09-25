@@ -161,6 +161,9 @@
       <button onclick="switchTab('users')" id="tabBtn-users" class="tab-btn px-4 py-2.5 rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-2 whitespace-nowrap border border-brandBorder">
         <span>👥</span> Usuarios & Clientes Frecuentes
       </button>
+      <button onclick="switchTab('mercadopago')" id="tabBtn-mercadopago" class="tab-btn px-4 py-2.5 rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-2 whitespace-nowrap border border-brandBorder">
+        <span>💳</span> Configuración Mercado Pago
+      </button>
     </div>
 
     <!-- ======================================================== -->
@@ -599,6 +602,107 @@
       </div>
     </section>
 
+    <!-- ======================================================== -->
+    <!-- TAB 8: CONFIGURACIÓN DE MERCADO PAGO                      -->
+    <!-- ======================================================== -->
+    <section id="tab-mercadopago" class="tab-pane hidden">
+      <div class="max-w-3xl mx-auto bg-brandSurface border border-brandBorder rounded-3xl p-6 shadow-xl space-y-6">
+        
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl bg-[#009ee3]/20 border border-[#009ee3]/40 flex items-center justify-center text-2xl font-bold text-[#009ee3]">
+            MP
+          </div>
+          <div>
+            <h3 class="font-bold text-white text-lg font-display">Integración de Mercado Pago (Checkout Pro & Webhooks)</h3>
+            <p class="text-xs text-gray-400">Configuración de credenciales de Developers para cobros con tarjetas, dinero en cuenta y notificaciones automáticas.</p>
+          </div>
+        </div>
+
+        <!-- Estado Actual -->
+        <div id="mpStatusBanner" class="p-4 rounded-2xl bg-brandCard border border-brandBorder flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span id="mpStatusDot" class="w-3 h-3 rounded-full bg-amber-400"></span>
+            <div>
+              <div id="mpStatusTitle" class="text-xs font-bold text-white">Modo Simulación / Demo</div>
+              <div id="mpStatusDesc" class="text-[11px] text-gray-400">No se ha ingresado un Access Token de Mercado Pago todavía.</div>
+            </div>
+          </div>
+          <span id="mpModeBadge" class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase">Sandbox</span>
+        </div>
+
+        <!-- Formulario de Configuración -->
+        <form onsubmit="handleSaveMPConfig(event)" class="space-y-4 text-xs">
+          <div>
+            <label class="block text-gray-300 font-semibold mb-1">
+              Access Token (Producción o Sandbox) *
+            </label>
+            <div class="relative">
+              <input required id="mpAccessTokenInput" type="password" placeholder="APP_USR-xxxx o TEST-xxxx" class="w-full bg-brandCard border border-brandBorder rounded-xl p-3 pr-10 text-white font-mono text-xs focus:outline-none focus:border-brandAccent">
+              <button type="button" onclick="toggleTokenVisibility()" class="absolute right-3 top-3 text-gray-400 hover:text-white text-xs">👁️</button>
+            </div>
+            <p class="text-[10px] text-gray-500 mt-1">Obtenelo en el Panel de Developers de Mercado Pago ➔ Tus Aplicaciones ➔ Credenciales de Producción o Prueba.</p>
+          </div>
+
+          <div>
+            <label class="block text-gray-300 font-semibold mb-1">
+              Public Key (Opcional)
+            </label>
+            <input id="mpPublicKeyInput" type="text" placeholder="APP_USR-xxxx o TEST-xxxx" class="w-full bg-brandCard border border-brandBorder rounded-xl p-3 text-white font-mono text-xs focus:outline-none focus:border-brandAccent">
+          </div>
+
+          <div>
+            <label class="block text-gray-300 font-semibold mb-2">Entorno de Operación</label>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="flex items-center gap-2 p-3 rounded-xl bg-brandCard border border-brandBorder cursor-pointer hover:border-gray-500 transition">
+                <input type="radio" name="mpEnvironment" id="mpEnvSandbox" value="sandbox" checked>
+                <div>
+                  <span class="block font-bold text-white text-xs">Modo Sandbox (Pruebas)</span>
+                  <span class="text-[10px] text-gray-400">Tarjetas de prueba sin cobro real</span>
+                </div>
+              </label>
+              <label class="flex items-center gap-2 p-3 rounded-xl bg-brandCard border border-brandBorder cursor-pointer hover:border-gray-500 transition">
+                <input type="radio" name="mpEnvironment" id="mpEnvProduction" value="production">
+                <div>
+                  <span class="block font-bold text-emerald-400 text-xs">Modo Producción</span>
+                  <span class="text-[10px] text-gray-400">Cobros reales con dinero en cuenta y tarjetas</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Webhook URL Box -->
+          <div class="p-3.5 bg-black/40 rounded-2xl border border-brandBorder space-y-1.5">
+            <span class="text-[11px] font-bold text-gray-300 block">URL de Notificaciones Webhook:</span>
+            <div class="flex items-center gap-2">
+              <input readonly id="mpWebhookUrlInput" value="http://localhost:8080/api/webhooks/mercadopago" class="w-full bg-brandCard border border-brandBorder rounded-lg px-2.5 py-1.5 text-[11px] text-gray-400 font-mono">
+              <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('mpWebhookUrlInput').value); alert('URL copiada al portapapeles');" class="bg-brandSurface hover:bg-brandBorder text-gray-200 border border-brandBorder px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap">
+                Copiar
+              </button>
+            </div>
+            <p class="text-[10px] text-gray-500">Configurá esta URL en tu panel de Mercado Pago Developers ➔ Webhooks para eventos de pagos (topic: payment).</p>
+          </div>
+
+          <button type="submit" id="mpSaveBtn" class="w-full bg-[#009ee3] hover:bg-[#0081ba] text-white py-3.5 rounded-xl font-bold uppercase tracking-wider text-xs transition shadow-lg flex items-center justify-center gap-2">
+            <span>💾</span> Guardar y Validar Credenciales
+          </button>
+        </form>
+
+        <!-- Ayuda paso a paso -->
+        <div class="bg-blue-950/20 border border-blue-500/30 rounded-2xl p-4 text-xs text-blue-300 space-y-2">
+          <div class="font-bold flex items-center gap-2 text-white">
+            <span>💡</span> ¿Dónde obtener tus credenciales de Mercado Pago?
+          </div>
+          <ol class="list-decimal list-inside space-y-1 text-gray-300 text-[11px]">
+            <li>Iniciá sesión en <a href="https://www.mercadopago.com.ar/developers/panel/app" target="_blank" class="text-[#009ee3] underline font-bold">Mercado Pago Developers</a>.</li>
+            <li>Hacé clic en <b>Tus Integraciones</b> ➔ Seleccioná tu aplicación (o creá una nueva tipo <i>Checkout Pro</i>).</li>
+            <li>En el menú lateral hacé clic en <b>Credenciales de Prueba</b> (para probar) o <b>Credenciales de Producción</b>.</li>
+            <li>Copiá el <b>Access Token</b> que empieza con <code class="bg-black/60 px-1 py-0.5 rounded text-amber-300">TEST-</code> o <code class="bg-black/60 px-1 py-0.5 rounded text-emerald-300">APP_USR-</code> y pegalo arriba.</li>
+          </ol>
+        </div>
+
+      </div>
+    </section>
+
   </main>
 
   <!-- JAVASCRIPT DEL ADMIN -->
@@ -620,6 +724,7 @@
       await loadRaffles();
       await loadExpenses();
       await loadUsers();
+      await loadMPConfig();
     }
 
     async function loadMetrics() {
@@ -1085,6 +1190,100 @@
       } catch (err) {
         console.error(err);
         alert('Error al conectar con el servidor.');
+      }
+    }
+
+    // ==========================================
+    // MERCADO PAGO INTEGRATION
+    // ==========================================
+    async function loadMPConfig() {
+      try {
+        const webhookInput = document.getElementById('mpWebhookUrlInput');
+        if (webhookInput) {
+          webhookInput.value = `${window.location.origin}/api/webhooks/mercadopago`;
+        }
+
+        const res = await fetch('/api/admin/mercadopago/config');
+        if (!res.ok) return;
+        const cfg = await res.json();
+
+        const banner = document.getElementById('mpStatusBanner');
+        const dot = document.getElementById('mpStatusDot');
+        const title = document.getElementById('mpStatusTitle');
+        const desc = document.getElementById('mpStatusDesc');
+        const badge = document.getElementById('mpModeBadge');
+
+        if (cfg.is_configured) {
+          dot.className = 'w-3 h-3 rounded-full bg-emerald-400 animate-pulse';
+          title.textContent = 'Mercado Pago Activo y Conectado';
+          desc.textContent = `Token en uso: ${cfg.masked_token || 'Configurado'}`;
+          badge.className = cfg.is_sandbox 
+            ? 'px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase'
+            : 'px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase';
+          badge.textContent = cfg.is_sandbox ? 'Sandbox (Test)' : 'Producción (Real)';
+        } else {
+          dot.className = 'w-3 h-3 rounded-full bg-amber-400';
+          title.textContent = 'Modo Simulación / Demo';
+          desc.textContent = 'No se ha ingresado un Access Token de Mercado Pago todavía.';
+          badge.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase';
+          badge.textContent = 'Demo Mode';
+        }
+
+        if (cfg.public_key) {
+          document.getElementById('mpPublicKeyInput').value = cfg.public_key;
+        }
+
+        if (cfg.is_sandbox) {
+          document.getElementById('mpEnvSandbox').checked = true;
+        } else {
+          document.getElementById('mpEnvProduction').checked = true;
+        }
+      } catch (err) {
+        console.error('Error al cargar config MP:', err);
+      }
+    }
+
+    function toggleTokenVisibility() {
+      const input = document.getElementById('mpAccessTokenInput');
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    async function handleSaveMPConfig(event) {
+      event.preventDefault();
+      const saveBtn = document.getElementById('mpSaveBtn');
+      const originalText = saveBtn.innerHTML;
+      saveBtn.innerHTML = `<span>⏳</span> Validando con Mercado Pago...`;
+      saveBtn.disabled = true;
+
+      const accessToken = document.getElementById('mpAccessTokenInput').value.trim();
+      const publicKey = document.getElementById('mpPublicKeyInput').value.trim();
+      const isSandbox = document.getElementById('mpEnvSandbox').checked;
+
+      try {
+        const res = await fetch('/api/admin/mercadopago/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            access_token: accessToken,
+            public_key: publicKey,
+            is_sandbox: isSandbox
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          alert('✅ ' + data.message + (data.account_info?.nickname ? `\nCuenta vinculada: ${data.account_info.nickname}` : ''));
+          document.getElementById('mpAccessTokenInput').value = '';
+          await loadMPConfig();
+        } else {
+          alert('❌ ' + (data.error || data.message || 'Error validando credenciales de Mercado Pago.'));
+        }
+      } catch (err) {
+        console.error(err);
+        alert('❌ Error al comunicarse con el servidor.');
+      } finally {
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
       }
     }
 

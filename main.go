@@ -771,6 +771,216 @@ func pgSaveExpense(e Expense) {
 }
 
 // ==========================================
+// CONFIGURACIÓN MERCADO PAGO (CHECKOUT PRO & WEBHOOKS)
+// ==========================================
+
+type MPConfig struct {
+	AccessToken string `json:"access_token"`
+	PublicKey   string `json:"public_key"`
+	IsSandbox   bool   `json:"is_sandbox"`
+}
+
+var mpConfig = MPConfig{
+	AccessToken: os.Getenv("MP_ACCESS_TOKEN"),
+	PublicKey:   os.Getenv("MP_PUBLIC_KEY"),
+	IsSandbox:   true,
+}
+
+func loadMPConfig() {
+	data, err := os.ReadFile("mp_config.json")
+	if err == nil {
+		var cfg MPConfig
+		if json.Unmarshal(data, &cfg) == nil {
+			mpConfig = cfg
+		}
+	}
+	if mpConfig.AccessToken != "" {
+		log.Printf("💳 Mercado Pago CONFIGURADO (Sandbox: %v, Token: %s)", mpConfig.IsSandbox, maskToken(mpConfig.AccessToken))
+	} else {
+		log.Printf("💳 Mercado Pago en MODO SIMULACIÓN / DEMO (Access Token no configurado aún)")
+	}
+}
+
+func saveMPConfig(cfg MPConfig) error {
+	mpConfig = cfg
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile("mp_config.json", data, 0644)
+}
+
+func maskToken(t string) string {
+	if len(t) <= 10 {
+		return "****"
+	}
+	return t[:8] + "..." + t[len(t)-4:]
+}
+
+func createMPPreference(order Order, amountARS int, baseURL string) (string, string, string, error) {
+	if mpConfig.AccessToken == "" {
+		return "", "", "", nil
+	}
+
+	title := fmt.Sprintf("Pedido %s - KIDO Garage", order.OrderNumber)
+	if order.OrderType == "PRE_VENTA_CON_SEÑA" && order.RemainingBalanceARS > 0 {
+		title = fmt.Sprintf("Seña 30%% Pedido %s - KIDO Garage", order.OrderNumber)
+	}
+
+	notificationURL := ""
+	if strings.HasPrefix(baseURL, "https://") && !strings.Contains(baseURL, "localhost") {
+		notificationURL = baseURL + "/api/webhooks/mercadopago"
+	}
+
+	prefReq := map[string]interface{}{
+		"items": []map[string]interface{}{
+			{
+				"id":          strconv.FormatInt(order.ID, 10),
+				"title":       title,
+				"description": fmt.Sprintf("%d artículos coleccionables en KIDO Garage", len(order.Items)),
+				"quantity":    1,
+				"unit_price":  float64(amountARS),
+				"currency_id": "ARS",
+			},
+		},
+		"payer": map[string]interface{}{
+			"name":  order.CustomerName,
+			"email": order.CustomerEmail,
+		},
+		"back_urls": map[string]string{
+			"success": baseURL + "/index.html?payment=success&order_id=" + strconv.FormatInt(order.ID, 10),
+			"failure": baseURL + "/index.html?payment=failure&order_id=" + strconv.FormatInt(order.ID, 10),
+			"pending": baseURL + "/index.html?payment=pending&order_id=" + strconv.FormatInt(order.ID, 10),
+		},
+		"auto_return":          "approved",
+		"external_reference":   order.OrderNumber,
+		"statement_descriptor": "KIDO GARAGE",
+	}
+
+	if notificationURL != "" {
+		prefReq["notification_url"] = notificationURL
+	}
+
+	bodyBytes, err := json.Marshal(prefReq)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	req, err := http.NewRequest("POST", "https://api.mercadopago.com/checkout/preferences", bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		return "", "", "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+mpConfig.AccessToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", "", "", err
+	}
+	defer resp.Body.Close()
+
+	var prefResp struct {
+		ID               string `json:"id"`
+		InitPoint        string `json:"init_point"`
+		SandboxInitPoint string `json:"sandbox_init_point"`
+		Message          string `json:"message"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&prefResp); err != nil {
+		return "", "", "", err
+	}
+
+	chosenInitPoint := prefResp.InitPoint
+	if mpConfig.IsSandbox && prefResp.SandboxInitPoint != "" {
+		chosenInitPoint = prefResp.SandboxInitPoint
+	}
+
+	return prefResp.ID, chosenInitPoint, prefResp.SandboxInitPoint, nil
+}
+
+func processMPPayment(paymentID string) {
+	req, err := http.NewRequest("GET", "https://api.mercadopago.com/v1/payments/"+paymentID, nil)
+	if err != nil {
+		log.Printf("⚠️ [Webhook MP] Error armando request para pago %s: %v", paymentID, err)
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+mpConfig.AccessToken)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("⚠️ [Webhook MP] Error consultando pago %s a MP: %v", paymentID, err)
+		return
+	}
+	defer resp.Body.Close()
+
+	var mpPayment struct {
+		ID                int64   `json:"id"`
+		Status            string  `json:"status"` // "approved"
+		StatusDetail      string  `json:"status_detail"`
+		TransactionAmount float64 `json:"transaction_amount"`
+		PaymentMethodID   string  `json:"payment_method_id"`
+		ExternalReference string  `json:"external_reference"` // order_number ej: KIDO-ORD-12345
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&mpPayment); err != nil {
+		log.Printf("⚠️ [Webhook MP] Error decodificando pago %s: %v", paymentID, err)
+		return
+	}
+
+	log.Printf("🔔 [Webhook MP] Notificación: Pago=%d Status=%s Monto=$%.0f Ref=%s", mpPayment.ID, mpPayment.Status, mpPayment.TransactionAmount, mpPayment.ExternalReference)
+
+	if mpPayment.Status == "approved" {
+		store.mu.Lock()
+		defer store.mu.Unlock()
+
+		for i := range store.orders {
+			if store.orders[i].OrderNumber == mpPayment.ExternalReference || strconv.FormatInt(store.orders[i].ID, 10) == mpPayment.ExternalReference {
+				ord := &store.orders[i]
+
+				alreadyRecorded := false
+				for _, p := range ord.Payments {
+					if p.MercadoPagoID == strconv.FormatInt(mpPayment.ID, 10) {
+						alreadyRecorded = true
+						break
+					}
+				}
+
+				if !alreadyRecorded {
+					paidAmount := int(mpPayment.TransactionAmount)
+					if paidAmount > ord.RemainingBalanceARS {
+						paidAmount = ord.RemainingBalanceARS
+					}
+
+					ord.TotalPaidARS += paidAmount
+					ord.RemainingBalanceARS -= paidAmount
+					if ord.RemainingBalanceARS <= 0 {
+						ord.RemainingBalanceARS = 0
+						ord.IsFullyPaid = true
+						ord.DeliveryStatus = "LISTO_PARA_DESPACHAR"
+					}
+
+					payment := PartialPayment{
+						ID:            time.Now().UnixNano(),
+						OrderID:       ord.ID,
+						AmountARS:     paidAmount,
+						PaymentMethod: "Mercado Pago (" + mpPayment.PaymentMethodID + ")",
+						MercadoPagoID: strconv.FormatInt(mpPayment.ID, 10),
+						PaymentStatus: "approved",
+						IsDownPayment: ord.OrderType == "PRE_VENTA_CON_SEÑA",
+						CreatedAt:     time.Now(),
+					}
+					ord.Payments = append(ord.Payments, payment)
+					pgSaveOrder(*ord)
+
+					log.Printf("✅ [Webhook MP] ¡Pago aprobado procesado con éxito! Pedido=%s TotalAbonado=$%d Saldo=$%d Estado=%s", ord.OrderNumber, ord.TotalPaidARS, ord.RemainingBalanceARS, ord.DeliveryStatus)
+				}
+				return
+			}
+		}
+	}
+}
+
+// ==========================================
 // SERVIDOR HTTP & APIS
 // ==========================================
 
@@ -779,6 +989,7 @@ func main() {
 	initRaffles()
 	initOrders()
 	initDB()
+	loadMPConfig()
 
 	mux := http.NewServeMux()
 
@@ -1532,12 +1743,32 @@ func main() {
 		store.mu.Unlock()
 		pgSaveOrder(newOrder)
 
+		// Si Mercado Pago está configurado, generar preferencia Checkout Pro real
+		var initPoint, sandboxInitPoint, prefID string
+		var mpErr error
+		if mpConfig.AccessToken != "" {
+			scheme := "http"
+			if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
+				scheme = "https"
+			}
+			baseURL := scheme + "://" + r.Host
+			prefID, initPoint, sandboxInitPoint, mpErr = createMPPreference(newOrder, paidNow, baseURL)
+			if mpErr != nil {
+				log.Printf("⚠️ [Mercado Pago] Error generando preferencia: %v", mpErr)
+			}
+		}
+
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success":          true,
-			"order":            newOrder,
-			"payment_verified": true,
-			"delivery_status":  deliveryStatus,
-			"message":          "Pago registrado a través de Mercado Pago.",
+			"success":            true,
+			"order":              newOrder,
+			"payment_verified":   mpConfig.AccessToken == "",
+			"delivery_status":    deliveryStatus,
+			"init_point":         initPoint,
+			"sandbox_init_point": sandboxInitPoint,
+			"preference_id":      prefID,
+			"is_real_mp":         mpConfig.AccessToken != "",
+			"is_sandbox":         mpConfig.IsSandbox,
+			"message":            "Orden registrada correctamente.",
 		})
 	})
 
@@ -1766,6 +1997,94 @@ func main() {
 		store.mu.RLock()
 		defer store.mu.RUnlock()
 		json.NewEncoder(w).Encode(store.expenses)
+	})
+
+	// Webhook de Mercado Pago
+	mux.HandleFunc("/api/webhooks/mercadopago", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodGet {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"status":"ok","message":"Mercado Pago webhook endpoint ready"}`))
+			return
+		}
+
+		var payload struct {
+			Action string `json:"action"`
+			Type   string `json:"type"`
+			Data   struct {
+				ID string `json:"id"`
+			} `json:"data"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&payload)
+
+		paymentID := payload.Data.ID
+		if paymentID == "" {
+			paymentID = r.URL.Query().Get("data.id")
+		}
+		if paymentID == "" {
+			paymentID = r.URL.Query().Get("id")
+		}
+
+		log.Printf("🔔 [Webhook MP] Notificación recibida: Action=%s Type=%s PaymentID=%s", payload.Action, payload.Type, paymentID)
+
+		if paymentID != "" && mpConfig.AccessToken != "" {
+			go processMPPayment(paymentID)
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"received":true}`))
+	})
+
+	// Configuración de Mercado Pago (Admin Panel)
+	mux.HandleFunc("/api/admin/mercadopago/config", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodPost {
+			var newCfg MPConfig
+			if err := json.NewDecoder(r.Body).Decode(&newCfg); err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			newCfg.AccessToken = strings.TrimSpace(newCfg.AccessToken)
+			newCfg.PublicKey = strings.TrimSpace(newCfg.PublicKey)
+
+			var accountInfo map[string]interface{}
+			if newCfg.AccessToken != "" {
+				testReq, _ := http.NewRequest("GET", "https://api.mercadopago.com/users/me", nil)
+				testReq.Header.Set("Authorization", "Bearer "+newCfg.AccessToken)
+				client := &http.Client{Timeout: 6 * time.Second}
+				resp, err := client.Do(testReq)
+				if err != nil || resp.StatusCode != http.StatusOK {
+					http.Error(w, "El Access Token ingresado no es válido o ha expirado en Mercado Pago Developers", http.StatusBadRequest)
+					return
+				}
+				_ = json.NewDecoder(resp.Body).Decode(&accountInfo)
+				resp.Body.Close()
+			}
+
+			if err := saveMPConfig(newCfg); err != nil {
+				http.Error(w, "Error guardando configuración", http.StatusInternalServerError)
+				return
+			}
+
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success":      true,
+				"message":      "Credenciales de Mercado Pago guardadas y validadas exitosamente",
+				"is_sandbox":   mpConfig.IsSandbox,
+				"is_configured": mpConfig.AccessToken != "",
+				"masked_token": maskToken(mpConfig.AccessToken),
+				"account_info": accountInfo,
+			})
+			return
+		}
+
+		// GET
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"is_configured": mpConfig.AccessToken != "",
+			"is_sandbox":    mpConfig.IsSandbox,
+			"masked_token":  maskToken(mpConfig.AccessToken),
+			"public_key":    mpConfig.PublicKey,
+			"webhook_url":   "/api/webhooks/mercadopago",
+		})
 	})
 
 	// Purchase Orders

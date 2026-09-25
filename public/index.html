@@ -798,6 +798,24 @@
       await loadRaffles();
       updateAuthUI();
       updateCartUI();
+      checkPaymentReturnUrl();
+    }
+
+    function checkPaymentReturnUrl() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const paymentStatus = urlParams.get('payment');
+      const collectionStatus = urlParams.get('collection_status') || urlParams.get('status');
+
+      if (paymentStatus === 'success' || collectionStatus === 'approved') {
+        showToast('🎉 ¡Pago aprobado en Mercado Pago! Tu pedido ha sido confirmado.');
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (paymentStatus === 'failure' || collectionStatus === 'rejected') {
+        showToast('❌ El pago no fue completado o fue rechazado por Mercado Pago.');
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (paymentStatus === 'pending' || collectionStatus === 'in_process') {
+        showToast('⏳ Pago pendiente de acreditación en Mercado Pago.');
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
     }
 
     // Cargar Productos
@@ -1361,29 +1379,90 @@
         });
         const data = await res.json();
 
-        // Mostrar pantalla de éxito
-        document.getElementById('checkoutModalContent').innerHTML = `
-          <div class="text-center py-6">
-            <span class="text-5xl block mb-3 animate-bounce">🎉</span>
-            <h3 class="text-xl font-black text-white font-display">¡Pago Confirmado con Mercado Pago!</h3>
-            <p class="text-xs text-brandAccent font-bold mt-1">Pedido Nº: ${data.order.order_number}</p>
-            
-            <div class="my-4 p-3 bg-brandSurface rounded-2xl border border-brandBorder text-xs text-left">
-              <div class="flex justify-between text-gray-300"><span>Abonado hoy:</span><b class="text-emerald-400">${formatARS(data.order.total_paid_ars)}</b></div>
-              <div class="flex justify-between text-gray-300 mt-1"><span>Saldo pendiente:</span><b class="text-amber-400">${formatARS(data.order.remaining_balance_ars)}</b></div>
-              <div class="flex justify-between text-gray-300 mt-1"><span>Estado de entrega:</span><b class="${data.order.is_fully_paid ? 'text-emerald-400' : 'text-blue-400'}">${data.order.delivery_status}</b></div>
+        // Mostrar pantalla según integración activa de Mercado Pago
+        if (data.is_real_mp && (data.init_point || data.sandbox_init_point)) {
+          const mpUrl = data.init_point || data.sandbox_init_point;
+          document.getElementById('checkoutModalContent').innerHTML = `
+            <div class="text-center py-6 space-y-4">
+              <div class="w-16 h-16 mx-auto rounded-3xl bg-[#009ee3]/20 border border-[#009ee3]/40 flex items-center justify-center text-3xl font-black text-[#009ee3] shadow-lg shadow-[#009ee3]/10">
+                MP
+              </div>
+              <h3 class="text-xl font-black text-white font-display">Completar Pago con Mercado Pago</h3>
+              <p class="text-xs text-brandAccent font-bold">Orden generada: ${data.order.order_number}</p>
+
+              <div class="p-4 bg-brandSurface rounded-2xl border border-brandBorder text-xs text-left space-y-2">
+                <div class="flex justify-between text-gray-300">
+                  <span>Monto a pagar ahora:</span>
+                  <b class="text-emerald-400 text-sm font-black">${formatARS(data.order.total_paid_ars || paidNow)}</b>
+                </div>
+                ${isPartial ? `
+                <div class="flex justify-between text-gray-400 text-[11px]">
+                  <span>Concepto:</span>
+                  <span class="text-amber-300 font-bold">Seña 30% Preventa</span>
+                </div>
+                <div class="flex justify-between text-gray-400 text-[11px]">
+                  <span>Saldo al arribar el stock:</span>
+                  <b class="text-amber-400">${formatARS(data.order.remaining_balance_ars)}</b>
+                </div>` : `
+                <div class="flex justify-between text-gray-400 text-[11px]">
+                  <span>Concepto:</span>
+                  <span class="text-emerald-400 font-bold">Pago Total 100%</span>
+                </div>`}
+                <div class="flex justify-between text-gray-400 text-[11px] pt-1 border-t border-brandBorder">
+                  <span>Entorno de pasarela:</span>
+                  <span class="font-mono text-gray-300">${data.is_sandbox ? '🧪 Sandbox (Pruebas)' : '⚡ Producción Oficial'}</span>
+                </div>
+              </div>
+
+              <div class="p-3 bg-blue-950/20 border border-[#009ee3]/30 rounded-xl text-[11px] text-blue-300 text-left space-y-1">
+                <p class="font-semibold text-white">💳 Medios habilitados en Checkout Pro:</p>
+                <p class="text-gray-300 text-[10px] leading-relaxed">
+                  Tarjetas de crédito (con cuotas disponibles), tarjetas de débito, dinero en cuenta de Mercado Pago o efectivo en Rapipago y Pago Fácil.
+                </p>
+              </div>
+
+              <div class="pt-2 space-y-2">
+                <a href="${mpUrl}" target="_blank" rel="noopener noreferrer" class="w-full bg-[#009ee3] hover:bg-[#0081ba] text-white py-3.5 px-6 rounded-xl font-black text-xs uppercase tracking-wider transition shadow-lg shadow-[#009ee3]/30 flex items-center justify-center gap-2 hover:scale-[1.01]">
+                  <span>Pagar con Mercado Pago ➔</span>
+                </a>
+                <button onclick="cart = []; saveCart(); closeCheckoutModal(); showToast('¡Pedido registrado! Aguardando confirmación de pago.');" class="w-full bg-brandSurface hover:bg-brandBorder text-gray-300 border border-brandBorder py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition">
+                  Volver a la tienda
+                </button>
+              </div>
+
+              <p class="text-[10px] text-gray-500">
+                Al finalizar el pago serás redirigido automáticamente a la tienda y tu pedido se actualizará al instante mediante Webhooks.
+              </p>
             </div>
+          `;
+        } else {
+          // Modo Simulación Demo
+          document.getElementById('checkoutModalContent').innerHTML = `
+            <div class="text-center py-6">
+              <span class="text-5xl block mb-3 animate-bounce">🎉</span>
+              <h3 class="text-xl font-black text-white font-display">¡Pago Confirmado con Mercado Pago!</h3>
+              <p class="text-xs text-brandAccent font-bold mt-1">Pedido Nº: ${data.order.order_number}</p>
+              <div class="my-2 inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                Modo Simulación Demo
+              </div>
+              
+              <div class="my-4 p-3 bg-brandSurface rounded-2xl border border-brandBorder text-xs text-left">
+                <div class="flex justify-between text-gray-300"><span>Abonado hoy:</span><b class="text-emerald-400">${formatARS(data.order.total_paid_ars)}</b></div>
+                <div class="flex justify-between text-gray-300 mt-1"><span>Saldo pendiente:</span><b class="text-amber-400">${formatARS(data.order.remaining_balance_ars)}</b></div>
+                <div class="flex justify-between text-gray-300 mt-1"><span>Estado de entrega:</span><b class="${data.order.is_fully_paid ? 'text-emerald-400' : 'text-blue-400'}">${data.order.delivery_status}</b></div>
+              </div>
 
-            <p class="text-[11px] text-gray-400 leading-relaxed">
-              Enviamos el comprobante a <b>${email}</b>.<br>
-              ${!data.order.is_fully_paid ? 'Podrás abonar el saldo restante en cualquier momento desde tu perfil para liberar el despacho.' : 'Tu pedido ya fue enviado a preparación para despacho seguro.'}
-            </p>
+              <p class="text-[11px] text-gray-400 leading-relaxed">
+                Enviamos el comprobante a <b>${email}</b>.<br>
+                ${!data.order.is_fully_paid ? 'Podrás abonar el saldo restante en cualquier momento desde tu perfil para liberar el despacho.' : 'Tu pedido ya fue enviado a preparación para despacho seguro.'}
+              </p>
 
-            <button onclick="cart = []; saveCart(); closeCheckoutModal();" class="mt-6 bg-brandAccent text-white px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider">
-              Listo, volver a la tienda
-            </button>
-          </div>
-        `;
+              <button onclick="cart = []; saveCart(); closeCheckoutModal();" class="mt-6 bg-brandAccent text-white px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider">
+                Listo, volver a la tienda
+              </button>
+            </div>
+          `;
+        }
 
         if (currentUser) {
           currentUser.total_purchases_count = (currentUser.total_purchases_count || 0) + 1;
