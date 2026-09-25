@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-[#0a0c10] text-gray-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KIDO Live | Ruleta & Sorteo en Vivo para Streams e Instagram</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="font.css">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brandAccent: '#e50914',
+            brandCyan: '#00f2fe',
+            brandGold: '#ffb703',
+            brandPurple: '#7928ca',
+            brandDark: '#0a0c10',
+            brandCard: '#12161f',
+            brandSurface: '#181e2b',
+            brandBorder: '#232b3b'
+          },
+          fontFamily: {
+            display: ['"Fuji Quake Zone"', 'Outfit', 'sans-serif'],
+            sans: ['Outfit', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 25px rgba(229, 9, 20, 0.4), 0 0 50px rgba(0, 242, 254, 0.2); }
+      50% { box-shadow: 0 0 45px rgba(229, 9, 20, 0.7), 0 0 80px rgba(0, 242, 254, 0.4); }
+    }
+    .glow-live { animation: pulse-glow 2.5s infinite ease-in-out; }
+    
+    @keyframes neon-border {
+      0% { border-color: #e50914; }
+      33% { border-color: #00f2fe; }
+      66% { border-color: #ffb703; }
+      100% { border-color: #e50914; }
+    }
+    .border-neon-animated { animation: neon-border 6s infinite linear; }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0a0c10; }
+    ::-webkit-scrollbar-thumb { background: #232b3b; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3b475d; }
+  </style>
+</head>
+
+<body class="h-full overflow-x-hidden select-none bg-[#0a0c10] text-gray-100 flex flex-col justify-between font-sans">
+
+  <!-- CANVAS EFECTOS (FUEGOS ARTIFICIALES Y CONFETTI) -->
+  <canvas id="effectsCanvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
+
+  <!-- ======================================================== -->
+  <!-- BARRA SUPERIOR DE TRANSMISIÓN / STREAM HEADER            -->
+  <!-- ======================================================== -->
+  <header class="bg-black/60 backdrop-blur-md border-b border-brandBorder px-4 md:px-8 py-3 flex items-center justify-between z-40">
+    <div class="flex items-center gap-3">
+      <!-- Logo KIDO -->
+      <a href="./admin.html" class="flex items-center gap-2 group" title="Volver al Panel de Administración">
+        <span class="text-xl md:text-2xl font-black text-white font-display tracking-wider">KIDO</span>
+        <span class="text-[10px] uppercase font-bold tracking-widest bg-brandAccent text-white px-2 py-0.5 rounded">STREAM</span>
+      </a>
+
+      <!-- Badge En Vivo -->
+      <div class="flex items-center gap-2 bg-red-950/40 border border-red-500/40 px-3 py-1 rounded-full">
+        <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
+        <span class="text-[10px] font-black uppercase tracking-wider text-red-300">SORTEO EN VIVO</span>
+      </div>
+    </div>
+
+    <!-- Selector de Rifa & Controles de Stream -->
+    <div class="flex items-center gap-2 md:gap-3">
+      <!-- Selector de Rifa Activa -->
+      <div class="relative">
+        <select id="raffleSelect" onchange="loadSelectedRaffle()" class="bg-brandSurface border border-brandBorder rounded-xl px-3 py-1.5 text-xs text-white font-bold focus:outline-none focus:border-brandCyan cursor-pointer max-w-[200px] md:max-w-xs truncate">
+          <option value="">Cargando rifas...</option>
+        </select>
+      </div>
+
+      <!-- Toggle Modo Formato (16:9 vs 9:16 Instagram) -->
+      <button onclick="toggleStreamMode()" id="streamModeBtn" class="bg-brandSurface hover:bg-brandCard border border-brandBorder px-3 py-1.5 rounded-xl text-xs font-bold text-gray-300 hover:text-white transition flex items-center gap-1.5" title="Cambiar proporción de pantalla">
+        <span id="streamModeIcon">📺</span>
+        <span class="hidden sm:inline" id="streamModeText">Modo 16:9</span>
+      </button>
+
+      <!-- Toggle Sonido -->
+      <button onclick="toggleSound()" id="soundBtn" class="bg-brandSurface hover:bg-brandCard border border-brandBorder px-3 py-1.5 rounded-xl text-xs font-bold text-gray-300 hover:text-white transition flex items-center gap-1.5" title="Activar/Silenciar Efectos de Audio">
+        <span id="soundIcon">🔊</span>
+      </button>
+
+      <!-- Pantalla Completa (F11) -->
+      <button onclick="toggleFullscreen()" class="bg-brandSurface hover:bg-brandCard border border-brandBorder px-3 py-1.5 rounded-xl text-xs font-bold text-gray-300 hover:text-white transition flex items-center gap-1.5" title="Pantalla Completa para OBS">
+        <span>⛶</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ======================================================== -->
+  <!-- ARENA PRINCIPAL DE LA RULETA (CONTENEDOR STREAM)         -->
+  <!-- ======================================================== -->
+  <main id="streamContainer" class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center transition-all duration-300">
+    
+    <!-- COLUMNA IZQUIERDA: TARJETA DEL PREMIO (CHASE 1/24) -->
+    <div id="prizeCardCol" class="lg:col-span-3 space-y-4">
+      <div class="bg-brandCard/90 border border-brandBorder rounded-3xl p-5 shadow-2xl backdrop-blur-sm relative overflow-hidden group hover:border-gray-500 transition">
+        <div class="absolute -top-12 -left-12 w-32 h-32 bg-brandCyan/10 rounded-full blur-2xl pointer-events-none"></div>
+        
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-[10px] font-black uppercase tracking-widest text-brandCyan bg-brandCyan/10 border border-brandCyan/30 px-2.5 py-0.5 rounded-full">
+            PREMIO OFICIAL
+          </span>
+          <span id="raffleNumberBadge" class="text-xs font-mono font-bold text-gray-400">RIFA #01</span>
+        </div>
+
+        <!-- Imagen del Premio -->
+        <div class="relative h-44 bg-black/50 rounded-2xl border border-brandBorder p-3 flex items-center justify-center overflow-hidden mb-4">
+          <img id="prizeImage" src="https://via.placeholder.com/300" alt="Premio" class="max-h-full max-w-full object-contain filter drop-shadow-2xl transition duration-500 group-hover:scale-105">
+          <div class="absolute bottom-2 right-2 px-2 py-0.5 rounded text-[10px] font-black bg-amber-500 text-black uppercase">
+            CHASE 1/24
+          </div>
+        </div>
+
+        <h3 id="prizeTitle" class="text-base font-black text-white font-display leading-snug line-clamp-2">Cargando premio...</h3>
+        <p id="prizeDesc" class="text-[11px] text-gray-400 mt-2 line-clamp-3 leading-relaxed">Descripción detallada del modelo diecast en sorteo.</p>
+
+        <!-- Métricas del Sorteo -->
+        <div class="grid grid-cols-2 gap-2 pt-3 border-t border-brandBorder text-center">
+          <div class="bg-brandSurface p-2 rounded-xl border border-brandBorder">
+            <span class="text-[10px] text-gray-400 block font-bold">EN JUEGO</span>
+            <b id="soldNumbersCount" class="text-white text-sm font-display">0 números</b>
+          </div>
+          <div class="bg-brandSurface p-2 rounded-xl border border-brandBorder">
+            <span class="text-[10px] text-gray-400 block font-bold">PRECIO TICKET</span>
+            <b id="ticketPriceLabel" class="text-emerald-400 text-sm font-display">$0</b>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COLUMNA CENTRAL: RULETA GIRATORIA EN VIVO -->
+    <div id="wheelCol" class="lg:col-span-6 flex flex-col items-center justify-center relative">
+      
+      <!-- Contenedor de la Ruleta y Aguja Indicadora -->
+      <div class="relative w-[340px] h-[340px] sm:w-[420px] sm:h-[420px] md:w-[460px] md:h-[460px] flex items-center justify-center glow-live rounded-full p-2 bg-gradient-to-br from-brandBorder via-black to-brandCard">
+        
+        <!-- Puntero / Indicador Superior (12 en punto) -->
+        <div class="absolute -top-4 z-30 flex flex-col items-center">
+          <div id="wheelFlipper" class="w-8 h-10 bg-gradient-to-b from-brandAccent to-red-600 rounded-b-xl shadow-2xl flex items-center justify-center border-2 border-white transform transition-transform duration-75 origin-top">
+            <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
+          </div>
+        </div>
+
+        <!-- Canvas de la Ruleta -->
+        <canvas id="wheelCanvas" width="900" height="900" class="w-full h-full rounded-full cursor-pointer"></canvas>
+
+        <!-- Centro de la Ruleta (KIDO Hub) -->
+        <div onclick="startDraw()" class="absolute w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-gray-900 via-black to-gray-950 border-4 border-amber-400 shadow-2xl flex flex-col items-center justify-center cursor-pointer z-20 group hover:scale-105 transition">
+          <span class="text-sm sm:text-base font-black text-amber-400 font-display tracking-widest group-hover:text-white transition">KIDO</span>
+          <span class="text-[8px] sm:text-[9px] font-bold text-gray-400 uppercase tracking-wider">LIVE</span>
+        </div>
+      </div>
+
+      <!-- Panel de Control Principal de Sorteo -->
+      <div class="mt-6 w-full max-w-md space-y-3">
+        <button id="drawActionBtn" onclick="startDraw()" class="w-full bg-gradient-to-r from-red-600 via-brandAccent to-pink-600 hover:from-red-500 hover:to-pink-500 text-white font-display py-4 px-6 rounded-2xl font-black text-sm md:text-base uppercase tracking-wider transition shadow-2xl shadow-red-600/40 flex items-center justify-center gap-3 transform hover:scale-[1.02] active:scale-[0.98]">
+          <span class="text-xl">🚀</span>
+          <span id="drawActionText">INICIAR SORTEO EN VIVO</span>
+        </button>
+
+        <div class="flex items-center justify-between text-xs text-gray-400 px-2">
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" id="suspenseModeCheckbox" checked class="rounded bg-brandCard border-brandBorder text-brandAccent focus:ring-0">
+            <span class="text-[11px] font-semibold text-gray-300">Modo Suspenso Cinemático (10s)</span>
+          </label>
+          <span class="text-[10px] text-gray-500 font-mono">Tecla: [Espacio]</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- COLUMNA DERECHA: PADRÓN DE PARTICIPANTES EN VIVO -->
+    <div id="rosterCol" class="lg:col-span-3 space-y-4">
+      <div class="bg-brandCard/90 border border-brandBorder rounded-3xl p-5 shadow-2xl backdrop-blur-sm">
+        <div class="flex items-center justify-between border-b border-brandBorder pb-3 mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-sm">📋</span>
+            <h4 class="font-bold text-white text-xs uppercase tracking-wider">Boletos en Juego</h4>
+          </div>
+          <span id="participantsTotalBadge" class="text-[11px] font-mono font-bold text-brandCyan bg-brandCyan/10 px-2 py-0.5 rounded-full">0</span>
+        </div>
+
+        <!-- Lista scrollable de participantes -->
+        <div id="participantsList" class="space-y-1.5 max-h-[380px] overflow-y-auto pr-1 text-xs">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <div class="pt-3 border-t border-brandBorder/60 text-[10px] text-gray-500 text-center">
+          ⭐ Indica boleto gratis de socio frecuente
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- MODAL SPOTLIGHT CELEBRACIÓN DE GANADOR                   -->
+  <!-- ======================================================== -->
+  <div id="winnerModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl hidden flex items-center justify-center p-4">
+    <div class="bg-gradient-to-b from-[#181e2b] via-[#12161f] to-black border-2 border-amber-400 rounded-3xl max-w-xl w-full p-6 md:p-8 shadow-2xl shadow-amber-500/20 text-center relative overflow-hidden transform transition-all duration-500 scale-95 border-neon-animated">
+      
+      <!-- Efecto halo dorado -->
+      <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-64 bg-amber-400/20 rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- Corona animada -->
+      <div class="relative z-10 space-y-4">
+        <span class="text-5xl md:text-6xl block animate-bounce">🏆</span>
+        
+        <div>
+          <span class="text-[11px] font-black uppercase tracking-widest text-amber-400 bg-amber-500/20 border border-amber-500/40 px-3 py-1 rounded-full">
+            SORTEO OFICIAL KIDO GARAGE
+          </span>
+          <h2 class="text-2xl md:text-4xl font-black text-white font-display mt-2">¡¡HAY UN GANADOR!!</h2>
+          <p id="winnerRaffleTitle" class="text-xs text-gray-400 mt-1">Mini GT 1:64 Nissan Skyline GT-R Chase</p>
+        </div>
+
+        <!-- NÚMERO GANADOR GIGANTE -->
+        <div class="py-4">
+          <div class="inline-block bg-gradient-to-br from-amber-400 to-yellow-500 text-black px-8 py-4 rounded-3xl font-display font-black text-6xl md:text-7xl shadow-2xl shadow-amber-400/50 transform hover:scale-105 transition tracking-wider">
+            <span id="winnerNumberDisplay">#07</span>
+          </div>
+        </div>
+
+        <!-- DETALLES DEL CLIENTE GANADOR -->
+        <div class="bg-brandSurface/80 p-4 rounded-2xl border border-brandBorder text-left space-y-2">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-[10px] text-gray-400 uppercase font-bold block">GANADOR ADJUDICADO:</span>
+              <h4 id="winnerNameDisplay" class="text-lg font-black text-white font-display">Martín Gómez</h4>
+            </div>
+            <span id="winnerBadgeDisplay" class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40">
+              ⭐ Socio VIP
+            </span>
+          </div>
+          <div class="text-xs text-gray-300 flex items-center justify-between pt-2 border-t border-brandBorder">
+            <span id="winnerEmailDisplay" class="text-gray-400 font-mono text-[11px]">martin@kido.com.ar</span>
+            <span id="winnerTimestampDisplay" class="text-gray-500 text-[10px]">25/09/2026 21:00</span>
+          </div>
+        </div>
+
+        <!-- BOTONES DE ACCIÓN PARA EL STREAMER -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+          <button onclick="copyWinnerCertificate()" class="bg-brandSurface hover:bg-brandBorder text-gray-200 border border-brandBorder py-3 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2">
+            <span>📋</span> Copiar para Instagram Stories
+          </button>
+          <button onclick="closeWinnerModal()" class="bg-brandAccent hover:bg-brandAccentHover text-white py-3 px-4 rounded-xl text-xs font-bold uppercase tracking-wider transition shadow-lg flex items-center justify-center gap-2">
+            <span>🎉</span> Continuar Transmisión
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- FOOTER STREAM / STATUS BAR                               -->
+  <!-- ======================================================== -->
+  <footer class="bg-black/60 border-t border-brandBorder px-4 md:px-8 py-2.5 text-xs text-gray-500 flex flex-wrap items-center justify-between z-40">
+    <div class="flex items-center gap-4">
+      <span class="flex items-center gap-1.5 font-mono text-[11px]">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        SISTEMA DE SORTEO CRIPTOGRÁFICO KIDO v2.4
+      </span>
+      <span class="text-gray-600 hidden md:inline">•</span>
+      <span class="text-[11px] text-gray-400 hidden md:inline">Transmisión compatible con OBS Browser Source (1920x1080 o 1080x1920)</span>
+    </div>
+    <div class="text-[11px] font-mono text-gray-400">
+      KIDO GARAGE ARGENTINA
+    </div>
+  </footer>
+
+  <!-- ======================================================== -->
+  <!-- JAVASCRIPT DEL MOTOR DE RULETA, AUDIO Y EFECTOS          -->
+  <!-- ======================================================== -->
+  <script>
+    let currentRaffle = null;
+    let participants = [];
+    let isSpinning = false;
+    let soundEnabled = true;
+    let audioCtx = null;
+    let isVerticalMode = false;
+
+    // Estado de física de la ruleta
+    let wheelAngle = 0;
+    let angularVelocity = 0;
+    let targetAngle = 0;
+    let animationFrameId = null;
+    let lastTickSlice = -1;
+
+    // Colores Neón para las porciones
+    const sliceColors = [
+      '#e50914', // Rojo KIDO
+      '#00f2fe', // Cian neón
+      '#7928ca', // Púrpura eléctrico
+      '#ffb703', // Oro / Amarillo
+      '#ff007f', // Rosa neón
+      '#10b981', // Esmeralda
+      '#3b82f6', // Azul eléctrico
+      '#f97316'  // Naranja fuego
+    ];
+
+    // ==========================================
+    // AUDIO SYNTHESIZER (WEB AUDIO API)
+    // ==========================================
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    // Sonido de "Tick" mecánico al pasar una división
+    function playTickSound() {
+      if (!soundEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(600, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 0.035);
+
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.035);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start();
+        osc.stop(ctx.currentTime + 0.04);
+      } catch (e) { }
+    }
+
+    // Sonido Fanfarria / Victoria de Sorteo
+    function playFanfareSound() {
+      if (!soundEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99]; // Acorde mayor
+        notes.forEach((freq, idx) => {
+          setTimeout(() => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime);
+
+            gain.gain.setValueAtTime(0.2, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 1.2);
+          }, idx * 120);
+        });
+      } catch (e) { }
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      document.getElementById('soundIcon').textContent = soundEnabled ? '🔊' : '🔇';
+    }
+
+    // ==========================================
+    // CARGA DE DATOS DESDE LA API
+    // ==========================================
+    async function loadInitialData() {
+      try {
+        const res = await fetch('/api/admin/raffles/live-data');
+        if (!res.ok) throw new Error('Error al cargar datos');
+        const data = await res.json();
+
+        // Rellenar selector de rifas
+        const select = document.getElementById('raffleSelect');
+        select.innerHTML = (data.all_raffles || []).map(r => `
+          <option value="${r.id}" ${data.raffle && data.raffle.id === r.id ? 'selected' : ''}>
+            ${r.raffle_number} - ${r.title} (${r.status})
+          </option>
+        `).join('');
+
+        setRaffleData(data.raffle, data.participants);
+      } catch (err) {
+        console.error('Error cargando sorteos:', err);
+      }
+    }
+
+    async function loadSelectedRaffle() {
+      const id = document.getElementById('raffleSelect').value;
+      if (!id) return;
+      try {
+        const res = await fetch(`/api/admin/raffles/live-data?id=${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setRaffleData(data.raffle, data.participants);
+        }
+      } catch (e) { console.error(e); }
+    }
+
+    function setRaffleData(raffle, parts) {
+      currentRaffle = raffle;
+      participants = parts || [];
+
+      // Tarjeta Izquierda
+      document.getElementById('raffleNumberBadge').textContent = raffle.raffle_number;
+      document.getElementById('prizeTitle').textContent = raffle.title;
+      document.getElementById('prizeDesc').textContent = raffle.prize_description;
+      if (raffle.prize_images && raffle.prize_images.length > 0) {
+        document.getElementById('prizeImage').src = raffle.prize_images[0];
+      }
+      document.getElementById('soldNumbersCount').textContent = `${participants.length} u.`;
+      document.getElementById('ticketPriceLabel').textContent = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(raffle.ticket_price_ars || 0);
+
+      // Padrón Derecho
+      document.getElementById('participantsTotalBadge').textContent = `${participants.length} números`;
+      renderParticipantsList();
+
+      // Renderizar ruleta inicial
+      drawWheel();
+    }
+
+    function renderParticipantsList() {
+      const container = document.getElementById('participantsList');
+      if (participants.length === 0) {
+        container.innerHTML = `<div class="text-center text-gray-500 py-6">No hay números vendidos todavía.</div>`;
+        return;
+      }
+
+      container.innerHTML = participants.map(p => `
+        <div id="partRow-${p.number}" class="flex items-center justify-between p-2 rounded-xl bg-brandSurface/60 border border-brandBorder/60 hover:border-gray-500 transition">
+          <div class="flex items-center gap-2">
+            <span class="w-7 h-7 rounded-lg bg-black/60 font-mono font-bold text-brandCyan flex items-center justify-center text-xs border border-brandBorder">
+              #${String(p.number).padStart(2, '0')}
+            </span>
+            <span class="font-bold text-white text-[11px] truncate max-w-[130px]">${p.customer_name}</span>
+          </div>
+          ${p.is_free ? '<span class="text-[9px] font-black text-amber-300 bg-amber-500/20 px-1.5 py-0.5 rounded border border-amber-500/30">⭐ Gratis</span>' : '<span class="text-[9px] text-gray-400">Oficial</span>'}
+        </div>
+      `).join('');
+    }
+
+    // ==========================================
+    // RENDERIZADO CANVAS DE LA RULETA
+    // ==========================================
+    function drawWheel() {
+      const canvas = document.getElementById('wheelCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width;
+      const height = canvas.height;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const radius = width / 2 - 25;
+
+      ctx.clearRect(0, 0, width, height);
+
+      if (participants.length === 0) {
+        // Ruleta vacía
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+        ctx.fillStyle = '#12161f';
+        ctx.fill();
+        ctx.strokeStyle = '#232b3b';
+        ctx.lineWidth = 10;
+        ctx.stroke();
+        ctx.restore();
+        return;
+      }
+
+      const numSlices = participants.length;
+      const sliceAngle = (2 * Math.PI) / numSlices;
+
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.rotate(wheelAngle);
+
+      for (let i = 0; i < numSlices; i++) {
+        const start = i * sliceAngle;
+        const end = start + sliceAngle;
+        const color = sliceColors[i % sliceColors.length];
+
+        // Porción
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, radius, start, end);
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+
+        // Borde elegante
+        ctx.strokeStyle = '#0a0c10';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // Texto del Número y Nombre en la porción
+        ctx.save();
+        ctx.rotate(start + sliceAngle / 2);
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+
+        // Número
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 36px "JetBrains Mono", monospace';
+        ctx.shadowColor = 'rgba(0,0,0,0.8)';
+        ctx.shadowBlur = 6;
+        ctx.fillText(`#${String(participants[i].number).padStart(2, '0')}`, radius - 40, 0);
+
+        // Nombre corto del participante si hay espacio
+        if (numSlices <= 25) {
+          ctx.fillStyle = 'rgba(255,255,255,0.85)';
+          ctx.font = 'bold 18px Outfit, sans-serif';
+          const shortName = participants[i].customer_name.split(' ')[0];
+          ctx.fillText(shortName, radius - 130, 0);
+        }
+
+        ctx.restore();
+      }
+
+      // Aro exterior metálico con remaches
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, 2 * Math.PI);
+      ctx.strokeStyle = '#ffb703';
+      ctx.lineWidth = 14;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(0, 0, radius + 10, 0, 2 * Math.PI);
+      ctx.strokeStyle = '#232b3b';
+      ctx.lineWidth = 8;
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    // ==========================================
+    // MOTOR DE GIRO & ANIMACIÓN DE LA RULETA
+    // ==========================================
+    async function startDraw() {
+      if (isSpinning) return;
+      if (!currentRaffle || participants.length === 0) {
+        alert('No hay participantes en esta rifa para sortear.');
+        return;
+      }
+
+      getAudioContext(); // Desbloquear audio en la interacción
+      isSpinning = true;
+      document.getElementById('drawActionBtn').disabled = true;
+      document.getElementById('drawActionText').textContent = 'GIRANDO EN VIVO...';
+
+      // 1. Consultar a la API oficial el sorteo
+      let drawResult = null;
+      try {
+        const res = await fetch('/api/admin/raffles/draw', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ raffle_id: currentRaffle.id })
+        });
+        if (!res.ok) throw new Error('Error al ejecutar sorteo');
+        drawResult = await res.json();
+      } catch (err) {
+        console.error(err);
+        alert('Error conectando con el servidor.');
+        isSpinning = false;
+        document.getElementById('drawActionBtn').disabled = false;
+        document.getElementById('drawActionText').textContent = 'INICIAR SORTEO EN VIVO';
+        return;
+      }
+
+      const winningNumber = drawResult.winning_number;
+      const winnerIndex = participants.findIndex(p => p.number === winningNumber);
+      const numSlices = participants.length;
+      const sliceAngle = (2 * Math.PI) / numSlices;
+
+      // El puntero está arriba en las 12 en punto (-PI/2).
+      // Queremos que al detenerse, el centro del slice ganador quede en -PI/2.
+      const sliceCenter = winnerIndex * sliceAngle + sliceAngle / 2;
+      const baseStopAngle = (1.5 * Math.PI) - sliceCenter;
+
+      // Cantidad de vueltas completas para emoción
+      const isSuspense = document.getElementById('suspenseModeCheckbox').checked;
+      const extraRotations = isSuspense ? (8 + Math.floor(Math.random() * 4)) : (5 + Math.floor(Math.random() * 2));
+      const totalSpinAngle = (2 * Math.PI * extraRotations) + baseStopAngle;
+
+      const durationMs = isSuspense ? 10000 : 6000;
+      const startTime = performance.now();
+      const initialWheelAngle = wheelAngle % (2 * Math.PI);
+
+      function animateSpin(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(1, elapsed / durationMs);
+
+        // Curva de desaceleración quíntica (llegada suave y tensa)
+        const easeOut = 1 - Math.pow(1 - progress, 5);
+
+        wheelAngle = initialWheelAngle + (totalSpinAngle - initialWheelAngle) * easeOut;
+        drawWheel();
+
+        // Detectar cambio de slice para disparar sonido de click y animación del flipper
+        const currentSlice = Math.floor(((1.5 * Math.PI - (wheelAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) / sliceAngle);
+        if (currentSlice !== lastTickSlice) {
+          lastTickSlice = currentSlice;
+          playTickSound();
+
+          // Animar rebote del puntero superior
+          const flipper = document.getElementById('wheelFlipper');
+          if (flipper) {
+            flipper.style.transform = 'rotate(-25deg)';
+            setTimeout(() => { flipper.style.transform = 'rotate(0deg)'; }, 45);
+          }
+
+          // Iluminar fila del participante actual
+          const activeParticipant = participants[currentSlice];
+          if (activeParticipant) {
+            document.querySelectorAll('#participantsList > div').forEach(el => el.classList.remove('bg-brandCyan/20', 'border-brandCyan'));
+            const row = document.getElementById(`partRow-${activeParticipant.number}`);
+            if (row) {
+              row.classList.add('bg-brandCyan/20', 'border-brandCyan');
+              row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+          }
+        }
+
+        if (progress < 1) {
+          animationFrameId = requestAnimationFrame(animateSpin);
+        } else {
+          // Finalizado con éxito
+          isSpinning = false;
+          document.getElementById('drawActionBtn').disabled = false;
+          document.getElementById('drawActionText').textContent = 'INICIAR SORTEO EN VIVO';
+          handleDrawFinished(drawResult);
+        }
+      }
+
+      animationFrameId = requestAnimationFrame(animateSpin);
+    }
+
+    // ==========================================
+    // CELEBRACIÓN DE GANADOR & EFECTOS ESPECIALES
+    // ==========================================
+    function handleDrawFinished(drawResult) {
+      playFanfareSound();
+      launchFireworks();
+
+      const winner = drawResult.winner;
+      document.getElementById('winnerNumberDisplay').textContent = `#${String(winner.number).padStart(2, '0')}`;
+      document.getElementById('winnerNameDisplay').textContent = winner.name;
+      document.getElementById('winnerEmailDisplay').textContent = winner.email;
+      document.getElementById('winnerTimestampDisplay').textContent = new Date().toLocaleString('es-AR');
+      document.getElementById('winnerRaffleTitle').textContent = currentRaffle ? currentRaffle.title : 'Rifa Oficial KIDO';
+      
+      const badge = document.getElementById('winnerBadgeDisplay');
+      if (winner.is_free) {
+        badge.className = 'px-2.5 py-1 rounded-lg text-[10px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40';
+        badge.textContent = '⭐ Ticket Gratis de Socio Frecuente';
+      } else {
+        badge.className = 'px-2.5 py-1 rounded-lg text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+        badge.textContent = '🎟️ Boleto Oficial Comprado';
+      }
+
+      // Mostrar modal con zoom
+      const modal = document.getElementById('winnerModal');
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        modal.querySelector('div').classList.remove('scale-95');
+        modal.querySelector('div').classList.add('scale-100');
+      }, 50);
+    }
+
+    function closeWinnerModal() {
+      const modal = document.getElementById('winnerModal');
+      modal.querySelector('div').classList.remove('scale-100');
+      modal.querySelector('div').classList.add('scale-95');
+      setTimeout(() => {
+        modal.classList.add('hidden');
+        stopFireworks();
+      }, 300);
+    }
+
+    function copyWinnerCertificate() {
+      const winnerName = document.getElementById('winnerNameDisplay').textContent;
+      const winnerNumber = document.getElementById('winnerNumberDisplay').textContent;
+      const prizeTitle = document.getElementById('winnerRaffleTitle').textContent;
+      const raffleNo = currentRaffle ? currentRaffle.raffle_number : 'RIFA KIDO';
+
+      const shareText = `🏎️💨 ¡TENEMOS GANADOR OFICIAL EN KIDO GARAGE! 🏆✨\n\n` +
+        `📦 Premio: ${prizeTitle}\n` +
+        `🎟️ Sorteo: ${raffleNo}\n` +
+        `🔥 Número Ganador: ${winnerNumber}\n` +
+        `👤 Afortunado: ${winnerName}\n\n` +
+        `¡Gracias a toda la comunidad de coleccionistas por participar!\n` +
+        `Participá en el próximo sorteo en www.kidogarage.com`;
+
+      navigator.clipboard.writeText(shareText).then(() => {
+        alert('✅ ¡Anuncio copiado al portapapeles! Listo para pegar en historias de Instagram o estado de WhatsApp.');
+      });
+    }
+
+    // ==========================================
+    // SISTEMA DE FUEGOS ARTIFICIALES & CONFETTI (CANVAS)
+    // ==========================================
+    let effectsActive = false;
+    let particles = [];
+
+    function launchFireworks() {
+      effectsActive = true;
+      const canvas = document.getElementById('effectsCanvas');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      particles = [];
+
+      // Crear ráfaga de confetti y fuegos artificiales
+      const colors = ['#ff007f', '#00f2fe', '#ffb703', '#ffffff', '#e50914', '#10b981'];
+      for (let i = 0; i < 280; i++) {
+        particles.push({
+          x: canvas.width / 2 + (Math.random() - 0.5) * 400,
+          y: canvas.height / 2 + (Math.random() - 0.5) * 200,
+          vx: (Math.random() - 0.5) * 16,
+          vy: (Math.random() - 1.2) * 14,
+          size: Math.random() * 8 + 4,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          alpha: 1,
+          decay: Math.random() * 0.015 + 0.005,
+          rotation: Math.random() * 360,
+          rotSpeed: (Math.random() - 0.5) * 12
+        });
+      }
+
+      animateEffects();
+    }
+
+    function stopFireworks() {
+      effectsActive = false;
+      const canvas = document.getElementById('effectsCanvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function animateEffects() {
+      if (!effectsActive) return;
+      const canvas = document.getElementById('effectsCanvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      particles.forEach((p, idx) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.25; // Gravedad
+        p.alpha -= p.decay;
+        p.rotation += p.rotSpeed;
+
+        if (p.alpha <= 0) {
+          particles.splice(idx, 1);
+          return;
+        }
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+        ctx.restore();
+      });
+
+      if (particles.length > 0) {
+        requestAnimationFrame(animateEffects);
+      } else {
+        effectsActive = false;
+      }
+    }
+
+    // ==========================================
+    // CONTROLES DE PANTALLA & MODOS OBS / INSTAGRAM
+    // ==========================================
+    function toggleStreamMode() {
+      isVerticalMode = !isVerticalMode;
+      const container = document.getElementById('streamContainer');
+      const prizeCol = document.getElementById('prizeCardCol');
+      const wheelCol = document.getElementById('wheelCol');
+      const rosterCol = document.getElementById('rosterCol');
+      const text = document.getElementById('streamModeText');
+      const icon = document.getElementById('streamModeIcon');
+
+      if (isVerticalMode) {
+        // Modo 9:16 Vertical para Instagram Live / TikTok
+        container.className = 'flex-1 max-w-md w-full mx-auto p-4 flex flex-col gap-4 items-center transition-all duration-300';
+        prizeCol.className = 'w-full order-1';
+        wheelCol.className = 'w-full order-2 flex flex-col items-center justify-center';
+        rosterCol.className = 'w-full order-3';
+        text.textContent = 'Modo 9:16 (Instagram)';
+        icon.textContent = '📱';
+      } else {
+        // Modo 16:9 Horizontal para YouTube / OBS
+        container.className = 'flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center transition-all duration-300';
+        prizeCol.className = 'lg:col-span-3 space-y-4';
+        wheelCol.className = 'lg:col-span-6 flex flex-col items-center justify-center relative';
+        rosterCol.className = 'lg:col-span-3 space-y-4';
+        text.textContent = 'Modo 16:9';
+        icon.textContent = '📺';
+      }
+
+      drawWheel();
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => console.log(err));
+      } else {
+        document.exitFullscreen().catch(err => console.log(err));
+      }
+    }
+
+    // Atajo Teclado: Barra espaciadora para Iniciar Sorteo
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' && !isSpinning && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') {
+        e.preventDefault();
+        startDraw();
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      if (document.getElementById('effectsCanvas')) {
+        document.getElementById('effectsCanvas').width = window.innerWidth;
+        document.getElementById('effectsCanvas').height = window.innerHeight;
+      }
+      drawWheel();
+    });
+
+    document.addEventListener('DOMContentLoaded', loadInitialData);
+  </script>
+</body>
+</html>

@@ -454,9 +454,31 @@
           </form>
         </div>
 
-        <!-- Monitor de Rifas Activas -->
-        <div class="lg:col-span-2 bg-brandSurface border border-brandBorder rounded-2xl p-5 shadow-lg">
-          <h3 class="font-bold text-white text-base mb-4 font-display">Monitor de Rifas Activas & Ventas</h3>
+        <!-- Monitor de Rifas Activas & Ruleta en Vivo -->
+        <div class="lg:col-span-2 bg-brandSurface border border-brandBorder rounded-2xl p-5 shadow-lg space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-brandBorder pb-3">
+            <div>
+              <h3 class="font-bold text-white text-base font-display">Monitor de Rifas Activas & Ventas</h3>
+              <p class="text-xs text-gray-400">Control de boletos vendidos y acceso a sorteos en tiempo real.</p>
+            </div>
+            <a href="./stream-raffle.html" target="_blank" class="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white font-bold py-2 px-4 rounded-xl text-xs uppercase tracking-wider transition shadow-lg shadow-red-600/30 flex items-center justify-center gap-2 whitespace-nowrap hover:scale-105">
+              <span>🎥</span> Ruleta en Vivo (OBS / Streams)
+            </a>
+          </div>
+
+          <!-- Banner Informativo Stream -->
+          <div class="p-3.5 rounded-xl bg-gradient-to-r from-red-950/40 via-brandCard to-black border border-red-500/30 flex items-center justify-between gap-2 text-xs">
+            <div class="flex items-center gap-2.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
+              <span class="text-gray-300">
+                Transmití el sorteo oficial en <b>Instagram Live</b> o <b>YouTube</b> con pantalla completa interactiva, fuegos artificiales y sonido.
+              </span>
+            </div>
+            <a href="./stream-raffle.html" target="_blank" class="text-red-400 hover:text-red-300 font-bold whitespace-nowrap underline text-[11px]">
+              Abrir Pantalla ➔
+            </a>
+          </div>
+
           <div id="adminRafflesContainer" class="space-y-4">
             <!-- Rendered by JS -->
           </div>
@@ -940,30 +962,53 @@
 
     function renderAdminRaffles() {
       const container = document.getElementById('adminRafflesContainer');
-      container.innerHTML = adminRaffles.map(raf => `
-        <div class="bg-brandCard border border-brandBorder rounded-2xl p-4">
-          <div class="flex items-center justify-between mb-2">
-            <span class="font-mono text-xs font-bold text-amber-400">${raf.raffle_number}</span>
-            <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">${raf.status}</span>
+      container.innerHTML = adminRaffles.map(raf => {
+        const isDrawn = raf.status === 'SORTEADA';
+
+        return `
+          <div class="bg-brandCard border border-brandBorder rounded-2xl p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="font-mono text-xs font-bold text-amber-400">${raf.raffle_number}</span>
+              <span class="text-[10px] font-black uppercase px-2.5 py-0.5 rounded ${
+                isDrawn ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-emerald-500/20 text-emerald-400'
+              }">${raf.status}</span>
+            </div>
+            <h4 class="font-bold text-white text-sm">${raf.title}</h4>
+            <p class="text-xs text-gray-400 leading-relaxed">${raf.prize_description}</p>
+            
+            <div class="p-3 bg-brandSurface rounded-xl border border-brandBorder text-xs space-y-1.5">
+              <div class="flex justify-between text-gray-300">
+                <span>Boletos Vendidos: <b>${raf.sold_numbers} / ${raf.total_numbers}</b></span>
+                <span class="text-amber-400 font-bold">${Math.round(raf.sold_percentage)}%</span>
+              </div>
+              <div class="w-full bg-brandBorder h-2 rounded-full overflow-hidden">
+                <div class="bg-amber-500 h-full" style="width: ${raf.sold_percentage}%"></div>
+              </div>
+              <div class="flex justify-between text-[11px] text-gray-400 pt-1">
+                <span>Recaudación: <b>${formatARS(raf.sold_numbers * raf.ticket_price_ars)}</b></span>
+                <span>Fecha: <b>${raf.draw_datetime}</b></span>
+              </div>
+            </div>
+
+            <!-- Botones de Acción de Sorteo -->
+            <div class="flex items-center justify-between pt-1">
+              ${isDrawn && raf.winner_number !== undefined ? `
+                <div class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                  <span>🏆</span> Ganador Oficial: <b class="font-mono text-sm bg-black/40 px-2 py-0.5 rounded border border-amber-500/40">#${raf.winner_number}</b>
+                </div>
+                <a href="./stream-raffle.html?id=${raf.id}" target="_blank" class="bg-brandSurface hover:bg-brandBorder text-gray-300 border border-brandBorder px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                  <span>📺</span> Ver Placa de Transmisión
+                </a>
+              ` : `
+                <span class="text-[11px] text-gray-500">Sorteo activo listo para ruleta</span>
+                <a href="./stream-raffle.html?id=${raf.id}" target="_blank" class="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white font-bold px-3.5 py-1.5 rounded-xl text-xs uppercase tracking-wider transition shadow-lg shadow-red-600/20 flex items-center gap-1.5 hover:scale-105">
+                  <span>🎰</span> Sortear en Vivo con Ruleta
+                </a>
+              `}
+            </div>
           </div>
-          <h4 class="font-bold text-white text-sm">${raf.title}</h4>
-          <p class="text-xs text-gray-400 mt-1">${raf.prize_description}</p>
-          
-          <div class="my-3 p-3 bg-brandSurface rounded-xl border border-brandBorder text-xs">
-            <div class="flex justify-between text-gray-300 mb-1">
-              <span>Vendidos: <b>${raf.sold_numbers} / ${raf.total_numbers}</b></span>
-              <span class="text-amber-400 font-bold">${Math.round(raf.sold_percentage)}%</span>
-            </div>
-            <div class="w-full bg-brandBorder h-2 rounded-full overflow-hidden">
-              <div class="bg-amber-500 h-full" style="width: ${raf.sold_percentage}%"></div>
-            </div>
-            <div class="flex justify-between text-[11px] text-gray-400 mt-2">
-              <span>Recaudación: <b>${formatARS(raf.sold_numbers * raf.ticket_price_ars)}</b></span>
-              <span>Sorteo: <b>${raf.draw_datetime}</b></span>
-            </div>
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
     async function handleCreateRaffle(e) {

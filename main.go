@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -608,6 +610,7 @@ func initDB() {
 
 	dbActive = true
 	log.Printf("🐘 PostgreSQL CONECTADO EXITOSAMENTE a kido_db en localhost:5432")
+	_, _ = db.Exec("ALTER TABLE raffles ADD COLUMN IF NOT EXISTS winner_number INTEGER")
 
 	// 1. Sincronizar usuarios
 	var userCount int
@@ -841,14 +844,17 @@ func pgSaveRaffle(r Raffle) {
 			endT = time.Now().AddDate(0, 1, 0)
 		}
 		drawT, _ := time.Parse("2006-01-02 15:04", r.DrawDatetime)
-		if drawT.IsZero() {
-			drawT = time.Now().AddDate(0, 1, 5)
+		var winnerNum interface{} = nil
+		if r.WinnerNumber != nil {
+			winnerNum = *r.WinnerNumber
 		}
 
-		_, _ = db.Exec(`INSERT INTO raffles (id, raffle_number, title, prize_description, prize_images, start_datetime, end_datetime, draw_datetime, min_number, max_number, ticket_price_ars, status)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-		ON CONFLICT (id) DO NOTHING`,
-			r.ID, r.RaffleNumber, r.Title, r.PrizeDescription, string(imgJSON), startT, endT, drawT, r.MinNumber, r.MaxNumber, r.TicketPriceARS, r.Status)
+		_, _ = db.Exec(`INSERT INTO raffles (id, raffle_number, title, prize_description, prize_images, start_datetime, end_datetime, draw_datetime, min_number, max_number, ticket_price_ars, status, winner_number)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+		ON CONFLICT (id) DO UPDATE SET
+			status = EXCLUDED.status,
+			winner_number = EXCLUDED.winner_number`,
+			r.ID, r.RaffleNumber, r.Title, r.PrizeDescription, string(imgJSON), startT, endT, drawT, r.MinNumber, r.MaxNumber, r.TicketPriceARS, r.Status, winnerNum)
 	}()
 }
 
@@ -1635,6 +1641,196 @@ func main() {
 			"raffle":  newRaffle,
 			"message": "Rifa creada y abierta al público",
 		})
+	})
+
+	// Datos en Vivo para Ruleta / Sorteo en Vivo (Streams & OBS)
+	mux.HandleFunc("/api/admin/raffles/live-data", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		store.mu.RLock()
+		defer store.mu.RUnlock()
+
+		raffleIDStr := r.URL.Query().Get("id")
+		var target *Raffle
+		if raffleIDStr != "" {
+			id, _ := strconv.ParseInt(raffleIDStr, 10, 64)
+			for i := range store.raffles {
+				if store.raffles[i].ID == id {
+					target = &store.raffles[i]
+					break
+				}
+			}
+		}
+		if target == nil && len(store.raffles) > 0 {
+			target = &store.raffles[0] // Primera por defecto
+		}
+
+		if target == nil {
+			http.Error(w, "No hay rifas disponibles", http.StatusNotFound)
+			return
+		}
+
+		type LiveParticipant struct {
+			Number        int    `json:"number"`
+			CustomerName  string `json:"customer_name"`
+			CustomerEmail string `json:"customer_email"`
+			IsFree        bool   `json:"is_free"`
+		}
+
+		var participants []LiveParticipant
+		for num, t := range target.Tickets {
+			name := t.CustomerName
+			if name == "" {
+				name = "Participante #" + strconv.Itoa(num)
+			}
+			participants = append(participants, LiveParticipant{
+				Number:        num,
+				CustomerName:  name,
+				CustomerEmail: t.CustomerEmail,
+				IsFree:        t.IsFreeTicket,
+			})
+		}
+
+		sort.Slice(participants, func(i, j int) bool {
+			return participants[i].Number < participants[j].Number
+		})
+
+		type SimpleRaffleInfo struct {
+			ID           int64  `json:"id"`
+			RaffleNumber string `json:"raffle_number"`
+			Title        string `json:"title"`
+			Status       string `json:"status"`
+			TicketsCount int    `json:"tickets_count"`
+		}
+		var raffleList []SimpleRaffleInfo
+		for _, raf := range store.raffles {
+			raffleList = append(raffleList, SimpleRaffleInfo{
+				ID:           raf.ID,
+				RaffleNumber: raf.RaffleNumber,
+				Title:        raf.Title,
+				Status:       raf.Status,
+				TicketsCount: len(raf.Tickets),
+			})
+		}
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"raffle":       target,
+			"participants": participants,
+			"all_raffles":  raffleList,
+		})
+	})
+
+	// Ejecutar Sorteo y Registrar Ganador Oficial
+	mux.HandleFunc("/api/admin/raffles/draw", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method != http.MethodPost {
+			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			RaffleID      int64 `json:"raffle_id"`
+			WinningNumber *int  `json:"winning_number,omitempty"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		store.mu.Lock()
+		defer store.mu.Unlock()
+
+		var target *Raffle
+		for i := range store.raffles {
+			if store.raffles[i].ID == req.RaffleID {
+				target = &store.raffles[i]
+				break
+			}
+		}
+
+		if target == nil {
+			http.Error(w, "Rifa no encontrada", http.StatusNotFound)
+			return
+		}
+
+		if len(target.Tickets) == 0 {
+			http.Error(w, "No hay números vendidos para esta rifa", http.StatusBadRequest)
+			return
+		}
+
+		var chosenNumber int
+		if req.WinningNumber != nil {
+			chosenNumber = *req.WinningNumber
+		} else {
+			// Sorteo aleatorio entre los números asignados/vendidos
+			var pool []int
+			for num := range target.Tickets {
+				pool = append(pool, num)
+			}
+			chosenNumber = pool[rand.Intn(len(pool))]
+		}
+
+		ticket, exists := target.Tickets[chosenNumber]
+		if !exists {
+			http.Error(w, fmt.Sprintf("El número %d no fue adquirido en este sorteo", chosenNumber), http.StatusBadRequest)
+			return
+		}
+
+		target.Status = "SORTEADA"
+		target.WinnerNumber = &chosenNumber
+
+		pgSaveRaffle(*target)
+
+		log.Printf("🎉 [Sorteo Oficial KIDO] ¡Rifa %s SORTEADA! Ganador: Número #%d - %s (%s)", target.RaffleNumber, chosenNumber, ticket.CustomerName, ticket.CustomerEmail)
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success":        true,
+			"raffle_id":      target.ID,
+			"winning_number": chosenNumber,
+			"winner": map[string]interface{}{
+				"number":        chosenNumber,
+				"name":          ticket.CustomerName,
+				"email":         ticket.CustomerEmail,
+				"is_free":       ticket.IsFreeTicket,
+				"mercadopago_id": ticket.MercadoPagoID,
+			},
+			"raffle": target,
+		})
+	})
+
+	// Reiniciar Rifa a Estado Activa (Para Pruebas y Streams)
+	mux.HandleFunc("/api/admin/raffles/reset", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method != http.MethodPost {
+			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			RaffleID int64 `json:"raffle_id"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		store.mu.Lock()
+		defer store.mu.Unlock()
+
+		for i := range store.raffles {
+			if store.raffles[i].ID == req.RaffleID {
+				store.raffles[i].Status = "ACTIVA"
+				store.raffles[i].WinnerNumber = nil
+				pgSaveRaffle(store.raffles[i])
+
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"success": true,
+					"message": "Rifa restablecida a estado ACTIVA para sorteo",
+					"raffle":  store.raffles[i],
+				})
+				return
+			}
+		}
+		http.Error(w, "Rifa no encontrada", http.StatusNotFound)
 	})
 
 	// Comprar Número de Rifa (o reclamar número gratis si es cliente frecuente)
