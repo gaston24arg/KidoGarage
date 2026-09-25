@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,6 +14,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	_ "github.com/lib/pq"
 )
 
 // ==========================================
@@ -487,6 +490,287 @@ func loadCatalog() {
 }
 
 // ==========================================
+// CONEXIÓN & PERSISTENCIA EN POSTGRESQL
+// ==========================================
+
+var (
+	db       *sql.DB
+	dbActive bool
+)
+
+func initDB() {
+	connStr := os.Getenv("DATABASE_URL")
+	if connStr == "" {
+		connStr = "postgres://postgres:715192@localhost:5432/kido_db?sslmode=disable"
+	}
+
+	var err error
+	db, err = sql.Open("postgres", connStr)
+	if err != nil {
+		log.Printf("⚠️ PostgreSQL: No se pudo crear el pool de conexiones: %v", err)
+		return
+	}
+
+	if err := db.Ping(); err != nil {
+		log.Printf("⚠️ PostgreSQL: No se pudo conectar a localhost:5432/kido_db: %v", err)
+		return
+	}
+
+	dbActive = true
+	log.Printf("🐘 PostgreSQL CONECTADO EXITOSAMENTE a kido_db en localhost:5432")
+
+	// 1. Sincronizar usuarios
+	var userCount int
+	if err := db.QueryRow("SELECT COUNT(*) FROM users").Scan(&userCount); err == nil {
+		if userCount == 0 {
+			store.mu.RLock()
+			for _, u := range store.users {
+				_, _ = db.Exec(`INSERT INTO users (id, email, password_hash, role, first_name, last_name, phone, locality, street, street_number, avatar_url, consecutive_months_buying, is_frequent_customer, frequent_points, total_purchases_count)
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+				ON CONFLICT (id) DO NOTHING`,
+					u.ID, u.Email, u.Password, u.Role, u.FirstName, u.LastName, u.Phone, u.Locality, u.Street, u.StreetNumber, u.AvatarURL, u.ConsecutiveMonths, u.IsFrequentCustomer, u.FrequentPoints, u.TotalPurchasesCount)
+			}
+			store.mu.RUnlock()
+			log.Printf("🐘 [PostgreSQL] Sembrados %d usuarios en tabla 'users'", len(store.users))
+		} else {
+			rows, err := db.Query("SELECT id, email, COALESCE(password_hash,''), role, COALESCE(first_name,''), COALESCE(last_name,''), COALESCE(phone,''), COALESCE(locality,''), COALESCE(street,''), COALESCE(street_number,''), COALESCE(avatar_url,''), consecutive_months_buying, is_frequent_customer, frequent_points, total_purchases_count FROM users ORDER BY id ASC")
+			if err == nil {
+				var pgUsers []User
+				for rows.Next() {
+					var u User
+					if err := rows.Scan(&u.ID, &u.Email, &u.Password, &u.Role, &u.FirstName, &u.LastName, &u.Phone, &u.Locality, &u.Street, &u.StreetNumber, &u.AvatarURL, &u.ConsecutiveMonths, &u.IsFrequentCustomer, &u.FrequentPoints, &u.TotalPurchasesCount); err == nil {
+						pgUsers = append(pgUsers, u)
+					}
+				}
+				rows.Close()
+				if len(pgUsers) > 0 {
+					store.mu.Lock()
+					store.users = pgUsers
+					store.mu.Unlock()
+					log.Printf("🐘 [PostgreSQL] Cargados %d usuarios desde la base de datos", len(pgUsers))
+				}
+			}
+		}
+	}
+
+	// 2. Sincronizar catálogo de productos
+	var prodCount int
+	if err := db.QueryRow("SELECT COUNT(*) FROM products").Scan(&prodCount); err == nil {
+		if prodCount == 0 {
+			store.mu.RLock()
+			for _, p := range store.products {
+				imgJSON, _ := json.Marshal(p.GalleryImages)
+				_, _ = db.Exec(`INSERT INTO products (id, title, handle, product_type, scale, apparel_size, vendor, price_ars, price_usd, stock_quantity, status, is_active, has_chase_chance, gallery_images, short_video_url, description)
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+				ON CONFLICT (id) DO NOTHING`,
+					p.ID, p.Title, p.Handle, p.ProductType, p.Scale, p.ApparelSize, p.Vendor, p.PriceARS, p.PriceUSD, p.StockQuantity, p.Status, p.IsActive, p.HasChaseChance, string(imgJSON), p.ShortVideoURL, p.BodyHTML)
+			}
+			store.mu.RUnlock()
+			log.Printf("🐘 [PostgreSQL] Sembrados %d productos en tabla 'products'", len(store.products))
+		} else {
+			rows, err := db.Query("SELECT id, title, handle, product_type, COALESCE(scale,''), COALESCE(apparel_size,''), vendor, price_ars, price_usd, stock_quantity, status, is_active, has_chase_chance, COALESCE(gallery_images::text,'[]'), COALESCE(short_video_url,''), COALESCE(description,'') FROM products ORDER BY id ASC")
+			if err == nil {
+				var pgProducts []Product
+				for rows.Next() {
+					var p Product
+					var imgRaw string
+					if err := rows.Scan(&p.ID, &p.Title, &p.Handle, &p.ProductType, &p.Scale, &p.ApparelSize, &p.Vendor, &p.PriceARS, &p.PriceUSD, &p.StockQuantity, &p.Status, &p.IsActive, &p.HasChaseChance, &imgRaw, &p.ShortVideoURL, &p.BodyHTML); err == nil {
+						_ = json.Unmarshal([]byte(imgRaw), &p.GalleryImages)
+						if len(p.GalleryImages) > 0 {
+							p.Images = []ProductImage{{ID: 1, Position: 1, Src: p.GalleryImages[0]}}
+						}
+						pgProducts = append(pgProducts, p)
+					}
+				}
+				rows.Close()
+				if len(pgProducts) > 0 {
+					store.mu.Lock()
+					store.products = pgProducts
+					store.mu.Unlock()
+					log.Printf("🐘 [PostgreSQL] Cargados %d productos desde la base de datos", len(pgProducts))
+				}
+			}
+		}
+	}
+
+	// 3. Sincronizar gastos
+	var expCount int
+	if err := db.QueryRow("SELECT COUNT(*) FROM expenses").Scan(&expCount); err == nil && expCount == 0 {
+		store.mu.RLock()
+		for _, e := range store.expenses {
+			_, _ = db.Exec(`INSERT INTO expenses (id, category, concept, supplier, amount_ars, amount_usd, invoice_number, expense_date)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			ON CONFLICT (id) DO NOTHING`,
+				e.ID, e.Category, e.Concept, e.Supplier, e.AmountARS, e.AmountUSD, e.InvoiceNumber, e.Date)
+		}
+		store.mu.RUnlock()
+		log.Printf("🐘 [PostgreSQL] Sembrados %d gastos en tabla 'expenses'", len(store.expenses))
+	}
+
+	// 4. Sincronizar rifas
+	var rafCount int
+	if err := db.QueryRow("SELECT COUNT(*) FROM raffles").Scan(&rafCount); err == nil && rafCount == 0 {
+		store.mu.RLock()
+		for _, r := range store.raffles {
+			imgJSON, _ := json.Marshal(r.PrizeImages)
+			startT, _ := time.Parse("2006-01-02 15:04", r.StartDatetime)
+			if startT.IsZero() {
+				startT = time.Now()
+			}
+			endT, _ := time.Parse("2006-01-02 15:04", r.EndDatetime)
+			if endT.IsZero() {
+				endT = time.Now().AddDate(0, 1, 0)
+			}
+			drawT, _ := time.Parse("2006-01-02 15:04", r.DrawDatetime)
+			if drawT.IsZero() {
+				drawT = time.Now().AddDate(0, 1, 5)
+			}
+
+			_, _ = db.Exec(`INSERT INTO raffles (id, raffle_number, title, prize_description, prize_images, start_datetime, end_datetime, draw_datetime, min_number, max_number, ticket_price_ars, status)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+			ON CONFLICT (id) DO NOTHING`,
+				r.ID, r.RaffleNumber, r.Title, r.PrizeDescription, string(imgJSON), startT, endT, drawT, r.MinNumber, r.MaxNumber, r.TicketPriceARS, r.Status)
+		}
+		store.mu.RUnlock()
+		log.Printf("🐘 [PostgreSQL] Sembradas %d rifas en tabla 'raffles'", len(store.raffles))
+	}
+}
+
+func pgSaveUser(u User) {
+	if !dbActive || db == nil {
+		return
+	}
+	go func() {
+		_, err := db.Exec(`INSERT INTO users (id, email, password_hash, role, first_name, last_name, phone, locality, street, street_number, avatar_url, consecutive_months_buying, is_frequent_customer, frequent_points, total_purchases_count)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+		ON CONFLICT (id) DO UPDATE SET
+			email = EXCLUDED.email,
+			role = EXCLUDED.role,
+			first_name = EXCLUDED.first_name,
+			last_name = EXCLUDED.last_name,
+			phone = EXCLUDED.phone,
+			locality = EXCLUDED.locality,
+			street = EXCLUDED.street,
+			street_number = EXCLUDED.street_number,
+			avatar_url = EXCLUDED.avatar_url,
+			consecutive_months_buying = EXCLUDED.consecutive_months_buying,
+			is_frequent_customer = EXCLUDED.is_frequent_customer,
+			frequent_points = EXCLUDED.frequent_points,
+			total_purchases_count = EXCLUDED.total_purchases_count,
+			updated_at = CURRENT_TIMESTAMP`,
+			u.ID, u.Email, u.Password, u.Role, u.FirstName, u.LastName, u.Phone, u.Locality, u.Street, u.StreetNumber, u.AvatarURL, u.ConsecutiveMonths, u.IsFrequentCustomer, u.FrequentPoints, u.TotalPurchasesCount)
+		if err != nil {
+			log.Printf("⚠️ Error guardando usuario en PostgreSQL: %v", err)
+		}
+	}()
+}
+
+func pgSaveProduct(p Product) {
+	if !dbActive || db == nil {
+		return
+	}
+	go func() {
+		imgJSON, _ := json.Marshal(p.GalleryImages)
+		_, err := db.Exec(`INSERT INTO products (id, title, handle, product_type, scale, apparel_size, vendor, price_ars, price_usd, stock_quantity, status, is_active, has_chase_chance, gallery_images, short_video_url, description)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+		ON CONFLICT (id) DO UPDATE SET
+			stock_quantity = EXCLUDED.stock_quantity,
+			status = EXCLUDED.status,
+			is_active = EXCLUDED.is_active,
+			price_ars = EXCLUDED.price_ars,
+			price_usd = EXCLUDED.price_usd,
+			updated_at = CURRENT_TIMESTAMP`,
+			p.ID, p.Title, p.Handle, p.ProductType, p.Scale, p.ApparelSize, p.Vendor, p.PriceARS, p.PriceUSD, p.StockQuantity, p.Status, p.IsActive, p.HasChaseChance, string(imgJSON), p.ShortVideoURL, p.BodyHTML)
+		if err != nil {
+			log.Printf("⚠️ Error guardando producto en PostgreSQL: %v", err)
+		}
+	}()
+}
+
+func pgSaveOrder(o Order) {
+	if !dbActive || db == nil {
+		return
+	}
+	go func() {
+		_, err := db.Exec(`INSERT INTO orders (id, order_number, customer_id, total_ars, total_paid_ars, remaining_balance_ars, is_fully_paid, delivery_status, order_type)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		ON CONFLICT (id) DO UPDATE SET
+			total_paid_ars = EXCLUDED.total_paid_ars,
+			remaining_balance_ars = EXCLUDED.remaining_balance_ars,
+			is_fully_paid = EXCLUDED.is_fully_paid,
+			delivery_status = EXCLUDED.delivery_status,
+			updated_at = CURRENT_TIMESTAMP`,
+			o.ID, o.OrderNumber, o.CustomerID, o.TotalARS, o.TotalPaidARS, o.RemainingBalanceARS, o.IsFullyPaid, o.DeliveryStatus, o.OrderType)
+		if err != nil {
+			log.Printf("⚠️ Error guardando orden en PostgreSQL: %v", err)
+		}
+
+		for _, it := range o.Items {
+			_, _ = db.Exec(`INSERT INTO order_items (order_id, product_id, product_title, quantity, unit_price_ars, subtotal_ars)
+			VALUES ($1, $2, $3, $4, $5, $6)`,
+				o.ID, it.ProductID, it.ProductTitle, it.Quantity, it.UnitPriceARS, it.SubtotalARS)
+		}
+
+		for _, pm := range o.Payments {
+			_, _ = db.Exec(`INSERT INTO partial_payments (id, order_id, product_id, amount_ars, payment_method, mercadopago_payment_id, mercadopago_status, is_downpayment)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			ON CONFLICT (id) DO NOTHING`,
+				pm.ID, o.ID, pm.ProductID, pm.AmountARS, pm.PaymentMethod, pm.MercadoPagoID, pm.PaymentStatus, pm.IsDownPayment)
+		}
+	}()
+}
+
+func pgSaveRaffle(r Raffle) {
+	if !dbActive || db == nil {
+		return
+	}
+	go func() {
+		imgJSON, _ := json.Marshal(r.PrizeImages)
+		startT, _ := time.Parse("2006-01-02 15:04", r.StartDatetime)
+		if startT.IsZero() {
+			startT = time.Now()
+		}
+		endT, _ := time.Parse("2006-01-02 15:04", r.EndDatetime)
+		if endT.IsZero() {
+			endT = time.Now().AddDate(0, 1, 0)
+		}
+		drawT, _ := time.Parse("2006-01-02 15:04", r.DrawDatetime)
+		if drawT.IsZero() {
+			drawT = time.Now().AddDate(0, 1, 5)
+		}
+
+		_, _ = db.Exec(`INSERT INTO raffles (id, raffle_number, title, prize_description, prize_images, start_datetime, end_datetime, draw_datetime, min_number, max_number, ticket_price_ars, status)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		ON CONFLICT (id) DO NOTHING`,
+			r.ID, r.RaffleNumber, r.Title, r.PrizeDescription, string(imgJSON), startT, endT, drawT, r.MinNumber, r.MaxNumber, r.TicketPriceARS, r.Status)
+	}()
+}
+
+func pgSaveRaffleTicket(raffleID int64, t RaffleTicket) {
+	if !dbActive || db == nil {
+		return
+	}
+	go func() {
+		_, _ = db.Exec(`INSERT INTO raffle_tickets (raffle_id, ticket_number, customer_id, customer_email, is_free_frequent_ticket, mercadopago_id)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		ON CONFLICT (raffle_id, ticket_number) DO NOTHING`,
+			raffleID, t.Number, t.CustomerID, t.CustomerEmail, t.IsFreeTicket, t.MercadoPagoID)
+	}()
+}
+
+func pgSaveExpense(e Expense) {
+	if !dbActive || db == nil {
+		return
+	}
+	go func() {
+		_, _ = db.Exec(`INSERT INTO expenses (id, category, concept, supplier, amount_ars, amount_usd, invoice_number, expense_date)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		ON CONFLICT (id) DO NOTHING`,
+			e.ID, e.Category, e.Concept, e.Supplier, e.AmountARS, e.AmountUSD, e.InvoiceNumber, e.Date)
+	}()
+}
+
+// ==========================================
 // SERVIDOR HTTP & APIS
 // ==========================================
 
@@ -494,6 +778,7 @@ func main() {
 	loadCatalog()
 	initRaffles()
 	initOrders()
+	initDB()
 
 	mux := http.NewServeMux()
 
@@ -569,6 +854,7 @@ func main() {
 		}
 
 		store.users = append(store.users, newUser)
+		pgSaveUser(newUser)
 
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -875,6 +1161,7 @@ func main() {
 		store.mu.Lock()
 		store.products = append([]Product{p}, store.products...)
 		store.mu.Unlock()
+		pgSaveProduct(p)
 
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -915,6 +1202,7 @@ func main() {
 				if store.products[i].StockQuantity > 0 && store.products[i].Status == "AGOTADO" {
 					store.products[i].Status = "STOCK"
 				}
+				pgSaveProduct(store.products[i])
 
 				json.NewEncoder(w).Encode(map[string]interface{}{
 					"success":        true,
@@ -1023,6 +1311,7 @@ func main() {
 		store.mu.Lock()
 		store.raffles = append([]Raffle{newRaffle}, store.raffles...)
 		store.mu.Unlock()
+		pgSaveRaffle(newRaffle)
 
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -1110,6 +1399,7 @@ func main() {
 			MercadoPagoID: mpID,
 			PurchasedAt:   time.Now(),
 		}
+		pgSaveRaffleTicket(targetRaffle.ID, targetRaffle.Tickets[req.Number])
 
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success":          true,
@@ -1240,6 +1530,7 @@ func main() {
 		}
 
 		store.mu.Unlock()
+		pgSaveOrder(newOrder)
 
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success":          true,
@@ -1301,6 +1592,7 @@ func main() {
 					CreatedAt:     time.Now(),
 				}
 				ord.Payments = append(ord.Payments, payment)
+				pgSaveOrder(*ord)
 
 				json.NewEncoder(w).Encode(map[string]interface{}{
 					"success":                true,
@@ -1383,6 +1675,8 @@ func main() {
 					store.users[i].FrequentPoints = 0
 				}
 
+				pgSaveUser(store.users[i])
+
 				json.NewEncoder(w).Encode(map[string]interface{}{
 					"success":              true,
 					"user_id":              store.users[i].ID,
@@ -1442,6 +1736,8 @@ func main() {
 			"total_pending_balance_ars": totalPendingARS,
 			"total_orders_count":        len(store.orders),
 			"active_raffles_count":      len(store.raffles),
+			"db_status":                 "PostgreSQL kido_db (localhost:5432)",
+			"db_active":                 dbActive,
 		})
 	})
 
@@ -1462,6 +1758,7 @@ func main() {
 			}
 			store.expenses = append([]Expense{newExp}, store.expenses...)
 			store.mu.Unlock()
+			pgSaveExpense(newExp)
 			json.NewEncoder(w).Encode(newExp)
 			return
 		}

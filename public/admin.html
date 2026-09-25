@@ -67,6 +67,10 @@
     </div>
 
     <div class="flex items-center gap-3">
+      <div id="dbStatusBadge" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-[11px] text-emerald-300 font-semibold shadow-sm">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span id="dbStatusText">🐘 PostgreSQL: kido_db</span>
+      </div>
       <a href="index.html" class="bg-brandSurface hover:bg-brandBorder border border-brandBorder text-gray-300 hover:text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
         <span>🏪</span> Ir a la Tienda
       </a>
@@ -628,6 +632,10 @@
           document.getElementById('mPendingBalance').textContent = formatARS(m.total_pending_balance_ars || 0);
           document.getElementById('mStockUnits').textContent = `${m.total_stock_units || 0} u.`;
           document.getElementById('mExpenses').textContent = formatARS(m.month_expenses_ars || 0);
+
+          if (m.db_active) {
+            document.getElementById('dbStatusBadge').classList.remove('hidden');
+          }
         }
       } catch (e) { console.error(e); }
     }
