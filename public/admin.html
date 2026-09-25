@@ -1021,9 +1021,17 @@
             <td class="p-3 font-bold text-emerald-400 font-display">${formatARS(o.total_paid_ars)}</td>
             <td class="p-3 font-bold text-amber-400 font-display">${formatARS(o.remaining_balance_ars)}</td>
             <td class="p-3">
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isFully ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400 border border-red-500/30'}">
-                ${o.delivery_status}
-              </span>
+              <select onchange="adminUpdateDeliveryStatus(${o.id}, this.value)" class="bg-brandCard border border-brandBorder rounded-lg px-2 py-1 text-[11px] font-bold ${
+                o.delivery_status === 'ENTREGADO' ? 'text-emerald-400 border-emerald-500/40' :
+                o.delivery_status === 'EN_CAMINO' ? 'text-blue-400 border-blue-500/40' :
+                o.delivery_status === 'LISTO_PARA_DESPACHAR' ? 'text-teal-400 border-teal-500/40' :
+                'text-amber-400 border-amber-500/40'
+              } focus:outline-none">
+                <option value="BLOQUEADO_POR_SALDO" ${o.delivery_status === 'BLOQUEADO_POR_SALDO' ? 'selected' : ''}>⛔ Bloqueado por Saldo</option>
+                <option value="LISTO_PARA_DESPACHAR" ${o.delivery_status === 'LISTO_PARA_DESPACHAR' ? 'selected' : ''}>📦 Listo para Despachar</option>
+                <option value="EN_CAMINO" ${o.delivery_status === 'EN_CAMINO' ? 'selected' : ''}>🚚 En Camino</option>
+                <option value="ENTREGADO" ${o.delivery_status === 'ENTREGADO' ? 'selected' : ''}>✅ Entregado</option>
+              </select>
             </td>
             <td class="p-3 text-right">
               ${!isFully ? `
@@ -1031,12 +1039,31 @@
                   Registrar Cobro
                 </button>
               ` : `
-                <span class="text-xs text-emerald-400 font-bold">Despachar</span>
+                <span class="text-xs text-emerald-400 font-bold flex items-center justify-end gap-1">
+                  <span>✨</span> Pagado 100%
+                </span>
               `}
             </td>
           </tr>
         `;
       }).join('');
+    }
+
+    async function adminUpdateDeliveryStatus(orderId, status) {
+      try {
+        const res = await fetch('/api/orders/update-delivery-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order_id: orderId, status: status })
+        });
+        if (res.ok) {
+          loadOrders();
+        } else {
+          alert('Error actualizando estado de entrega.');
+        }
+      } catch (e) {
+        console.error(e);
+      }
     }
 
     async function adminApplyPayment(orderId, remaining) {

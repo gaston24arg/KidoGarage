@@ -536,6 +536,14 @@
           class="w-full bg-brandAccent hover:bg-brandAccentHover text-white py-3 rounded-xl font-bold uppercase tracking-wider text-xs transition mt-2">
           Iniciar Sesión
         </button>
+
+        <div id="quickLoginBox" class="mt-3 pt-3 border-t border-brandBorder space-y-1.5">
+          <span class="text-[10px] text-gray-500 uppercase tracking-wider block font-bold text-center">Acceso rápido para demostración:</span>
+          <button type="button" onclick="quickLogin('martin@kido.com.ar', 'cliente123')"
+            class="w-full text-center text-[11px] text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-xl py-2 font-bold transition flex items-center justify-center gap-1.5">
+            <span>⭐</span> Entrar como Martín Gómez (Cliente Frecuente VIP)
+          </button>
+        </div>
       </form>
 
       <div class="text-center mt-4 text-xs text-gray-400">
@@ -551,11 +559,11 @@
   <!-- MODAL DE PERFIL DE CLIENTE & CLIENTE FRECUENTE           -->
   <!-- ======================================================== -->
   <div id="profileModal"
-    class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+    class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-3 md:p-4">
     <div
-      class="bg-brandCard border border-brandBorder rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl max-h-[90vh] overflow-y-auto relative">
+      class="bg-brandCard border border-brandBorder rounded-3xl max-w-4xl w-full p-4 md:p-8 shadow-2xl max-h-[92vh] overflow-y-auto relative custom-scrollbar">
       <button onclick="closeProfileModal()"
-        class="absolute top-4 right-4 text-gray-400 hover:text-white font-bold">✕</button>
+        class="absolute top-4 right-4 w-9 h-9 rounded-full bg-brandSurface hover:bg-brandBorder border border-brandBorder text-gray-400 hover:text-white font-bold flex items-center justify-center transition z-20">✕</button>
 
       <div id="profileContent">
         <!-- Rendered dynamically -->
@@ -1687,6 +1695,12 @@
       }
     }
 
+    function quickLogin(email, pass) {
+      document.getElementById('authEmail').value = email;
+      document.getElementById('authPassword').value = pass;
+      document.getElementById('authSubmitBtn').click();
+    }
+
     async function handleAuthSubmit(e) {
       e.preventDefault();
       const email = document.getElementById('authEmail').value;
@@ -1792,131 +1806,666 @@
       }
     }
 
-    // Modal de Perfil Completo
-    async function openProfileModal() {
-      if (!currentUser) return;
+    // ==========================================
+    // PORTAL DE AUTOSERVICIO DEL CLIENTE ("MI CUENTA / MIS PEDIDOS")
+    // ==========================================
+    let currentPortalTab = 'orders';
+    let portalDataCache = null;
+    let portalOrdersFilter = 'ALL';
+
+    async function openProfileModal(tab = 'orders') {
+      if (!currentUser) {
+        openAuthModal('login');
+        return;
+      }
+      currentPortalTab = tab;
       const modal = document.getElementById('profileModal');
       const content = document.getElementById('profileContent');
 
-      // Consultar pedidos del usuario
-      let userOrders = [];
-      try {
-        const res = await fetch(`/api/orders?email=${encodeURIComponent(currentUser.email)}`);
-        if (res.ok) userOrders = await res.json();
-      } catch (e) { }
+      content.innerHTML = `
+        <div class="py-16 text-center text-gray-400">
+          <div class="w-10 h-10 border-2 border-brandAccent border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+          <p class="text-xs font-bold text-gray-300">Cargando tu Portal de Autoservicio...</p>
+        </div>
+      `;
+      modal.classList.remove('hidden');
 
-      // Cálculo de progreso visual para Cliente Frecuente
-      const months = currentUser.consecutive_months || 1;
-      const isFreq = currentUser.is_frequent_customer;
-      const progressPercent = isFreq ? 100 : Math.min(100, Math.round((months / 3) * 100));
+      try {
+        const res = await fetch(`/api/user/portal-data?email=${encodeURIComponent(currentUser.email)}`);
+        if (res.ok) {
+          portalDataCache = await res.json();
+          if (portalDataCache.user) {
+            currentUser = { ...currentUser, ...portalDataCache.user };
+            localStorage.setItem('kido_user', JSON.stringify(currentUser));
+            updateAuthUI();
+          }
+        }
+      } catch (e) {
+        console.error('Error cargando portal:', e);
+      }
+
+      renderPortalContent();
+    }
+
+    function switchPortalTab(tab) {
+      currentPortalTab = tab;
+      renderPortalContent();
+    }
+
+    function filterPortalOrders(filter) {
+      portalOrdersFilter = filter;
+      renderPortalContent();
+    }
+
+    function renderPortalContent() {
+      const content = document.getElementById('profileContent');
+      if (!portalDataCache) {
+        content.innerHTML = `<div class="p-8 text-center text-gray-400 text-xs">Error cargando información del perfil.</div>`;
+        return;
+      }
+
+      const u = portalDataCache.user || currentUser;
+      const orders = portalDataCache.orders || [];
+      const raffles = portalDataCache.raffles || [];
+      const stats = portalDataCache.stats || {};
+
+      const isFreq = stats.is_frequent_customer;
+      const totalTicketsCount = raffles.reduce((acc, r) => acc + (r.tickets ? r.tickets.length : 0), 0);
+      const hasWinningRaffle = raffles.some(r => r.user_has_winner);
+
+      // Filtrar órdenes
+      const filteredOrders = orders.filter(o => {
+        if (portalOrdersFilter === 'ALL') return true;
+        if (portalOrdersFilter === 'PENDING') return !o.is_fully_paid;
+        return o.delivery_status === portalOrdersFilter;
+      });
 
       content.innerHTML = `
-        <div class="flex items-start justify-between border-b border-brandBorder pb-4 mb-5">
+        <!-- HEADER DEL PORTAL -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-brandBorder pb-5 mb-6">
           <div class="flex items-center gap-4">
-            <img src="${currentUser.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'}" class="w-16 h-16 rounded-2xl object-cover ring-2 ${isFreq ? 'ring-amber-400' : 'ring-brandBorder'}">
+            <div class="relative">
+              <img src="${u.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'}" class="w-16 h-16 rounded-2xl object-cover ring-2 ${isFreq ? 'ring-amber-400 shadow-lg shadow-amber-500/20' : 'ring-brandBorder'}">
+              ${isFreq ? '<span class="absolute -bottom-1 -right-1 bg-amber-500 text-black text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow">⭐</span>' : ''}
+            </div>
             <div>
-              <div class="flex items-center gap-2">
-                <h3 class="text-lg font-black text-white font-display">${currentUser.first_name} ${currentUser.last_name}</h3>
-                ${isFreq ? '<span class="bg-amber-500/20 text-amber-400 text-[10px] font-black uppercase px-2 py-0.5 rounded border border-amber-500/30">⭐ Cliente Frecuente</span>' : '<span class="bg-brandSurface text-gray-400 text-[10px] px-2 py-0.5 rounded border border-brandBorder">Cliente Estándar</span>'}
+              <div class="flex flex-wrap items-center gap-2">
+                <h3 class="text-xl font-black text-white font-display">${u.first_name || 'Coleccionista'} ${u.last_name || ''}</h3>
+                ${isFreq 
+                  ? '<span class="bg-gradient-to-r from-amber-500/20 to-amber-300/10 text-amber-300 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border border-amber-500/40 inline-flex items-center gap-1 shadow-sm">⭐ CLIENTE FRECUENTE VIP</span>' 
+                  : '<span class="bg-brandSurface text-gray-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-brandBorder inline-flex items-center gap-1">🏎️ SOCIO KIDO</span>'
+                }
               </div>
-              <p class="text-xs text-gray-400">${currentUser.email} • ${currentUser.phone || 'Sin celular registrado'}</p>
-              <p class="text-[11px] text-gray-400 mt-0.5">📍 ${currentUser.street || ''} ${currentUser.street_number || ''}, ${currentUser.locality || ''}</p>
+              <p class="text-xs text-gray-400 mt-0.5">${u.email} • 📞 ${u.phone || 'Sin teléfono cargado'}</p>
+              <p class="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1">
+                <span>📍</span> ${u.street || 'Dirección no registrada'} ${u.street_number || ''}, ${u.locality || 'Argentina'}
+              </p>
             </div>
           </div>
-          <button onclick="logoutUser()" class="text-xs text-red-400 hover:text-red-300 font-bold border border-red-500/20 bg-red-500/10 px-3 py-1.5 rounded-xl">
-            Cerrar Sesión
+
+          <div class="flex items-center gap-2 self-end md:self-center">
+            <button onclick="logoutUser()" class="text-xs text-red-400 hover:text-red-300 font-bold border border-red-500/20 bg-red-500/10 px-3 py-2 rounded-xl transition flex items-center gap-1.5 hover:bg-red-500/20">
+              <span>🚪</span> Cerrar Sesión
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI STATS STRIP -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <div onclick="switchPortalTab('orders')" class="bg-brandSurface hover:bg-brandCard cursor-pointer p-3.5 rounded-2xl border border-brandBorder transition">
+            <div class="text-[11px] font-bold text-gray-400 flex items-center gap-1.5">
+              <span>📦</span> Tus Compras
+            </div>
+            <div class="text-xl font-black text-white font-display mt-1">${stats.total_orders || orders.length} pedidos</div>
+            <div class="text-[10px] text-gray-500 mt-0.5">Historial completo</div>
+          </div>
+
+          <div onclick="switchPortalTab('orders'); filterPortalOrders('PENDING');" class="bg-brandSurface hover:bg-brandCard cursor-pointer p-3.5 rounded-2xl border ${stats.total_pending_ars > 0 ? 'border-amber-500/40 bg-amber-500/5' : 'border-brandBorder'} transition">
+            <div class="text-[11px] font-bold ${stats.total_pending_ars > 0 ? 'text-amber-400' : 'text-gray-400'} flex items-center gap-1.5">
+              <span>💳</span> Saldo Pendiente
+            </div>
+            <div class="text-xl font-black ${stats.total_pending_ars > 0 ? 'text-amber-400' : 'text-emerald-400'} font-display mt-1">
+              ${stats.total_pending_ars > 0 ? formatARS(stats.total_pending_ars) : '$0'}
+            </div>
+            <div class="text-[10px] ${stats.total_pending_ars > 0 ? 'text-amber-300 font-bold' : 'text-emerald-400'} mt-0.5">
+              ${stats.total_pending_ars > 0 ? 'Liquidá para despachar ➔' : '✅ Pagos al día'}
+            </div>
+          </div>
+
+          <div onclick="switchPortalTab('raffles')" class="bg-brandSurface hover:bg-brandCard cursor-pointer p-3.5 rounded-2xl border ${hasWinningRaffle ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-brandBorder'} transition">
+            <div class="text-[11px] font-bold text-gray-400 flex items-center gap-1.5">
+              <span>🎟️</span> Rifas & Sorteos
+            </div>
+            <div class="text-xl font-black text-white font-display mt-1">
+              ${totalTicketsCount} números
+            </div>
+            <div class="text-[10px] ${hasWinningRaffle ? 'text-emerald-400 font-black animate-pulse' : 'text-gray-500'} mt-0.5">
+              ${hasWinningRaffle ? '🏆 ¡Sos Ganador!' : `${raffles.length} sorteos jugados`}
+            </div>
+          </div>
+
+          <div onclick="switchPortalTab('club')" class="bg-brandSurface hover:bg-brandCard cursor-pointer p-3.5 rounded-2xl border ${isFreq ? 'border-amber-500/40' : 'border-brandBorder'} transition">
+            <div class="text-[11px] font-bold text-amber-400 flex items-center gap-1.5">
+              <span>⭐</span> Club KIDO
+            </div>
+            <div class="text-xl font-black text-amber-400 font-display mt-1">
+              ${stats.frequent_points || 0} pts
+            </div>
+            <div class="text-[10px] text-gray-400 mt-0.5">
+              ${isFreq ? 'Socio Activo VIP' : `${stats.consecutive_months || 1}/3 meses`}
+            </div>
+          </div>
+        </div>
+
+        <!-- NAVEGACIÓN POR SUB-PESTAÑAS -->
+        <div class="flex items-center gap-2 border-b border-brandBorder mb-6 overflow-x-auto pb-1">
+          <button onclick="switchPortalTab('orders')" class="px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition flex items-center gap-2 ${currentPortalTab === 'orders' ? 'bg-brandAccent text-white shadow-lg' : 'bg-brandSurface text-gray-400 hover:text-white'}">
+            <span>📦</span> Mis Pedidos & Envíos
+            <span class="px-1.5 py-0.5 rounded-full text-[10px] font-mono ${currentPortalTab === 'orders' ? 'bg-white/20' : 'bg-black/40'}">${orders.length}</span>
+          </button>
+
+          <button onclick="switchPortalTab('raffles')" class="px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition flex items-center gap-2 ${currentPortalTab === 'raffles' ? 'bg-brandAccent text-white shadow-lg' : 'bg-brandSurface text-gray-400 hover:text-white'}">
+            <span>🎟️</span> Mis Rifas & Sorteos
+            <span class="px-1.5 py-0.5 rounded-full text-[10px] font-mono ${hasWinningRaffle ? 'bg-emerald-500 text-black font-black' : (currentPortalTab === 'raffles' ? 'bg-white/20' : 'bg-black/40')}">
+              ${hasWinningRaffle ? '🏆' : totalTicketsCount}
+            </span>
+          </button>
+
+          <button onclick="switchPortalTab('club')" class="px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition flex items-center gap-2 ${currentPortalTab === 'club' ? 'bg-brandAccent text-white shadow-lg' : 'bg-brandSurface text-gray-400 hover:text-white'}">
+            <span>⭐</span> Club KIDO & Fidelidad
+            ${isFreq ? '<span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>' : ''}
+          </button>
+
+          <button onclick="switchPortalTab('shipping')" class="px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition flex items-center gap-2 ${currentPortalTab === 'shipping' ? 'bg-brandAccent text-white shadow-lg' : 'bg-brandSurface text-gray-400 hover:text-white'}">
+            <span>📍</span> Datos de Envío
           </button>
         </div>
 
-        <!-- GAMIFICACIÓN: PROGRESO CLIENTE FRECUENTE -->
-        <div class="bg-brandSurface p-4 rounded-2xl border border-brandBorder mb-6">
-          <div class="flex items-center justify-between text-xs mb-2">
-            <span class="font-bold text-white flex items-center gap-1.5">
-              <span>🎯</span> Objetivo de Cliente Frecuente:
-            </span>
-            <span class="${isFreq ? 'text-amber-400 font-black' : 'text-gray-300 font-bold'}">
-              ${isFreq ? '¡Objetivo Alcanzado! (Socio Activo)' : `${months} de 3 meses completados`}
-            </span>
-          </div>
+        <!-- CONTENIDO SEGÚN PESTAÑA -->
 
-          <div class="w-full bg-brandCard h-3 rounded-full overflow-hidden border border-brandBorder p-0.5 mb-2">
-            <div class="h-full rounded-full transition-all duration-500 ${isFreq ? 'bg-gradient-to-r from-amber-500 to-amber-300' : 'bg-brandAccent'}" style="width: ${progressPercent}%"></div>
-          </div>
-
-          <p class="text-[11px] text-gray-400 leading-relaxed">
-            ${isFreq
-          ? `🔥 ¡Felicidades! Llevás <b>${months} meses consecutivos</b> comprando. Tenés acumulados <b>${currentUser.frequent_points || 1} puntos frecuentes</b> en el ranking y <b>1 número gratis habilitado</b> en cada sorteo de rifa.`
-          : `Comprá durante <b>3 meses seguidos</b> para convertirte en Cliente Frecuente. ¡Te falta(n) solo <b>${3 - months} mes(es)</b> para desbloquear descuentos y números de rifa sin costo!`
-        }
-          </p>
-        </div>
-
-        <!-- HISTORIAL DE PEDIDOS Y PAGOS PARCIALES -->
-        <div>
-          <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3 flex items-center gap-1.5">
-            <span>📦</span> Historial de Compras & Pagos Parciales
-          </h4>
-
-          ${userOrders.length === 0 ? `
-            <div class="p-6 text-center text-gray-500 bg-brandSurface rounded-2xl border border-brandBorder text-xs">
-              Aún no registrás compras con esta cuenta.
+        <!-- ============================================== -->
+        <!-- TAB 1: MIS PEDIDOS & ENVÍOS                    -->
+        <!-- ============================================== -->
+        ${currentPortalTab === 'orders' ? `
+          <div>
+            <!-- Filtros de Estado -->
+            <div class="flex items-center gap-1.5 overflow-x-auto pb-3 mb-4 text-[11px]">
+              <button onclick="filterPortalOrders('ALL')" class="px-3 py-1.5 rounded-lg font-bold transition whitespace-nowrap ${portalOrdersFilter === 'ALL' ? 'bg-white text-black' : 'bg-brandSurface text-gray-400 hover:text-white'}">
+                Todos (${orders.length})
+              </button>
+              <button onclick="filterPortalOrders('PENDING')" class="px-3 py-1.5 rounded-lg font-bold transition whitespace-nowrap ${portalOrdersFilter === 'PENDING' ? 'bg-amber-500 text-black font-black' : 'bg-brandSurface text-gray-400 hover:text-white'}">
+                ⛔ Con Saldo Pendiente (${orders.filter(o => !o.is_fully_paid).length})
+              </button>
+              <button onclick="filterPortalOrders('LISTO_PARA_DESPACHAR')" class="px-3 py-1.5 rounded-lg font-bold transition whitespace-nowrap ${portalOrdersFilter === 'LISTO_PARA_DESPACHAR' ? 'bg-teal-500 text-black font-black' : 'bg-brandSurface text-gray-400 hover:text-white'}">
+                📦 Listos para Despachar (${orders.filter(o => o.delivery_status === 'LISTO_PARA_DESPACHAR').length})
+              </button>
+              <button onclick="filterPortalOrders('EN_CAMINO')" class="px-3 py-1.5 rounded-lg font-bold transition whitespace-nowrap ${portalOrdersFilter === 'EN_CAMINO' ? 'bg-blue-500 text-white font-black' : 'bg-brandSurface text-gray-400 hover:text-white'}">
+                🚚 En Camino (${orders.filter(o => o.delivery_status === 'EN_CAMINO').length})
+              </button>
+              <button onclick="filterPortalOrders('ENTREGADO')" class="px-3 py-1.5 rounded-lg font-bold transition whitespace-nowrap ${portalOrdersFilter === 'ENTREGADO' ? 'bg-emerald-500 text-black font-black' : 'bg-brandSurface text-gray-400 hover:text-white'}">
+                ✅ Entregados (${orders.filter(o => o.delivery_status === 'ENTREGADO').length})
+              </button>
             </div>
-          ` : `
-            <div class="space-y-3">
-              ${userOrders.map(ord => {
-          const isComplete = ord.is_fully_paid;
-          const paidPct = Math.min(100, Math.round((ord.total_paid_ars / ord.total_ars) * 100));
 
-          return `
-                  <div class="bg-brandSurface p-4 rounded-2xl border border-brandBorder">
-                    <div class="flex items-center justify-between mb-2">
-                      <span class="font-mono text-xs font-bold text-white">${ord.order_number}</span>
-                      <span class="text-[10px] font-bold px-2 py-0.5 rounded ${isComplete ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}">
-                        ${ord.delivery_status}
+            ${filteredOrders.length === 0 ? `
+              <div class="p-12 text-center bg-brandSurface rounded-3xl border border-brandBorder space-y-3">
+                <span class="text-4xl block">📦🏎️</span>
+                <h4 class="font-bold text-white text-sm">No se encontraron pedidos en esta categoría</h4>
+                <p class="text-xs text-gray-400">Podés explorar el catálogo de diecast y preventas oficiales.</p>
+                <button onclick="closeProfileModal()" class="mt-2 bg-brandAccent text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider">
+                  Ver Artículos Disponibles
+                </button>
+              </div>
+            ` : `
+              <div class="space-y-4">
+                ${filteredOrders.map(ord => {
+                  const isComplete = ord.is_fully_paid;
+                  const paidPct = Math.min(100, Math.round((ord.total_paid_ars / ord.total_ars) * 100));
+
+                  // Configuración de Estados
+                  let statusBadge = '';
+                  let statusNotice = '';
+                  let stepperStep = 1;
+
+                  if (ord.delivery_status === 'BLOQUEADO_POR_SALDO') {
+                    stepperStep = 1;
+                    statusBadge = `
+                      <span class="px-3 py-1 rounded-full text-[11px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 inline-flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                        ⛔ BLOQUEADO POR SALDO
+                      </span>
+                    `;
+                    statusNotice = `
+                      <div class="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-[11px] text-amber-300 flex items-start gap-2">
+                        <span class="text-base">⚠️</span>
+                        <div>
+                          <b>Seña del 30% registrada.</b>
+                          <p class="text-[10px] text-gray-300 mt-0.5">El despacho está en pausa hasta liquidar el saldo restante de <b>${formatARS(ord.remaining_balance_ars)}</b> al arribar el stock.</p>
+                        </div>
+                      </div>
+                    `;
+                  } else if (ord.delivery_status === 'LISTO_PARA_DESPACHAR') {
+                    stepperStep = 3;
+                    statusBadge = `
+                      <span class="px-3 py-1 rounded-full text-[11px] font-black bg-teal-500/20 text-teal-300 border border-teal-500/40 inline-flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-teal-400"></span>
+                        📦 LISTO PARA DESPACHAR
+                      </span>
+                    `;
+                    statusNotice = `
+                      <div class="p-3 bg-teal-500/10 border border-teal-500/30 rounded-xl text-[11px] text-teal-300 flex items-start gap-2">
+                        <span class="text-base">✨</span>
+                        <div>
+                          <b>Pago 100% completado.</b>
+                          <p class="text-[10px] text-gray-300 mt-0.5">Tu paquete ya fue embalado con burbujas de alta protección y aguarda retiro de la empresa de envíos.</p>
+                        </div>
+                      </div>
+                    `;
+                  } else if (ord.delivery_status === 'EN_CAMINO') {
+                    stepperStep = 4;
+                    statusBadge = `
+                      <span class="px-3 py-1 rounded-full text-[11px] font-black bg-blue-500/20 text-blue-300 border border-blue-500/40 inline-flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                        🚚 EN CAMINO
+                      </span>
+                    `;
+                    statusNotice = `
+                      <div class="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl text-[11px] text-blue-300 flex items-start gap-2">
+                        <span class="text-base">🚀</span>
+                        <div>
+                          <b>Paquete en tránsito hacia tu domicilio.</b>
+                          <p class="text-[10px] text-gray-300 mt-0.5">Enviado a <b>${u.street || ''} ${u.street_number || ''}, ${u.locality || ''}</b>. Recibirás tu pedido en los próximos días hábiles.</p>
+                        </div>
+                      </div>
+                    `;
+                  } else if (ord.delivery_status === 'ENTREGADO') {
+                    stepperStep = 5;
+                    statusBadge = `
+                      <span class="px-3 py-1 rounded-full text-[11px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 inline-flex items-center gap-1.5">
+                        <span>✅</span> ENTREGADO
+                      </span>
+                    `;
+                    statusNotice = `
+                      <div class="p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-[11px] text-emerald-300 flex items-center justify-between">
+                        <span>🎉 Paquete entregado satisfactoriamente. ¡A disfrutar las piezas coleccionables!</span>
+                      </div>
+                    `;
+                  }
+
+                  return `
+                    <div class="bg-brandSurface p-5 rounded-3xl border border-brandBorder space-y-4 hover:border-gray-500 transition shadow-lg">
+                      <!-- Encabezado de la Orden -->
+                      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-brandBorder pb-3">
+                        <div class="flex items-center gap-2">
+                          <span class="font-mono text-sm font-black text-white">${ord.order_number}</span>
+                          <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-brandCard border border-brandBorder text-gray-400">
+                            ${ord.order_type === 'PRE_VENTA_CON_SEÑA' ? '🔥 PREVENTA (SEÑA)' : '⚡ COMPRA DIRECTA'}
+                          </span>
+                        </div>
+                        <div>${statusBadge}</div>
+                      </div>
+
+                      <!-- STEPPER / TIMELINE VISUAL DE ENTREGA -->
+                      <div class="py-2">
+                        <div class="relative flex items-center justify-between text-[10px] font-bold">
+                          <!-- Línea conectora -->
+                          <div class="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-brandCard z-0"></div>
+                          <div class="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-brandAccent z-0 transition-all duration-500" style="width: ${(stepperStep - 1) * 25}%"></div>
+
+                          <!-- Step 1 -->
+                          <div class="relative z-10 flex flex-col items-center gap-1">
+                            <span class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${stepperStep >= 1 ? 'bg-brandAccent text-white' : 'bg-brandCard text-gray-500 border border-brandBorder'}">1</span>
+                            <span class="${stepperStep >= 1 ? 'text-white' : 'text-gray-500'}">Orden</span>
+                          </div>
+
+                          <!-- Step 2 -->
+                          <div class="relative z-10 flex flex-col items-center gap-1">
+                            <span class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${stepperStep >= 2 || isComplete ? 'bg-brandAccent text-white' : 'bg-brandCard text-gray-500 border border-brandBorder'}">2</span>
+                            <span class="${isComplete ? 'text-white' : 'text-gray-500'}">Pago 100%</span>
+                          </div>
+
+                          <!-- Step 3 -->
+                          <div class="relative z-10 flex flex-col items-center gap-1">
+                            <span class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${stepperStep >= 3 ? 'bg-teal-500 text-black' : 'bg-brandCard text-gray-500 border border-brandBorder'}">3</span>
+                            <span class="${stepperStep >= 3 ? 'text-teal-300' : 'text-gray-500'}">Empaque</span>
+                          </div>
+
+                          <!-- Step 4 -->
+                          <div class="relative z-10 flex flex-col items-center gap-1">
+                            <span class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${stepperStep >= 4 ? 'bg-blue-500 text-white' : 'bg-brandCard text-gray-500 border border-brandBorder'}">4</span>
+                            <span class="${stepperStep >= 4 ? 'text-blue-300' : 'text-gray-500'}">En Camino</span>
+                          </div>
+
+                          <!-- Step 5 -->
+                          <div class="relative z-10 flex flex-col items-center gap-1">
+                            <span class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${stepperStep >= 5 ? 'bg-emerald-500 text-black' : 'bg-brandCard text-gray-500 border border-brandBorder'}">5</span>
+                            <span class="${stepperStep >= 5 ? 'text-emerald-300' : 'text-gray-500'}">Entregado</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Mensaje descriptivo de estado -->
+                      ${statusNotice}
+
+                      <!-- Artículos de la Orden -->
+                      <div class="bg-brandCard p-3 rounded-2xl border border-brandBorder space-y-2">
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Artículos en esta orden:</div>
+                        <div class="space-y-1.5 text-xs text-gray-200">
+                          ${ord.items.map(it => `
+                            <div class="flex items-center justify-between py-1 border-b border-brandBorder/40 last:border-0">
+                              <div class="flex items-center gap-2">
+                                <span class="w-5 h-5 rounded-md bg-black/40 border border-brandBorder flex items-center justify-center text-[10px] font-bold text-brandAccent">${it.quantity}x</span>
+                                <div>
+                                  <span class="font-bold text-white">${it.product_title}</span>
+                                  <span class="text-[10px] text-gray-400 ml-1">(${it.scale_or_size || it.product_type})</span>
+                                </div>
+                              </div>
+                              <span class="font-mono font-bold text-white">${formatARS(it.subtotal_ars)}</span>
+                            </div>
+                          `).join('')}
+                        </div>
+                      </div>
+
+                      <!-- Resumen Financiero y Barra de Pago -->
+                      <div class="pt-2">
+                        <div class="flex justify-between items-center text-xs mb-1.5">
+                          <span class="text-gray-400 font-semibold">Total: <b class="text-white">${formatARS(ord.total_ars)}</b></span>
+                          <span class="text-gray-400 font-semibold">Abonado: <b class="text-emerald-400">${formatARS(ord.total_paid_ars)}</b> (${paidPct}%)</span>
+                        </div>
+                        <div class="w-full bg-brandCard h-2.5 rounded-full overflow-hidden border border-brandBorder mb-3">
+                          <div class="h-full transition-all duration-500 ${isComplete ? 'bg-emerald-500' : 'bg-gradient-to-r from-amber-500 to-amber-300'}" style="width: ${paidPct}%"></div>
+                        </div>
+
+                        <!-- Botón de Pago directo o Confirmación -->
+                        ${!isComplete ? `
+                          <div class="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 bg-black/40 rounded-2xl border border-amber-500/30">
+                            <div>
+                              <div class="text-[11px] text-gray-400">Saldo pendiente de liquidación:</div>
+                              <div class="text-base font-black text-amber-400 font-display">${formatARS(ord.remaining_balance_ars)}</div>
+                            </div>
+                            <button onclick="payRemainingBalance(${ord.id}, ${ord.remaining_balance_ars})" class="w-full sm:w-auto bg-[#009ee3] hover:bg-[#0081ba] text-white font-black py-2.5 px-5 rounded-xl text-xs uppercase tracking-wider transition shadow-lg shadow-[#009ee3]/25 flex items-center justify-center gap-2 hover:scale-[1.02]">
+                              <span>💳</span> Abonar Saldo Pendiente con Mercado Pago
+                            </button>
+                          </div>
+                        ` : `
+                          <div class="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs font-semibold flex items-center justify-between">
+                            <span class="flex items-center gap-1.5">
+                              <span>🛡️</span> Saldo 100% cancelado • Garantía oficial KIDO Garage
+                            </span>
+                            <span class="text-[11px] font-mono text-gray-400">ORD #${ord.id}</span>
+                          </div>
+                        `}
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            `}
+          </div>
+        ` : ''}
+
+        <!-- ============================================== -->
+        <!-- TAB 2: MIS RIFAS & SORTEOS                     -->
+        <!-- ============================================== -->
+        ${currentPortalTab === 'raffles' ? `
+          <div class="space-y-4">
+            ${raffles.length === 0 ? `
+              <div class="p-10 text-center bg-brandSurface rounded-3xl border border-brandBorder space-y-3">
+                <span class="text-4xl block">🎟️🍀</span>
+                <h4 class="font-bold text-white text-sm">No tenés boletos registrados en sorteos</h4>
+                <p class="text-xs text-gray-400 max-w-md mx-auto">
+                  Participá por réplicas Chase exclusivas 1/24 y ediciones especiales en nuestra sección de rifas comunitarias.
+                  ${isFreq ? '<br><b class="text-amber-400">¡Tenés 1 boleto GRATIS habilitado por ser Cliente Frecuente!</b>' : ''}
+                </p>
+                <button onclick="closeProfileModal(); openRafflesModal();" class="mt-2 bg-brandAccent text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider">
+                  Ver Sorteos Activos ➔
+                </button>
+              </div>
+            ` : `
+              <div class="space-y-4">
+                ${raffles.map(raf => `
+                  <div class="bg-brandSurface p-5 rounded-3xl border ${raf.user_has_winner ? 'border-emerald-500 shadow-xl shadow-emerald-500/10' : 'border-brandBorder'} space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-brandBorder pb-3">
+                      <div>
+                        <span class="font-mono text-xs font-bold text-brandAccent">${raf.raffle_number}</span>
+                        <h4 class="font-bold text-white text-sm font-display">${raf.title}</h4>
+                      </div>
+                      <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider self-start sm:self-auto ${
+                        raf.status === 'ACTIVA' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40' : 'bg-gray-800 text-gray-400 border border-gray-700'
+                      }">
+                        ${raf.status === 'ACTIVA' ? '🟢 Sorteo en Curso' : '🏁 Sorteo Finalizado'}
                       </span>
                     </div>
 
-                    <div class="text-xs text-gray-300 space-y-1 my-2">
-                      ${ord.items.map(it => `
-                        <div class="flex justify-between">
-                          <span>${it.quantity}x ${it.product_title}</span>
-                          <b>${formatARS(it.subtotal_ars)}</b>
+                    <div class="flex flex-col md:flex-row gap-4 items-center">
+                      <img src="${raf.prize_image}" alt="${raf.title}" class="w-full md:w-36 h-28 object-contain bg-black/40 rounded-2xl border border-brandBorder p-2">
+                      <div class="flex-1 space-y-2">
+                        <p class="text-xs text-gray-300 leading-relaxed">${raf.prize_description}</p>
+                        <div class="text-[11px] text-gray-400">
+                          📅 Fecha de sorteo: <b class="text-white">${raf.draw_datetime}</b>
                         </div>
-                      `).join('')}
+
+                        <!-- Boletos del Usuario -->
+                        <div>
+                          <span class="text-[11px] font-bold text-gray-400 block mb-1">Tus números asignados:</span>
+                          <div class="flex flex-wrap gap-2">
+                            ${raf.tickets.map(t => `
+                              <div class="px-3 py-1 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 ${
+                                t.is_winner 
+                                  ? 'bg-emerald-500 text-black font-black ring-2 ring-emerald-300 shadow-lg shadow-emerald-500/30 animate-bounce' 
+                                  : (t.is_free_ticket ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-brandCard text-white border border-brandBorder')
+                              }">
+                                <span>#${String(t.number).padStart(2, '0')}</span>
+                                ${t.is_winner ? '<span>🏆 GANADOR</span>' : (t.is_free_ticket ? '<span class="text-[9px] text-amber-400">⭐ Gratis</span>' : '')}
+                              </div>
+                            `).join('')}
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    <!-- Barra de Pago Parcial -->
-                    <div class="mt-3 pt-3 border-t border-brandBorder">
-                      <div class="flex justify-between text-[11px] mb-1">
-                        <span class="text-gray-400">Progreso de Pago (${paidPct}%):</span>
-                        <span><b>${formatARS(ord.total_paid_ars)}</b> de ${formatARS(ord.total_ars)}</span>
+                    <!-- ESTADO DEL SORTEO & COMPROBACIÓN DE GANADOR -->
+                    ${raf.user_has_winner ? `
+                      <div class="p-4 bg-emerald-500/20 border-2 border-emerald-500/70 rounded-2xl text-center space-y-1">
+                        <span class="text-3xl block">🏆🎉🏎️</span>
+                        <h4 class="font-black text-white text-base font-display">¡¡FELICITACIONES, RESULTASTE GANADOR DEL PREMIO!!</h4>
+                        <p class="text-xs text-emerald-300 font-bold">Tu número #${raf.winner_number} resultó ganador en el sorteo oficial.</p>
+                        <p class="text-[11px] text-gray-300">Nos comunicaremos a <b>${u.email}</b> para coordinar el despacho seguro sin costo.</p>
                       </div>
-                      <div class="w-full bg-brandCard h-2 rounded-full overflow-hidden mb-2">
-                        <div class="h-full ${isComplete ? 'bg-emerald-500' : 'bg-amber-500'}" style="width: ${paidPct}%"></div>
+                    ` : (raf.status === 'SORTEADA' ? `
+                      <div class="p-3 bg-brandCard border border-brandBorder rounded-2xl text-xs text-gray-400 flex items-center justify-between">
+                        <span>Sorteo oficial finalizado. El número ganador fue el <b class="text-white font-mono text-sm">#${raf.winner_number}</b>.</span>
+                        <span class="text-[11px] text-gray-500">¡Gracias por participar!</span>
                       </div>
-
-                      ${!isComplete ? `
-                        <div class="flex items-center justify-between mt-2 pt-2 border-t border-brandBorder/50">
-                          <span class="text-[11px] text-amber-400 font-bold">Saldo Pendiente: ${formatARS(ord.remaining_balance_ars)}</span>
-                          <button onclick="payRemainingBalance(${ord.id}, ${ord.remaining_balance_ars})" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1 rounded-lg text-xs transition">
-                            Abonar Saldo con Mercado Pago
-                          </button>
-                        </div>
-                      ` : `
-                        <div class="text-[10px] text-emerald-400 font-semibold mt-1">
-                          ✅ Pedido 100% cancelado. Preparando embalaje especial para coleccionistas.
-                        </div>
-                      `}
-                    </div>
+                    ` : `
+                      <div class="p-3 bg-blue-950/20 border border-blue-500/30 rounded-2xl text-xs text-blue-300 flex items-center justify-between">
+                        <span>Sorteo activo. Participás con <b>${raf.tickets.length} número(s)</b>.</span>
+                        <span class="text-amber-300 font-bold text-[11px]">¡Mucha suerte en la jugada! 🍀</span>
+                      </div>
+                    `)}
                   </div>
-                `;
-        }).join('')}
-            </div>
-          `}
-        </div>
-      `;
+                `).join('')}
+              </div>
+            `}
+          </div>
+        ` : ''}
 
-      modal.classList.remove('hidden');
+        <!-- ============================================== -->
+        <!-- TAB 3: CLUB KIDO & PROGRESO DE CLIENTE FRECUENTE-->
+        <!-- ============================================== -->
+        ${currentPortalTab === 'club' ? `
+          <div class="space-y-6">
+            <!-- TARJETA DIGITAL DE SOCIO -->
+            <div class="relative overflow-hidden p-6 rounded-3xl border ${isFreq ? 'border-amber-500/50 bg-gradient-to-br from-amber-950/40 via-brandCard to-black' : 'border-brandBorder bg-gradient-to-br from-brandSurface to-black'} shadow-2xl">
+              <div class="flex justify-between items-start">
+                <div>
+                  <span class="text-[10px] font-black uppercase tracking-widest text-amber-400 block mb-1">TARJETA DE MEMBRESÍA</span>
+                  <h3 class="text-xl md:text-2xl font-black text-white font-display">KIDO GARAGE CLUB</h3>
+                </div>
+                <span class="px-3 py-1 rounded-full text-xs font-black uppercase ${isFreq ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/30' : 'bg-brandCard text-gray-400 border border-brandBorder'}">
+                  ${isFreq ? '⭐ SOCIO VIP' : 'SOCIO ESTÁNDAR'}
+                </span>
+              </div>
+
+              <div class="my-6">
+                <div class="text-lg md:text-xl font-mono font-bold text-white tracking-wider">${u.first_name || 'Coleccionista'} ${u.last_name || ''}</div>
+                <div class="text-xs text-gray-400 font-mono mt-0.5">ID: KIDO-SOCIO-${String(u.id || 1).padStart(4, '0')}</div>
+              </div>
+
+              <div class="flex items-center justify-between text-xs pt-4 border-t border-white/10">
+                <div>
+                  <span class="text-[10px] text-gray-400 block">MESES CONSECUTIVOS:</span>
+                  <b class="text-white text-sm">${stats.consecutive_months || 1} meses</b>
+                </div>
+                <div class="text-right">
+                  <span class="text-[10px] text-gray-400 block">PUNTOS EN RANKING:</span>
+                  <b class="text-amber-400 text-sm font-display">${stats.frequent_points || 0} pts</b>
+                </div>
+              </div>
+            </div>
+
+            <!-- PROGRESO HACIA EL PRÓXIMO NIVEL -->
+            <div class="bg-brandSurface p-5 rounded-3xl border border-brandBorder space-y-3">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold text-white flex items-center gap-1.5">
+                  <span>🎯</span> Progreso de Membresía:
+                </span>
+                <span class="${isFreq ? 'text-amber-400 font-black' : 'text-gray-300 font-bold'}">
+                  ${isFreq ? '¡Objetivo Alcanzado! (Socio Activo)' : `${stats.consecutive_months || 1} de 3 meses`}
+                </span>
+              </div>
+
+              <div class="w-full bg-brandCard h-3 rounded-full overflow-hidden border border-brandBorder p-0.5">
+                <div class="h-full rounded-full transition-all duration-700 ${isFreq ? 'bg-gradient-to-r from-amber-500 to-amber-300' : 'bg-brandAccent'}" style="width: ${stats.progress_percentage || 33}%"></div>
+              </div>
+
+              <p class="text-xs text-gray-300 leading-relaxed">
+                ${isFreq
+                  ? `🔥 ¡Felicidades! Tenés activa tu membresía de <b>Cliente Frecuente</b> por cumplir más de 3 meses consecutivos de compras. Seguís sumando <b>1 punto mensual</b> y <b>1 boleto 100% gratis</b> en cada rifa oficial.`
+                  : `Comprá al menos 1 artículo coleccionable al mes durante <b>3 meses seguidos</b> para desbloquear la insignia de Cliente Frecuente. ¡Te falta(n) solo <b>${Math.max(1, 3 - (stats.consecutive_months || 1))} mes(es)</b>!`
+                }
+              </p>
+            </div>
+
+            <!-- BENEFICIOS DESBLOQUEADOS VS PRÓXIMOS -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              <div class="p-4 bg-brandSurface rounded-2xl border border-brandBorder space-y-2">
+                <div class="font-bold text-emerald-400 flex items-center gap-1.5">
+                  <span>✅</span> Beneficios de Cliente Frecuente:
+                </div>
+                <ul class="space-y-1.5 text-gray-300 text-[11px]">
+                  <li class="flex items-center gap-1.5"><span>🎟️</span> 1 Boleto gratis por sorteo en todas las rifas.</li>
+                  <li class="flex items-center gap-1.5"><span>⚡</span> Acceso prioritario a Preventas exclusivas.</li>
+                  <li class="flex items-center gap-1.5"><span>⭐</span> Insignia dorada en el Ranking de Coleccionistas.</li>
+                </ul>
+              </div>
+
+              <div class="p-4 bg-brandSurface rounded-2xl border border-brandBorder space-y-2">
+                <div class="font-bold text-amber-400 flex items-center gap-1.5">
+                  <span>🔒</span> Próximos Beneficios (a los 6 meses):
+                </div>
+                <ul class="space-y-1.5 text-gray-400 text-[11px]">
+                  <li class="flex items-center gap-1.5"><span>🏷️</span> 5% OFF automático en compras superiores a $50.000.</li>
+                  <li class="flex items-center gap-1.5"><span>🛡️</span> Protector acrílico rígido gratis en cada orden.</li>
+                  <li class="flex items-center gap-1.5"><span>🎁</span> Regalo sorpresa en el mes de tu cumpleaños.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- ============================================== -->
+        <!-- TAB 4: DATOS DE ENVÍO                          -->
+        <!-- ============================================== -->
+        ${currentPortalTab === 'shipping' ? `
+          <form onsubmit="handleSavePortalShipping(event)" class="space-y-4 text-xs">
+            <div class="bg-brandSurface p-5 rounded-3xl border border-brandBorder space-y-4">
+              <h4 class="font-bold text-white text-sm font-display flex items-center gap-2">
+                <span>📍</span> Dirección de Entrega & Contacto
+              </h4>
+              <p class="text-gray-400 text-[11px]">Esta dirección se usará automáticamente para el despacho de tus compras y premios de rifas.</p>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-gray-300 font-semibold mb-1">Nombre</label>
+                  <input required id="portalFirstName" type="text" value="${u.first_name || ''}" class="w-full bg-brandCard border border-brandBorder rounded-xl p-3 text-white text-xs focus:outline-none focus:border-brandAccent">
+                </div>
+                <div>
+                  <label class="block text-gray-300 font-semibold mb-1">Apellido</label>
+                  <input required id="portalLastName" type="text" value="${u.last_name || ''}" class="w-full bg-brandCard border border-brandBorder rounded-xl p-3 text-white text-xs focus:outline-none focus:border-brandAccent">
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-gray-300 font-semibold mb-1">Teléfono / WhatsApp *</label>
+                <input required id="portalPhone" type="text" value="${u.phone || ''}" placeholder="+54 11 4444-1234" class="w-full bg-brandCard border border-brandBorder rounded-xl p-3 text-white text-xs focus:outline-none focus:border-brandAccent">
+              </div>
+
+              <div class="grid grid-cols-3 gap-3">
+                <div class="col-span-2">
+                  <label class="block text-gray-300 font-semibold mb-1">Calle</label>
+                  <input required id="portalStreet" type="text" value="${u.street || ''}" placeholder="Av. Corrientes" class="w-full bg-brandCard border border-brandBorder rounded-xl p-3 text-white text-xs focus:outline-none focus:border-brandAccent">
+                </div>
+                <div>
+                  <label class="block text-gray-300 font-semibold mb-1">Número</label>
+                  <input required id="portalStreetNumber" type="text" value="${u.street_number || ''}" placeholder="1234" class="w-full bg-brandCard border border-brandBorder rounded-xl p-3 text-white text-xs focus:outline-none focus:border-brandAccent">
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-gray-300 font-semibold mb-1">Localidad / Ciudad / Provincia</label>
+                <input required id="portalLocality" type="text" value="${u.locality || ''}" placeholder="CABA, Buenos Aires" class="w-full bg-brandCard border border-brandBorder rounded-xl p-3 text-white text-xs focus:outline-none focus:border-brandAccent">
+              </div>
+
+              <button type="submit" id="saveShippingBtn" class="w-full bg-brandAccent hover:bg-brandAccentHover text-white py-3 rounded-xl font-bold uppercase tracking-wider text-xs transition shadow-lg flex items-center justify-center gap-2">
+                <span>💾</span> Guardar Datos de Envío
+              </button>
+            </div>
+          </form>
+        ` : ''}
+      `;
+    }
+
+    async function handleSavePortalShipping(e) {
+      e.preventDefault();
+      const btn = document.getElementById('saveShippingBtn');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<span>⏳</span> Guardando...';
+      btn.disabled = true;
+
+      const payload = {
+        email: currentUser.email,
+        first_name: document.getElementById('portalFirstName').value.trim(),
+        last_name: document.getElementById('portalLastName').value.trim(),
+        phone: document.getElementById('portalPhone').value.trim(),
+        street: document.getElementById('portalStreet').value.trim(),
+        street_number: document.getElementById('portalStreetNumber').value.trim(),
+        locality: document.getElementById('portalLocality').value.trim(),
+      };
+
+      try {
+        const res = await fetch('/api/auth/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          currentUser = { ...currentUser, ...data.user };
+          localStorage.setItem('kido_user', JSON.stringify(currentUser));
+          updateAuthUI();
+          showToast('✅ ¡Datos de envío actualizados con éxito!');
+          await openProfileModal('shipping');
+        } else {
+          alert('Error actualizando perfil.');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error conectando con el servidor.');
+      } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
     }
 
     function closeProfileModal() {
@@ -1924,7 +2473,7 @@
     }
 
     async function payRemainingBalance(orderId, remaining) {
-      if (!confirm(`¿Deseas abonar el saldo pendiente de ${formatARS(remaining)} a través de Mercado Pago para liberar la entrega?`)) return;
+      if (!confirm(`¿Deseas abonar el saldo pendiente de ${formatARS(remaining)} a través de Mercado Pago para liberar la entrega inmediata?`)) return;
 
       try {
         const res = await fetch('/api/orders/pay-partial', {
@@ -1934,11 +2483,19 @@
         });
         const data = await res.json();
         if (data.success) {
-          showToast('¡Saldo cancelado con éxito! Pedido liberado para despacho.');
-          openProfileModal();
+          if (data.is_real_mp && (data.init_point || data.sandbox_init_point)) {
+            const mpUrl = data.init_point || data.sandbox_init_point;
+            window.open(mpUrl, '_blank');
+            showToast('Redirigiendo a Mercado Pago para abonar el saldo...');
+          } else {
+            showToast('🎉 ¡Saldo cancelado con éxito! Pedido liberado para despacho.');
+          }
+          await openProfileModal('orders');
+        } else {
+          alert(data.error || 'Error registrando pago parcial.');
         }
       } catch (err) {
-        alert('Error registrando pago parcial.');
+        alert('Error al conectar con el servidor.');
       }
     }
 

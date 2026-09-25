@@ -286,7 +286,57 @@ func initRaffles() {
 		}
 	}
 
-	store.raffles = []Raffle{sampleRaffle}
+	// Boletos para Martín (Cliente Frecuente) en la rifa activa
+	sampleRaffle.Tickets[7] = RaffleTicket{
+		Number:        7,
+		CustomerID:    2,
+		CustomerEmail: "martin@kido.com.ar",
+		CustomerName:  "Martín Gómez",
+		IsFreeTicket:  true, // Boleto gratis de socio frecuente
+		MercadoPagoID: "MP-FREQUENT-FREE-07",
+		PurchasedAt:   time.Now().Add(-24 * time.Hour),
+	}
+	sampleRaffle.Tickets[24] = RaffleTicket{
+		Number:        24,
+		CustomerID:    2,
+		CustomerEmail: "martin@kido.com.ar",
+		CustomerName:  "Martín Gómez",
+		IsFreeTicket:  false,
+		MercadoPagoID: "MP-TICKET-BUY-24",
+		PurchasedAt:   time.Now().Add(-12 * time.Hour),
+	}
+
+	// Rifa 2: Sorteada (para comprobar ganador)
+	winningNum := 42
+	pastRaffle := Raffle{
+		ID:               2,
+		RaffleNumber:     "RIFA-#00-SUPRA-MK4",
+		Title:            "Inno64 1:64 Toyota Supra MK4 Castrol JGTC Special Edition",
+		PrizeDescription: "Edición especial de colección con vitrina de acrílico y calcas oficiales JGTC.",
+		PrizeImages: []string{
+			"https://cdn.shopify.com/s/files/1/0978/6929/9988/files/IMG_7095.jpg?v=1790150116",
+		},
+		StartDatetime:  "2026-08-01 10:00",
+		EndDatetime:    "2026-08-30 20:00",
+		DrawDatetime:   "2026-08-31 21:00 (Sorteo Oficial)",
+		MinNumber:      0,
+		MaxNumber:      99,
+		TicketPriceARS: 2000,
+		Status:         "SORTEADA",
+		Tickets:        make(map[int]RaffleTicket),
+		WinnerNumber:   &winningNum,
+	}
+	pastRaffle.Tickets[42] = RaffleTicket{
+		Number:        42,
+		CustomerID:    2,
+		CustomerEmail: "martin@kido.com.ar",
+		CustomerName:  "Martín Gómez",
+		IsFreeTicket:  false,
+		MercadoPagoID: "MP-TICKET-PAST-42",
+		PurchasedAt:   time.Now().Add(-720 * time.Hour),
+	}
+
+	store.raffles = []Raffle{sampleRaffle, pastRaffle}
 }
 
 // Inicializar Pedidos de Ejemplo con Pagos Parciales
@@ -331,6 +381,46 @@ func initOrders() {
 				{ID: 2, OrderID: 1002, ProductID: 999001, AmountARS: 18500, PaymentMethod: "Mercado Pago", MercadoPagoID: "MP-FULL-8812", PaymentStatus: "approved", IsDownPayment: false, CreatedAt: time.Now().Add(-2 * 24 * time.Hour)},
 			},
 			CreatedAt: time.Now().Add(-2 * 24 * time.Hour),
+		},
+		{
+			ID:                  1003,
+			OrderNumber:         "KIDO-ORD-1003",
+			CustomerID:          2, // Martín
+			CustomerEmail:       "martin@kido.com.ar",
+			CustomerName:        "Martín Gómez",
+			TotalARS:            38500,
+			TotalPaidARS:        38500,
+			RemainingBalanceARS: 0,
+			IsFullyPaid:         true,
+			DeliveryStatus:      "EN_CAMINO", // Paquete en tránsito con código de seguimiento
+			OrderType:           "VENTA_DIRECTA",
+			Items: []OrderItem{
+				{ProductID: 10390924034324, ProductTitle: "Kaido House Datsun 510 Pro Street BRE", Quantity: 1, UnitPriceARS: 38500, SubtotalARS: 38500, ProductType: "Autito", ScaleOrSize: "1:64"},
+			},
+			Payments: []PartialPayment{
+				{ID: 3, OrderID: 1003, ProductID: 10390924034324, AmountARS: 38500, PaymentMethod: "Mercado Pago", MercadoPagoID: "MP-FULL-9931", PaymentStatus: "approved", IsDownPayment: false, CreatedAt: time.Now().Add(-8 * 24 * time.Hour)},
+			},
+			CreatedAt: time.Now().Add(-8 * 24 * time.Hour),
+		},
+		{
+			ID:                  1004,
+			OrderNumber:         "KIDO-ORD-1004",
+			CustomerID:          2, // Martín
+			CustomerEmail:       "martin@kido.com.ar",
+			CustomerName:        "Martín Gómez",
+			TotalARS:            24000,
+			TotalPaidARS:        24000,
+			RemainingBalanceARS: 0,
+			IsFullyPaid:         true,
+			DeliveryStatus:      "ENTREGADO", // Paquete entregado
+			OrderType:           "VENTA_DIRECTA",
+			Items: []OrderItem{
+				{ProductID: 10390924034324, ProductTitle: "Remera Oversized KIDO Touge Legends Negra", Quantity: 1, UnitPriceARS: 24000, SubtotalARS: 24000, ProductType: "Remera", ScaleOrSize: "L"},
+			},
+			Payments: []PartialPayment{
+				{ID: 4, OrderID: 1004, ProductID: 10390924034324, AmountARS: 24000, PaymentMethod: "Mercado Pago", MercadoPagoID: "MP-FULL-7711", PaymentStatus: "approved", IsDownPayment: false, CreatedAt: time.Now().Add(-30 * 24 * time.Hour)},
+			},
+			CreatedAt: time.Now().Add(-30 * 24 * time.Hour),
 		},
 	}
 }
@@ -692,6 +782,22 @@ func pgSaveOrder(o Order) {
 		return
 	}
 	go func() {
+		var custID interface{} = nil
+		if o.CustomerID > 0 {
+			var exists bool
+			_ = db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)", o.CustomerID).Scan(&exists)
+			if exists {
+				custID = o.CustomerID
+			}
+		}
+		if custID == nil && o.CustomerEmail != "" {
+			var uid int64
+			err := db.QueryRow("SELECT id FROM users WHERE LOWER(email) = LOWER($1)", o.CustomerEmail).Scan(&uid)
+			if err == nil && uid > 0 {
+				custID = uid
+			}
+		}
+
 		_, err := db.Exec(`INSERT INTO orders (id, order_number, customer_id, total_ars, total_paid_ars, remaining_balance_ars, is_fully_paid, delivery_status, order_type)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		ON CONFLICT (id) DO UPDATE SET
@@ -700,7 +806,7 @@ func pgSaveOrder(o Order) {
 			is_fully_paid = EXCLUDED.is_fully_paid,
 			delivery_status = EXCLUDED.delivery_status,
 			updated_at = CURRENT_TIMESTAMP`,
-			o.ID, o.OrderNumber, o.CustomerID, o.TotalARS, o.TotalPaidARS, o.RemainingBalanceARS, o.IsFullyPaid, o.DeliveryStatus, o.OrderType)
+			o.ID, o.OrderNumber, custID, o.TotalARS, o.TotalPaidARS, o.RemainingBalanceARS, o.IsFullyPaid, o.DeliveryStatus, o.OrderType)
 		if err != nil {
 			log.Printf("⚠️ Error guardando orden en PostgreSQL: %v", err)
 		}
@@ -1812,6 +1918,17 @@ func main() {
 					ord.DeliveryStatus = "LISTO_PARA_DESPACHAR" // Se desbloquea entrega al completar 100%
 				}
 
+				// Si Mercado Pago real está activo, generar preferencia de cobro
+				var initPoint, sandboxInitPoint, prefID string
+				if mpConfig.AccessToken != "" {
+					scheme := "http"
+					if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
+						scheme = "https"
+					}
+					baseURL := scheme + "://" + r.Host
+					prefID, initPoint, sandboxInitPoint, _ = createMPPreference(*ord, req.AmountARS, baseURL)
+				}
+
 				payment := PartialPayment{
 					ID:            time.Now().UnixNano(),
 					OrderID:       ord.ID,
@@ -1832,13 +1949,192 @@ func main() {
 					"remaining_balance_ars":  ord.RemainingBalanceARS,
 					"is_fully_paid":          ord.IsFullyPaid,
 					"delivery_status":        ord.DeliveryStatus,
-					"message":                "Pago parcial registrado con Mercado Pago.",
+					"init_point":             initPoint,
+					"sandbox_init_point":     sandboxInitPoint,
+					"preference_id":          prefID,
+					"is_real_mp":             mpConfig.AccessToken != "",
+					"message":                "Pago de saldo procesado exitosamente.",
 				})
 				return
 			}
 		}
 
 		http.Error(w, "Pedido no encontrado", http.StatusNotFound)
+	})
+
+	// Actualizar Estado de Entrega de Pedido (Admin / Logística)
+	mux.HandleFunc("/api/orders/update-delivery-status", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method != http.MethodPost {
+			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			OrderID int64  `json:"order_id"`
+			Status  string `json:"status"` // "BLOQUEADO_POR_SALDO", "LISTO_PARA_DESPACHAR", "EN_CAMINO", "ENTREGADO"
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		store.mu.Lock()
+		defer store.mu.Unlock()
+
+		for i := range store.orders {
+			if store.orders[i].ID == req.OrderID {
+				store.orders[i].DeliveryStatus = req.Status
+				pgSaveOrder(store.orders[i])
+
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"success":         true,
+					"order_id":        req.OrderID,
+					"delivery_status": req.Status,
+				})
+				return
+			}
+		}
+		http.Error(w, "Pedido no encontrado", http.StatusNotFound)
+	})
+
+	// Portal de Autoservicio del Cliente ("Mi Cuenta / Mis Pedidos")
+	mux.HandleFunc("/api/user/portal-data", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		email := strings.TrimSpace(r.URL.Query().Get("email"))
+		if email == "" {
+			http.Error(w, "Email requerido", http.StatusBadRequest)
+			return
+		}
+
+		store.mu.RLock()
+		defer store.mu.RUnlock()
+
+		// 1. Encontrar usuario
+		var matchedUser *User
+		for i := range store.users {
+			if strings.EqualFold(store.users[i].Email, email) {
+				matchedUser = &store.users[i]
+				break
+			}
+		}
+
+		// 2. Pedidos del usuario
+		var userOrders []Order
+		var totalPendingARS int
+		for _, o := range store.orders {
+			if strings.EqualFold(o.CustomerEmail, email) {
+				userOrders = append(userOrders, o)
+				totalPendingARS += o.RemainingBalanceARS
+			}
+		}
+
+		// 3. Rifas del usuario
+		type UserRaffleTicketInfo struct {
+			Number       int    `json:"number"`
+			IsFreeTicket bool   `json:"is_free_ticket"`
+			PurchasedAt  string `json:"purchased_at"`
+			IsWinner     bool   `json:"is_winner"`
+		}
+
+		type UserRaffleSummary struct {
+			RaffleID         int64                  `json:"raffle_id"`
+			RaffleNumber     string                 `json:"raffle_number"`
+			Title            string                 `json:"title"`
+			PrizeDescription string                 `json:"prize_description"`
+			PrizeImage       string                 `json:"prize_image"`
+			DrawDatetime     string                 `json:"draw_datetime"`
+			Status           string                 `json:"status"`
+			WinnerNumber     *int                   `json:"winner_number,omitempty"`
+			UserHasWinner    bool                   `json:"user_has_winner"`
+			Tickets          []UserRaffleTicketInfo `json:"tickets"`
+		}
+
+		var userRaffles []UserRaffleSummary
+		for _, raf := range store.raffles {
+			var myTickets []UserRaffleTicketInfo
+			hasWinner := false
+
+			for num, ticket := range raf.Tickets {
+				if strings.EqualFold(ticket.CustomerEmail, email) {
+					isWin := raf.WinnerNumber != nil && *raf.WinnerNumber == num
+					if isWin {
+						hasWinner = true
+					}
+					myTickets = append(myTickets, UserRaffleTicketInfo{
+						Number:       num,
+						IsFreeTicket: ticket.IsFreeTicket,
+						PurchasedAt:  ticket.PurchasedAt.Format("02/01/2006 15:04"),
+						IsWinner:     isWin,
+					})
+				}
+			}
+
+			if len(myTickets) > 0 {
+				prizeImg := "https://via.placeholder.com/300"
+				if len(raf.PrizeImages) > 0 && raf.PrizeImages[0] != "" {
+					prizeImg = raf.PrizeImages[0]
+				}
+
+				userRaffles = append(userRaffles, UserRaffleSummary{
+					RaffleID:         raf.ID,
+					RaffleNumber:     raf.RaffleNumber,
+					Title:            raf.Title,
+					PrizeDescription: raf.PrizeDescription,
+					PrizeImage:       prizeImg,
+					DrawDatetime:     raf.DrawDatetime,
+					Status:           raf.Status,
+					WinnerNumber:     raf.WinnerNumber,
+					UserHasWinner:    hasWinner,
+					Tickets:          myTickets,
+				})
+			}
+		}
+
+		// 4. Progreso de Cliente Frecuente
+		months := 1
+		isFreq := false
+		pts := 0
+		purchases := len(userOrders)
+		freeAvailable := false
+
+		if matchedUser != nil {
+			months = matchedUser.ConsecutiveMonths
+			isFreq = matchedUser.IsFrequentCustomer
+			pts = matchedUser.FrequentPoints
+			if matchedUser.TotalPurchasesCount > purchases {
+				purchases = matchedUser.TotalPurchasesCount
+			}
+			freeAvailable = isFreq && !matchedUser.HasClaimedFreeRaffle
+		}
+
+		targetMonths := 3
+		progressPct := 100
+		if !isFreq {
+			progressPct = int((float64(months) / float64(targetMonths)) * 100)
+			if progressPct > 100 {
+				progressPct = 100
+			}
+		}
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"user":    matchedUser,
+			"orders":  userOrders,
+			"raffles": userRaffles,
+			"stats": map[string]interface{}{
+				"total_orders":          len(userOrders),
+				"total_pending_ars":     totalPendingARS,
+				"active_raffles_count":  len(userRaffles),
+				"consecutive_months":    months,
+				"target_months":         targetMonths,
+				"progress_percentage":   progressPct,
+				"is_frequent_customer":  isFreq,
+				"frequent_points":       pts,
+				"total_purchases_count": purchases,
+				"free_raffle_available": freeAvailable,
+			},
+		})
 	})
 
 	// ==========================================
