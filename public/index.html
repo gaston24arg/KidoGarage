@@ -788,9 +788,9 @@
     let activeRaffles = [];
 
     let currentFilter = {
-      brand: '',
+      brands: [],
       scale: 'ALL',
-      type: 'ALL',
+      types: [],
       status: 'ALL',
       search: '',
       sort: 'featured'
@@ -802,6 +802,7 @@
 
     // Inicializar
     async function initApp() {
+      await loadBrandsSidebar();
       await loadProducts();
       await loadRaffles();
       updateAuthUI();
@@ -943,17 +944,17 @@
     // Filtrado y Renderizado del Catálogo
     function applyFilters() {
       displayedProducts = allProducts.filter(p => {
-        if (currentFilter.brand && !p.vendor.toLowerCase().includes(currentFilter.brand.toLowerCase())) {
-          return false;
+        if (currentFilter.brands && currentFilter.brands.length > 0) {
+          if (!currentFilter.brands.includes(p.vendor)) return false;
         }
-        if (currentFilter.status !== 'ALL' && p.status !== currentFilter.status) {
-          return false;
+        if (currentFilter.status && currentFilter.status !== 'ALL') {
+          if (p.status !== currentFilter.status) return false;
         }
-        if (currentFilter.scale !== 'ALL' && p.scale !== currentFilter.scale) {
-          return false;
+        if (currentFilter.scale && currentFilter.scale !== 'ALL') {
+          if (p.scale !== currentFilter.scale) return false;
         }
-        if (currentFilter.type !== 'ALL' && p.product_type !== currentFilter.type) {
-          return false;
+        if (currentFilter.types && currentFilter.types.length > 0) {
+          if (!currentFilter.types.includes(p.product_type)) return false;
         }
         if (currentFilter.search) {
           const q = currentFilter.search.toLowerCase();
@@ -1071,15 +1072,66 @@
     }
 
     function filterByBrand(b) { currentFilter.brand = b; applyFilters(); document.getElementById('catalogo').scrollIntoView({ behavior: 'smooth' }); }
-    function filterByType(t) { currentFilter.type = t; if (t !== 'Autito') currentFilter.scale = 'ALL'; applyFilters(); }
+    function updateFiltersFromUI() {
+      const typeBoxes = Array.from(document.querySelectorAll('#filterTypesContainer input[type="checkbox"]:not([value="ALL"])'));
+      currentFilter.types = typeBoxes.filter(b => b.checked).map(b => b.value);
+      
+      const brandBoxes = Array.from(document.querySelectorAll('#filterBrandsContainer input[type="checkbox"]'));
+      currentFilter.brands = brandBoxes.filter(b => b.checked).map(b => b.value);
+
+      const statusRadio = document.querySelector('input[name="status_filter"]:checked');
+      currentFilter.status = statusRadio ? statusRadio.value : 'ALL';
+      
+      applyFilters();
+    }
+
+    async function loadBrandsSidebar() {
+      try {
+        const res = await fetch('/api/brands');
+        if (res.ok) {
+          const brands = await res.json();
+          const container = document.getElementById('filterBrandsContainer');
+          if (container && brands.length > 0) {
+            container.innerHTML = brands.map(b => `
+              <label class="flex items-center gap-2 cursor-pointer hover:text-brandAccent transition">
+                <input type="checkbox" value="${b.name}" class="rounded bg-brandCard border-brandBorder text-brandAccent" onchange="updateFiltersFromUI()"> 
+                ${b.name}
+              </label>
+            `).join('');
+          } else if (container) {
+            container.innerHTML = '<div class="text-xs text-gray-500 italic">No hay marcas</div>';
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function filterByType(t) { 
+        if(t === 'ALL' || t === '') {
+            document.querySelectorAll('#filterTypesContainer input[type="checkbox"]').forEach(c => c.checked = false);
+        } else {
+            const cb = document.querySelector(`#filterTypesContainer input[type="checkbox"][value="${t}"]`);
+            if(cb) cb.checked = !cb.checked;
+        }
+        updateFiltersFromUI();
+    }
+    
     function filterByScale(s) { currentFilter.scale = s; applyFilters(); }
-    function filterByStatus(s) { currentFilter.status = s; applyFilters(); }
+    function filterByStatus(s) { 
+        const radio = document.querySelector(`input[name="status_filter"][value="${s}"]`);
+        if(radio) radio.checked = true;
+        updateFiltersFromUI();
+    }
     function handleSearch(val) { currentFilter.search = val.trim(); applyFilters(); }
     function clearSearch() { document.getElementById('searchInput').value = ''; currentFilter.search = ''; applyFilters(); }
     function handleSort(val) { currentFilter.sort = val; applyFilters(); }
     function resetFilters() {
-      currentFilter = { brand: '', scale: 'ALL', type: 'ALL', status: 'ALL', search: '', sort: 'featured' };
+      currentFilter = { brands: [], types: [], scale: 'ALL', status: 'ALL', search: '', sort: 'featured' };
       const el = document.getElementById('searchInput'); if (el) el.value = '';
+      document.querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = false);
+      const firstRadio = document.querySelector('input[name="status_filter"][value="ALL"]');
+      if(firstRadio) firstRadio.checked = true;
       applyFilters();
     }
 
