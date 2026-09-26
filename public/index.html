@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es" class="dark scroll-smooth">
 
 <head>
@@ -105,7 +105,7 @@
 
   <!-- 1. BARRA INFORMATIVA SUPERIOR (TRUST BANNER) -->
   <aside class="bg-black/95 py-2 px-4 sm:px-6 lg:px-8 border-b border-brandBorder text-xs text-gray-300">
-    <div class="max-w-[1600px] mx-auto flex justify-between items-center flex-wrap gap-2 text-[11px] sm:text-xs">
+    <div class="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-center md:justify-between items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-center">
       <div class="flex items-center gap-2">
         <span class="text-blue-400">💳</span>
         <span class="font-semibold text-gray-200">Mercado Pago Verificado</span>
@@ -210,18 +210,29 @@
 
     </div>
 
-    <!-- Buscador Mobile -->
-    <div class="md:hidden px-4 pb-3">
+    <!-- Buscador y Nav Mobile -->
+    <div class="md:hidden px-4 pb-3 flex flex-col gap-3">
       <input type="text" placeholder="Buscar autitos, marcas, remeras..."
         class="w-full bg-brandSurface border border-brandBorder rounded-xl py-2 px-3 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-brandAccent"
         oninput="handleSearch(this.value)">
+      <nav class="flex items-center gap-4 overflow-x-auto hide-scrollbar text-xs font-semibold pb-1">
+        <a href="#catalogo" onclick="filterByStatus('ALL')" class="hover:text-brandAccent transition text-gray-300 whitespace-nowrap">Catálogo</a>
+        <a href="#catalogo" onclick="filterByStatus('PRE_VENTA')" class="hover:text-brandAccent transition text-gray-300 whitespace-nowrap">Pre-Ventas</a>
+        <a href="#catalogo" onclick="filterByType('Remera')" class="hover:text-brandAccent transition text-gray-300 whitespace-nowrap">Remeras</a>
+        <button onclick="openRafflesModal()" class="text-amber-400 font-bold hover:text-amber-300 transition flex items-center gap-1 whitespace-nowrap">
+          <span>🎟️</span> Rifas
+        </button>
+        <button onclick="openRankingsModal()" class="text-gray-300 hover:text-white transition flex items-center gap-1 whitespace-nowrap">
+          <span>🏆</span> Rankings
+        </button>
+      </nav>
     </div>
   </header>
 
   <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-grow flex flex-col md:flex-row gap-8">
     
     <!-- SIDEBAR DE FILTROS (Izquierda) -->
-    <aside class="w-full md:w-64 flex-shrink-0 flex flex-col gap-6">
+    <aside id="desktopSidebar" class="w-full md:w-64 flex-shrink-0 hidden md:flex flex-col gap-6">
       <div class="bg-brandSurface border border-brandBorder rounded-2xl p-5">
         <h2 class="text-white font-bold mb-4 font-display text-lg">Filtros</h2>
 
@@ -370,7 +381,7 @@
   <!-- ======================================================== -->
   <main id="catalogo" class="w-full flex-grow">
 
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
       <div>
         <h1 class="text-2xl font-black text-white font-display flex items-center gap-3">
           <span>Catálogo KIDO Garage</span>
@@ -381,15 +392,21 @@
           disponibles</p>
       </div>
 
-      <div class="flex items-center gap-3 text-xs">
-        <label for="sortBySelect" class="text-gray-400">Ordenar por:</label>
-        <select id="sortBySelect" onchange="handleSort(this.value)"
-          class="bg-brandCard border border-brandBorder text-gray-200 rounded-xl px-3 py-1.5 focus:outline-none focus:border-brandAccent text-xs">
-          <option value="featured">Destacados</option>
-          <option value="price-asc">Menor precio</option>
-          <option value="price-desc">Mayor precio</option>
-          <option value="title-asc">Nombre A-Z</option>
-        </select>
+      <div class="flex flex-wrap items-center gap-3 text-xs w-full sm:w-auto">
+        <button onclick="const sb = document.getElementById('desktopSidebar'); sb.classList.toggle('hidden'); sb.classList.toggle('flex');" class="md:hidden flex items-center gap-2 bg-brandSurface border border-brandBorder px-3 py-1.5 rounded-xl hover:bg-brandCard transition text-gray-300 font-bold">
+          <span class="text-brandAccent">⚙️</span> Filtros
+        </button>
+
+        <div class="flex items-center gap-2 ml-auto sm:ml-0">
+          <label for="sortBySelect" class="text-gray-400 hidden sm:inline-block">Ordenar por:</label>
+          <select id="sortBySelect" onchange="handleSort(this.value)"
+            class="bg-brandCard border border-brandBorder text-gray-200 rounded-xl px-3 py-1.5 focus:outline-none focus:border-brandAccent text-xs">
+            <option value="featured">Destacados</option>
+            <option value="price-asc">Menor precio</option>
+            <option value="price-desc">Mayor precio</option>
+            <option value="title-asc">Nombre A-Z</option>
+          </select>
+        </div>
       </div>
     </div>
 
