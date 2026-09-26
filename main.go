@@ -59,10 +59,13 @@ type ProductImage struct {
 }
 
 type Brand struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
-	Code string `json:"code"`
+	ID       int64  `json:"id"`
+	Name     string `json:"name"`
+	Code     string `json:"code"`
+	Carrusel string `json:"carrusel"`
+	Imagen   string `json:"imagen"`
 }
+
 
 type ProductTypeModel struct {
 	ID   int64  `json:"id"`
