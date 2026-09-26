@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es" class="dark scroll-smooth">
 
 <head>
@@ -326,51 +326,9 @@
     </div>
 
     <!-- Carrusel Horizontal de Marcas -->
-    <div class="relative">
-      <div id="brandCarousel" class="flex gap-3 overflow-x-auto hide-scrollbar scroll-smooth py-1">
-        <button onclick="filterByBrand('Kaido House')"
-          class="flex-shrink-0 bg-brandCard border border-brandBorder hover:border-brandAccent px-5 py-3 rounded-2xl text-center font-bold text-xs hover:bg-brandCardHover transition duration-200 group min-w-[150px]">
-          <span class="block text-white group-hover:text-brandAccent text-sm font-black font-display">KAIDO HOUSE</span>
-          <span class="text-[10px] text-gray-500">Jun Imai Works</span>
-        </button>
-        <button onclick="filterByBrand('Pop Race')"
-          class="flex-shrink-0 bg-brandCard border border-brandBorder hover:border-brandAccent px-5 py-3 rounded-2xl text-center font-bold text-xs hover:bg-brandCardHover transition duration-200 group min-w-[150px]">
-          <span class="block text-white group-hover:text-brandAccent text-sm font-black font-display">POP RACE</span>
-          <span class="text-[10px] text-gray-500">Stage Customs</span>
-        </button>
-        <button onclick="filterByBrand('Mini GT')"
-          class="flex-shrink-0 bg-brandCard border border-brandBorder hover:border-brandAccent px-5 py-3 rounded-2xl text-center font-bold text-xs hover:bg-brandCardHover transition duration-200 group min-w-[150px]">
-          <span class="block text-white group-hover:text-brandAccent text-sm font-black font-display">MINI GT</span>
-          <span class="text-[10px] text-gray-500">TSM Models</span>
-        </button>
-        <button onclick="filterByBrand('Spark')"
-          class="flex-shrink-0 bg-brandCard border border-brandBorder hover:border-brandAccent px-5 py-3 rounded-2xl text-center font-bold text-xs hover:bg-brandCardHover transition duration-200 group min-w-[150px]">
-          <span class="block text-white group-hover:text-brandAccent text-sm font-black font-display">SPARK</span>
-          <span class="text-[10px] text-gray-500">1:18 Resin & GT3</span>
-        </button>
-        <button onclick="filterByBrand('Tarmac Works')"
-          class="flex-shrink-0 bg-brandCard border border-brandBorder hover:border-brandAccent px-5 py-3 rounded-2xl text-center font-bold text-xs hover:bg-brandCardHover transition duration-200 group min-w-[150px]">
-          <span class="block text-white group-hover:text-brandAccent text-sm font-black font-display">TARMAC
-            WORKS</span>
-          <span class="text-[10px] text-gray-500">Global64 / Hobby</span>
-        </button>
-        <button onclick="filterByBrand('Hot Wheels')"
-          class="flex-shrink-0 bg-brandCard border border-brandBorder hover:border-brandAccent px-5 py-3 rounded-2xl text-center font-bold text-xs hover:bg-brandCardHover transition duration-200 group min-w-[150px]">
-          <span class="block text-white group-hover:text-brandAccent text-sm font-black font-display">HOT WHEELS</span>
-          <span class="text-[10px] text-gray-500">Premium / RLC</span>
-        </button>
-        <button onclick="filterByBrand('Ignition Model')"
-          class="flex-shrink-0 bg-brandCard border border-brandBorder hover:border-brandAccent px-5 py-3 rounded-2xl text-center font-bold text-xs hover:bg-brandCardHover transition duration-200 group min-w-[150px]">
-          <span class="block text-white group-hover:text-brandAccent text-sm font-black font-display">IGNITION
-            MODEL</span>
-          <span class="text-[10px] text-gray-500">High Precision Japan</span>
-        </button>
-        <button onclick="filterByBrand('KIDO')"
-          class="flex-shrink-0 bg-brandCard border border-brandBorder hover:border-brandAccent px-5 py-3 rounded-2xl text-center font-bold text-xs hover:bg-brandCardHover transition duration-200 group min-w-[150px]">
-          <span class="block text-white group-hover:text-brandAccent text-sm font-black font-display">KIDO
-            APPAREL</span>
-          <span class="text-[10px] text-gray-500">Remeras & Stickers</span>
-        </button>
+    <div class="relative overflow-hidden w-full">
+      <div id="brandCarousel" class="flex gap-3 overflow-x-auto hide-scrollbar py-1 whitespace-nowrap" style="scroll-behavior: auto;">
+        <!-- Botones inyectados por JS -->
       </div>
     </div>
   </section>
@@ -837,7 +795,7 @@
 
     // Inicializar
     async function initApp() {
-      await loadBrandsSidebar();
+      await loadBrandsAndCarousel();
       await loadProducts();
       await loadRaffles();
       updateAuthUI();
@@ -1126,7 +1084,20 @@
       applyFilters();
     }
 
-    async function loadBrandsSidebar() {
+    let brandScrollInterval;
+    function startAutoScrollBrands() {
+      const el = document.getElementById('brandCarousel');
+      if (!el) return;
+      if (brandScrollInterval) clearInterval(brandScrollInterval);
+      brandScrollInterval = setInterval(() => {
+        el.scrollLeft += 1;
+        if (el.scrollLeft >= el.scrollWidth / 2) {
+          el.scrollLeft = 0;
+        }
+      }, 30);
+    }
+
+    async function loadBrandsAndCarousel() {
       try {
         const res = await fetch('/api/brands');
         if (res.ok) {
@@ -1141,6 +1112,26 @@
             `).join('');
           } else if (container) {
             container.innerHTML = '<div class="text-xs text-gray-500 italic">No hay marcas</div>';
+          }
+          
+          const carouselContainer = document.getElementById('brandCarousel');
+          const carruselBrands = brands.filter(b => b.carrusel);
+          if (carouselContainer && carruselBrands.length > 0) {
+            let html = '';
+            const elementsToRender = [...carruselBrands, ...carruselBrands, ...carruselBrands];
+            elementsToRender.forEach(b => {
+              const imgHtml = b.imagen ? `<img src="${b.imagen}" class="h-6 object-contain mb-1 mx-auto" />` : '';
+              html += `
+                <button onclick="filterByBrand('${b.name}')"
+                  class="flex-shrink-0 bg-brandCard border border-brandBorder hover:border-brandAccent px-5 py-3 rounded-2xl text-center font-bold text-xs hover:bg-brandCardHover transition duration-200 group min-w-[150px] inline-block mx-1.5">
+                  ${imgHtml}
+                  <span class="block text-white group-hover:text-brandAccent text-sm font-black font-display">${b.name}</span>
+                  <span class="text-[10px] text-gray-500">${b.code}</span>
+                </button>
+              `;
+            });
+            carouselContainer.innerHTML = html;
+            startAutoScrollBrands();
           }
         }
       } catch (e) {

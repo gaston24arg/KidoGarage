@@ -96,6 +96,9 @@
       <button onclick="switchTab('products')" id="tabBtn-products" class="tab-btn px-4 py-3 md:w-full rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-3 whitespace-nowrap border border-transparent hover:border-brandBorder text-xs font-semibold text-left">
         <span class="text-lg">🏷️</span> Artículos & Catálogo
       </button>
+      <button onclick="switchTab('brands')" id="tabBtn-brands" class="tab-btn px-4 py-3 md:w-full rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-3 whitespace-nowrap border border-transparent hover:border-brandBorder text-xs font-semibold text-left">
+        <span class="text-lg">✨</span> Marcas & Carrusel
+      </button>
       <button onclick="switchTab('raffles')" id="tabBtn-raffles" class="tab-btn px-4 py-3 md:w-full rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-3 whitespace-nowrap border border-transparent hover:border-brandBorder text-xs font-semibold text-left">
         <span class="text-lg">🎟️</span> Rifas y Sorteos
       </button>
@@ -393,6 +396,66 @@
           </div>
         </div>
 
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- TAB 4B: MARCAS Y CARRUSEL                                -->
+    <!-- ======================================================== -->
+    <section id="tab-brands" class="tab-pane hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="bg-brandSurface border border-brandBorder rounded-2xl p-5 shadow-lg h-fit">
+          <h3 class="font-bold text-white text-base mb-4 font-display">Nueva Marca</h3>
+          <form id="brandForm" class="space-y-4" onsubmit="saveBrand(event)">
+            <input type="hidden" id="brandId" value="0">
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Nombre de la Marca</label>
+              <input required id="brandName" type="text" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white text-sm focus:border-brandAccent focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Código Interno</label>
+              <input required id="brandCode" type="text" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white text-sm focus:border-brandAccent focus:outline-none">
+            </div>
+            <div>
+              <label class="flex items-center gap-2 cursor-pointer text-gray-300 text-sm">
+                <input type="checkbox" id="brandCarrusel" class="rounded bg-brandCard border-brandBorder text-brandAccent"> Mostrar en Carrusel Animado
+              </label>
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Imagen / Logo para Carrusel</label>
+              <input id="brandImageFile" type="file" accept="image/*" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2 text-white text-xs mb-2">
+              <input type="hidden" id="brandImageUrl" value="">
+              <div id="brandImagePreview" class="hidden">
+                <img id="brandPreviewImg" class="h-12 object-contain bg-brandDark p-1 border border-brandBorder rounded-lg">
+              </div>
+            </div>
+            <button type="submit" class="w-full bg-brandAccent hover:bg-brandAccentHover text-white py-2.5 rounded-xl font-bold uppercase tracking-wider text-xs transition">
+              Guardar Marca
+            </button>
+            <button type="button" onclick="resetBrandForm()" class="w-full bg-brandSurface hover:bg-brandBorder border border-brandBorder text-gray-300 py-2 rounded-xl text-xs font-semibold transition mt-2">
+              Limpiar Formulario
+            </button>
+          </form>
+        </div>
+        
+        <div class="lg:col-span-2 bg-brandSurface border border-brandBorder rounded-2xl p-5 shadow-lg">
+          <h3 class="font-bold text-white text-base mb-4 font-display">Directorio de Marcas</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-gray-300">
+              <thead class="bg-brandDark/50 text-gray-500 uppercase">
+                <tr>
+                  <th class="p-3 rounded-l-xl">ID</th>
+                  <th class="p-3">Marca</th>
+                  <th class="p-3 text-center">En Carrusel</th>
+                  <th class="p-3 rounded-r-xl">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="brandsTableBody" class="divide-y divide-brandBorder">
+                <!-- JS render -->
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -784,6 +847,116 @@
           }
         }
       } catch (e) { console.error(e); }
+    }
+
+
+    function renderBrandsAdminTable() {
+      const tbody = document.getElementById('brandsTableBody');
+      if (!tbody) return;
+      if (!adminBrands || adminBrands.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-gray-500 italic">No hay marcas registradas.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = adminBrands.map(b => `
+        <tr class="hover:bg-brandCard/30 transition">
+          <td class="p-3">#${b.id}</td>
+          <td class="p-3 font-bold text-white flex items-center gap-2">
+            ${b.imagen ? `<img src="${b.imagen}" class="h-6 object-contain bg-brandCard p-0.5 rounded" />` : ''}
+            ${b.name}
+          </td>
+          <td class="p-3 text-center">
+            ${b.carrusel ? '<span class="text-green-400 font-bold">Sí</span>' : '<span class="text-gray-500">No</span>'}
+          </td>
+          <td class="p-3">
+            <button onclick='editBrand(${JSON.stringify(b)})' class="text-blue-400 hover:text-blue-300 text-[10px] uppercase font-bold tracking-wider px-2 py-1 border border-blue-500/30 rounded bg-blue-500/10 transition">Editar</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function editBrand(b) {
+      document.getElementById('brandId').value = b.id;
+      document.getElementById('brandName').value = b.name;
+      document.getElementById('brandCode').value = b.code;
+      document.getElementById('brandCarrusel').checked = b.carrusel;
+      document.getElementById('brandImageUrl').value = b.imagen || '';
+      
+      const previewDiv = document.getElementById('brandImagePreview');
+      const previewImg = document.getElementById('brandPreviewImg');
+      if (b.imagen) {
+        previewImg.src = b.imagen;
+        previewDiv.classList.remove('hidden');
+      } else {
+        previewDiv.classList.add('hidden');
+      }
+      
+      switchTab('brands');
+    }
+
+    function resetBrandForm() {
+      document.getElementById('brandId').value = '0';
+      document.getElementById('brandName').value = '';
+      document.getElementById('brandCode').value = '';
+      document.getElementById('brandCarrusel').checked = false;
+      document.getElementById('brandImageFile').value = '';
+      document.getElementById('brandImageUrl').value = '';
+      document.getElementById('brandImagePreview').classList.add('hidden');
+    }
+
+    async function saveBrand(e) {
+      e.preventDefault();
+      
+      let imageUrl = document.getElementById('brandImageUrl').value;
+      const fileInput = document.getElementById('brandImageFile');
+      
+      if (fileInput.files.length > 0) {
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        try {
+          const uploadRes = await fetch('/api/admin/upload', {
+            method: 'POST',
+            body: formData
+          });
+          if (uploadRes.ok) {
+            const data = await uploadRes.json();
+            imageUrl = data.url;
+          } else {
+            alert('Error al subir la imagen');
+            return;
+          }
+        } catch (err) {
+          console.error('Error subiendo imagen:', err);
+          alert('Error de conexión al subir la imagen.');
+          return;
+        }
+      }
+
+      const b = {
+        id: parseInt(document.getElementById('brandId').value) || 0,
+        name: document.getElementById('brandName').value,
+        code: document.getElementById('brandCode').value,
+        carrusel: document.getElementById('brandCarrusel').checked,
+        imagen: imageUrl
+      };
+
+      try {
+        const res = await fetch('/api/admin/brands', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(b)
+        });
+        
+        if (res.ok) {
+          alert('Marca guardada correctamente.');
+          resetBrandForm();
+          await loadBrands(); // Recargar
+        } else {
+          alert('Error al guardar la marca');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error de conexión.');
+      }
     }
 
     async function loadBrands() {

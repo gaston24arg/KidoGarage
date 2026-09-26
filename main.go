@@ -1686,7 +1686,7 @@ func main() {
 			return
 		}
 
-		rows, err := db.Query("SELECT id, name, code FROM brands ORDER BY name ASC")
+		rows, err := db.Query("SELECT id, name, code, COALESCE(carrusel, false), COALESCE(imagen, '') FROM brands ORDER BY name ASC")
 		if err != nil {
 			json.NewEncoder(w).Encode([]Brand{})
 			return
@@ -1696,11 +1696,43 @@ func main() {
 		var brands []Brand
 		for rows.Next() {
 			var b Brand
-			if err := rows.Scan(&b.ID, &b.Name, &b.Code); err == nil {
+			if err := rows.Scan(&b.ID, &b.Name, &b.Code, &b.Carrusel, &b.Imagen); err == nil {
 				brands = append(brands, b)
 			}
 		}
 		json.NewEncoder(w).Encode(brands)
+	})
+
+	// Crear o Actualizar Marca (Admin)
+	mux.HandleFunc("/api/admin/brands", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method != http.MethodPost {
+			http.Error(w, "Metodo no permitido", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var b Brand
+		if err := json.NewDecoder(r.Body).Decode(&b); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if b.ID == 0 {
+			// Insert
+			err := db.QueryRow("INSERT INTO brands (name, code, carrusel, imagen) VALUES ($1, $2, $3, $4) RETURNING id", b.Name, b.Code, b.Carrusel, b.Imagen).Scan(&b.ID)
+			if err != nil {
+				http.Error(w, "Error creando marca: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+		} else {
+			// Update
+			_, err := db.Exec("UPDATE brands SET name=$1, code=$2, carrusel=$3, imagen=$4 WHERE id=$5", b.Name, b.Code, b.Carrusel, b.Imagen, b.ID)
+			if err != nil {
+				http.Error(w, "Error actualizando marca: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+		json.NewEncoder(w).Encode(b)
 	})
 
 	// Obtener Productos (con filtros)
