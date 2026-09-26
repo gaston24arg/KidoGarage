@@ -81,8 +81,39 @@
   </header>
 
   <!-- MAIN CONTAINER -->
-  <main class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-1">
+  <div class="max-w-[1600px] mx-auto w-full flex flex-col md:flex-row flex-1">
     
+    <!-- LEFT SIDEBAR: NAVIGATION TABS -->
+    <aside class="w-full md:w-64 md:border-r border-brandBorder p-4 flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-y-auto bg-brandDark/50 sticky top-[73px] z-30 h-auto md:h-[calc(100vh-73px)] scrollbar-hide shrink-0">
+      <div class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 hidden md:block px-2 mt-2">Menú Principal</div>
+      
+      <button onclick="switchTab('stock')" id="tabBtn-stock" class="tab-btn px-4 py-3 md:w-full rounded-xl bg-brandAccent text-white transition flex items-center gap-3 whitespace-nowrap text-xs font-semibold text-left">
+        <span class="text-lg">📦</span> Control de Stock & Grilla
+      </button>
+      <button onclick="switchTab('bulk-stock')" id="tabBtn-bulk-stock" class="tab-btn px-4 py-3 md:w-full rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-3 whitespace-nowrap border border-transparent hover:border-brandBorder text-xs font-semibold text-left">
+        <span class="text-lg">➕</span> Carga Masiva
+      </button>
+      <button onclick="switchTab('products')" id="tabBtn-products" class="tab-btn px-4 py-3 md:w-full rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-3 whitespace-nowrap border border-transparent hover:border-brandBorder text-xs font-semibold text-left">
+        <span class="text-lg">🏷️</span> Artículos & Catálogo
+      </button>
+      <button onclick="switchTab('raffles')" id="tabBtn-raffles" class="tab-btn px-4 py-3 md:w-full rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-3 whitespace-nowrap border border-transparent hover:border-brandBorder text-xs font-semibold text-left">
+        <span class="text-lg">🎟️</span> Rifas y Sorteos
+      </button>
+      <button onclick="switchTab('payments')" id="tabBtn-payments" class="tab-btn px-4 py-3 md:w-full rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-3 whitespace-nowrap border border-transparent hover:border-brandBorder text-xs font-semibold text-left">
+        <span class="text-lg">💳</span> Control Pagos
+      </button>
+      <button onclick="switchTab('accounting')" id="tabBtn-accounting" class="tab-btn px-4 py-3 md:w-full rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-3 whitespace-nowrap border border-transparent hover:border-brandBorder text-xs font-semibold text-left">
+        <span class="text-lg">🧾</span> Contaduría
+      </button>
+      <button onclick="switchTab('users')" id="tabBtn-users" class="tab-btn px-4 py-3 md:w-full rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-3 whitespace-nowrap border border-transparent hover:border-brandBorder text-xs font-semibold text-left">
+        <span class="text-lg">👥</span> Usuarios & Clientes
+      </button>
+      <button onclick="switchTab('mercadopago')" id="tabBtn-mercadopago" class="tab-btn px-4 py-3 md:w-full rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-3 whitespace-nowrap border border-transparent hover:border-brandBorder text-xs font-semibold text-left md:mt-auto">
+        <span class="text-lg">⚙️</span> Mercado Pago
+      </button>
+    </aside>
+
+    <main class="flex-1 w-full p-4 sm:p-6 lg:p-8 overflow-x-hidden flex flex-col">
     <!-- 1. METRICS DASHBOARD (VENTAS, SALDOS, STOCK, GASTOS) -->
     <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 mb-6">
       
@@ -138,33 +169,7 @@
 
     </section>
 
-    <!-- 2. NAVIGATION TABS -->
-    <div class="border-b border-brandBorder mb-6 flex space-x-1 overflow-x-auto text-xs font-semibold pb-1">
-      <button onclick="switchTab('stock')" id="tabBtn-stock" class="tab-btn px-4 py-2.5 rounded-xl bg-brandAccent text-white transition flex items-center gap-2 whitespace-nowrap">
-        <span>📦</span> Control de Stock & Grilla
-      </button>
-      <button onclick="switchTab('bulk-stock')" id="tabBtn-bulk-stock" class="tab-btn px-4 py-2.5 rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-2 whitespace-nowrap border border-brandBorder">
-        <span>➕</span> Carga Masiva de Stock
-      </button>
-      <button onclick="switchTab('products')" id="tabBtn-products" class="tab-btn px-4 py-2.5 rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-2 whitespace-nowrap border border-brandBorder">
-        <span>🏷️</span> Artículos & Catálogo
-      </button>
-      <button onclick="switchTab('raffles')" id="tabBtn-raffles" class="tab-btn px-4 py-2.5 rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-2 whitespace-nowrap border border-brandBorder">
-        <span>🎟️</span> Gestión de Rifas
-      </button>
-      <button onclick="switchTab('payments')" id="tabBtn-payments" class="tab-btn px-4 py-2.5 rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-2 whitespace-nowrap border border-brandBorder">
-        <span>💳</span> Control de Pagos & Entregas
-      </button>
-      <button onclick="switchTab('accounting')" id="tabBtn-accounting" class="tab-btn px-4 py-2.5 rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-2 whitespace-nowrap border border-brandBorder">
-        <span>🧾</span> Contaduría & Gastos
-      </button>
-      <button onclick="switchTab('users')" id="tabBtn-users" class="tab-btn px-4 py-2.5 rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-2 whitespace-nowrap border border-brandBorder">
-        <span>👥</span> Usuarios & Clientes Frecuentes
-      </button>
-      <button onclick="switchTab('mercadopago')" id="tabBtn-mercadopago" class="tab-btn px-4 py-2.5 rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-2 whitespace-nowrap border border-brandBorder">
-        <span>💳</span> Configuración Mercado Pago
-      </button>
-    </div>
+    <!-- 2. NAVIGATION TABS MOVIDAS AL SIDEBAR -->
 
     <!-- ======================================================== -->
     <!-- TAB 1: CONTROL DE STOCK & GRILLA                         -->
@@ -726,6 +731,7 @@
     </section>
 
   </main>
+  </div>
 
   <!-- JAVASCRIPT DEL ADMIN -->
   <script>
