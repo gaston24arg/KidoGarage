@@ -1605,6 +1605,50 @@ func main() {
 	// PRODUCTOS & CARGA MASIVA DE STOCK
 	// ==========================================
 
+	// Subir archivo (Imagen)
+	mux.HandleFunc("/api/upload", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		if r.Method != http.MethodPost {
+			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+			return
+		}
+
+		err := r.ParseMultipartForm(10 << 20) // 10 MB limit
+		if err != nil {
+			http.Error(w, "Error al procesar el archivo", http.StatusBadRequest)
+			return
+		}
+
+		file, handler, err := r.FormFile("file")
+		if err != nil {
+			http.Error(w, "No se encontró el archivo", http.StatusBadRequest)
+			return
+		}
+		defer file.Close()
+
+		// Crear nombre único
+		ext := filepath.Ext(handler.Filename)
+		filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
+		savePath := filepath.Join("public", "uploads", filename)
+
+		dst, err := os.Create(savePath)
+		if err != nil {
+			http.Error(w, "Error al guardar el archivo", http.StatusInternalServerError)
+			return
+		}
+		defer dst.Close()
+
+		if _, err := io.Copy(dst, file); err != nil {
+			http.Error(w, "Error al escribir el archivo", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"url": "/uploads/" + filename,
+		})
+	})
+
 	// Obtener Tipos de Producto
 	mux.HandleFunc("/api/product-types", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

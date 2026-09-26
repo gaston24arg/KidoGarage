@@ -344,13 +344,17 @@
 
             <!-- Galería de Fotos (Múltiples) -->
             <div>
-              <label class="block text-gray-400 font-semibold mb-1">Galería de Imágenes (URLs separadas por coma)</label>
-              <textarea id="pGalleryImages" rows="2" placeholder="https://..., https://..." class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white text-[11px]"></textarea>
+              <label class="block text-gray-400 font-semibold mb-1">Subir Foto (Local)</label>
+              <input type="file" id="pImageUpload" accept="image/*" onchange="handleFileUpload(this, 'pGalleryImages')" class="w-full text-white bg-brandCard border border-brandBorder rounded-xl p-2.5 mb-2 cursor-pointer">
+              <label class="block text-gray-400 font-semibold mb-1 text-xs mt-2">Galería de Imágenes (URLs separadas por coma, se autocompleta)</label>
+              <textarea id="pGalleryImages" rows="2" placeholder="https://..." class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white text-[11px]"></textarea>
             </div>
 
             <!-- Video muy corto del artículo -->
             <div>
-              <label class="block text-gray-400 font-semibold mb-1">Video muy corto del artículo (URL MP4)</label>
+              <label class="block text-gray-400 font-semibold mb-1">Subir Video MP4 (Local)</label>
+              <input type="file" id="pVideoUpload" accept="video/mp4,video/webm" onchange="handleFileUpload(this, 'pShortVideo')" class="w-full text-white bg-brandCard border border-brandBorder rounded-xl p-2.5 mb-2 cursor-pointer">
+              <label class="block text-gray-400 font-semibold mb-1 text-xs mt-2">Video (URL, se autocompleta)</label>
               <input id="pShortVideo" type="text" placeholder="https://.../video.mp4" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white text-[11px]">
             </div>
 
@@ -993,6 +997,39 @@
           alert(data.message || 'Error guardando');
         }
       } catch (err) { alert('Error creando producto'); }
+    }
+
+    async function handleFileUpload(input, targetId) {
+      if (!input.files || input.files.length === 0) return;
+      
+      const file = input.files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          const target = document.getElementById(targetId);
+          if (target.tagName.toLowerCase() === 'textarea') {
+            if (target.value && target.value.trim() !== "") {
+              target.value += ', ' + data.url;
+            } else {
+              target.value = data.url;
+            }
+          } else {
+            target.value = data.url;
+          }
+        } else {
+          alert("Error al subir el archivo al servidor.");
+        }
+      } catch (e) {
+        alert("Error de red al intentar subir el archivo.");
+      }
     }
 
     // Rifas
