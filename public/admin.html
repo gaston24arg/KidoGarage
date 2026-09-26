@@ -505,10 +505,10 @@
               <tr>
                 <th class="p-3">Pedido Nº</th>
                 <th class="p-3">Cliente / Correo</th>
-                <th class="p-3">Total Pedido</th>
-                <th class="p-3">Total Cobrado</th>
-                <th class="p-3">Saldo Restante</th>
-                <th class="p-3">Estado de Entrega</th>
+                <th class="p-3">Método & Envío</th>
+                <th class="p-3">Total / Saldo</th>
+                <th class="p-3">Estado Entrega</th>
+                <th class="p-3">Seguimiento (Tracking)</th>
                 <th class="p-3 text-right">Acción</th>
               </tr>
             </thead>
@@ -1051,6 +1051,15 @@
       } catch (e) { console.error(e); }
     }
 
+    function getTrackingUrl(carrier, tracking) {
+      if (!carrier || carrier.toLowerCase().includes('correo')) {
+        return 'https://www.correoargentino.com.ar/formularios/ondnc';
+      } else if (carrier.toLowerCase().includes('andreani')) {
+        return tracking ? `https://www.andreani.com/#!/informacionEnvio/${encodeURIComponent(tracking)}` : 'https://www.andreani.com/#!/personas';
+      }
+      return 'https://www.google.com/search?q=' + encodeURIComponent((carrier || '') + ' seguimiento ' + (tracking || ''));
+    }
+
     function renderOrdersTable() {
       const tbody = document.getElementById('ordersPaymentsTableBody');
       tbody.innerHTML = adminOrders.map(o => {
@@ -1062,9 +1071,22 @@
               <div class="font-bold text-white">${o.customer_name}</div>
               <div class="text-[10px] text-gray-500">${o.customer_email}</div>
             </td>
-            <td class="p-3 font-bold text-white font-display">${formatARS(o.total_ars)}</td>
-            <td class="p-3 font-bold text-emerald-400 font-display">${formatARS(o.total_paid_ars)}</td>
-            <td class="p-3 font-bold text-amber-400 font-display">${formatARS(o.remaining_balance_ars)}</td>
+            <td class="p-3">
+              <div class="font-bold text-white text-xs truncate max-w-[170px]" title="${o.shipping_method || 'Envío estándar'}">
+                ${o.shipping_method || 'Envío estándar'}
+              </div>
+              <div class="text-[10px] text-gray-400 truncate max-w-[170px]" title="${o.shipping_address || 'Sin dirección'}">
+                ${o.shipping_address || (o.shipping_postal_code ? 'CP ' + o.shipping_postal_code : 'Retiro en Showroom')}
+              </div>
+              <div class="text-[10px] ${o.shipping_cost_ars ? 'text-gray-300' : 'text-emerald-400 font-bold'}">
+                ${o.shipping_cost_ars ? formatARS(o.shipping_cost_ars) : 'Envío Gratis ($0)'}
+              </div>
+            </td>
+            <td class="p-3 font-display">
+              <div class="font-bold text-white">${formatARS(o.total_ars)}</div>
+              <div class="text-[10px] text-emerald-400 font-bold">Cobrado: ${formatARS(o.total_paid_ars)}</div>
+              ${o.remaining_balance_ars > 0 ? `<div class="text-[10px] text-amber-400 font-bold">Resta: ${formatARS(o.remaining_balance_ars)}</div>` : ''}
+            </td>
             <td class="p-3">
               <select onchange="adminUpdateDeliveryStatus(${o.id}, this.value)" class="bg-brandCard border border-brandBorder rounded-lg px-2 py-1 text-[11px] font-bold ${
                 o.delivery_status === 'ENTREGADO' ? 'text-emerald-400 border-emerald-500/40' :
@@ -1077,6 +1099,26 @@
                 <option value="EN_CAMINO" ${o.delivery_status === 'EN_CAMINO' ? 'selected' : ''}>🚚 En Camino</option>
                 <option value="ENTREGADO" ${o.delivery_status === 'ENTREGADO' ? 'selected' : ''}>✅ Entregado</option>
               </select>
+            </td>
+            <td class="p-3">
+              ${o.tracking_number ? `
+                <div class="space-y-1">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">${o.tracking_carrier || 'Transporte'}</span>
+                    <span class="font-mono text-white text-[11px] font-bold">${o.tracking_number}</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button onclick="openAdminTrackingModal(${o.id})" class="text-[10px] text-gray-400 hover:text-white underline">Editar</button>
+                    <a href="${getTrackingUrl(o.tracking_carrier, o.tracking_number)}" target="_blank" rel="noopener noreferrer" class="text-[10px] text-blue-400 hover:text-blue-300 font-bold inline-flex items-center gap-0.5">
+                      <span>Rastrear</span> ↗
+                    </a>
+                  </div>
+                </div>
+              ` : `
+                <button onclick="openAdminTrackingModal(${o.id})" class="bg-brandCard hover:bg-blue-600 hover:text-white text-blue-400 border border-blue-500/40 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition flex items-center gap-1">
+                  <span>🚚</span> Cargar Guía
+                </button>
+              `}
             </td>
             <td class="p-3 text-right">
               ${!isFully ? `
@@ -1092,6 +1134,78 @@
           </tr>
         `;
       }).join('');
+    }
+
+    function openAdminTrackingModal(orderId) {
+      const ord = adminOrders.find(o => o.id === orderId);
+      if (!ord) return;
+
+      document.getElementById('adminTrackingOrderId').value = ord.id;
+      document.getElementById('adminTrackingOrderInfo').innerText = `Orden: ${ord.order_number}`;
+      document.getElementById('adminTrackingCustomerName').innerText = `${ord.customer_name} (${ord.customer_email})`;
+      document.getElementById('adminTrackingAddress').innerText = ord.shipping_address || 'Dirección registrada / Showroom';
+      document.getElementById('adminTrackingMethod').innerText = ord.shipping_method || 'Envío por Correo';
+      
+      const carrierSelect = document.getElementById('adminTrackingCarrier');
+      if (ord.tracking_carrier) {
+        carrierSelect.value = ord.tracking_carrier;
+      } else if (ord.shipping_method && ord.shipping_method.includes('Andreani')) {
+        carrierSelect.value = 'Andreani';
+      } else {
+        carrierSelect.value = 'Correo Argentino';
+      }
+
+      document.getElementById('adminTrackingCode').value = ord.tracking_number || '';
+      document.getElementById('adminTrackingModal').classList.remove('hidden');
+    }
+
+    function closeAdminTrackingModal() {
+      document.getElementById('adminTrackingModal').classList.add('hidden');
+    }
+
+    function generateSampleTracking(carrier) {
+      const codeInput = document.getElementById('adminTrackingCode');
+      const carrierSelect = document.getElementById('adminTrackingCarrier');
+      carrierSelect.value = carrier;
+
+      const randomDigits = Math.floor(100000000 + Math.random() * 900000000);
+      if (carrier === 'Correo Argentino') {
+        codeInput.value = `CP-${randomDigits}-AR`;
+      } else if (carrier === 'Andreani') {
+        codeInput.value = `ADR-${randomDigits.toString().slice(0, 7)}`;
+      } else {
+        codeInput.value = `KIDO-TRK-${randomDigits.toString().slice(0, 6)}`;
+      }
+    }
+
+    async function handleAdminSaveTracking(e) {
+      e.preventDefault();
+      const orderId = parseInt(document.getElementById('adminTrackingOrderId').value, 10);
+      const carrier = document.getElementById('adminTrackingCarrier').value.trim();
+      const code = document.getElementById('adminTrackingCode').value.trim();
+
+      try {
+        const res = await fetch('/api/admin/orders/update-tracking', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            order_id: orderId,
+            tracking_carrier: carrier,
+            tracking_number: code
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          closeAdminTrackingModal();
+          await loadOrders();
+          alert(`✅ Guía ${code} de ${carrier} guardada exitosamente. El pedido ahora figura EN CAMINO.`);
+        } else {
+          alert('❌ ' + (data.message || 'Error guardando número de guía.'));
+        }
+      } catch (err) {
+        console.error(err);
+        alert('❌ Error al comunicarse con el servidor.');
+      }
     }
 
     async function adminUpdateDeliveryStatus(orderId, status) {
@@ -1387,5 +1501,66 @@
 
     document.addEventListener('DOMContentLoaded', loadAllAdminData);
   </script>
+  <!-- MODAL DE CARGA DE SEGUIMIENTO (TRACKING) -->
+  <div id="adminTrackingModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-brandCard border border-brandBorder rounded-3xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
+      <button onclick="closeAdminTrackingModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white font-bold">✕</button>
+      
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-xl text-blue-400 font-black">🚚</div>
+        <div>
+          <h3 class="font-display font-bold text-lg text-white">Asignar Código de Seguimiento</h3>
+          <p id="adminTrackingOrderInfo" class="text-xs text-gray-400">Orden: ...</p>
+        </div>
+      </div>
+
+      <form onsubmit="handleAdminSaveTracking(event)" class="space-y-3 text-xs">
+        <input type="hidden" id="adminTrackingOrderId" />
+        
+        <div class="p-3 bg-brandSurface rounded-xl border border-brandBorder space-y-1">
+          <div class="text-[11px] text-gray-400">Cliente: <b id="adminTrackingCustomerName" class="text-white">...</b></div>
+          <div class="text-[11px] text-gray-400">Dirección: <span id="adminTrackingAddress" class="text-gray-300">...</span></div>
+          <div class="text-[11px] text-gray-400">Método elegido: <span id="adminTrackingMethod" class="text-emerald-400 font-bold">...</span></div>
+        </div>
+
+        <div>
+          <label class="block text-gray-400 font-semibold mb-1">Empresa de Transporte / Logística</label>
+          <select id="adminTrackingCarrier" class="w-full bg-brandSurface border border-brandBorder rounded-xl p-2.5 text-white font-bold focus:border-brandAccent focus:outline-none">
+            <option value="Correo Argentino">Correo Argentino</option>
+            <option value="Andreani">Andreani</option>
+            <option value="OCA">OCA</option>
+            <option value="Mensajería KIDO">Mensajería Express KIDO</option>
+            <option value="Punto de Retiro">Punto de Retiro KIDO</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-gray-400 font-semibold mb-1">Número de Guía / Tracking Code</label>
+          <input required id="adminTrackingCode" type="text" placeholder="Ej: CP-142588392-AR o ADR-9048123" class="w-full bg-brandSurface border border-brandBorder rounded-xl p-2.5 text-white font-mono font-bold focus:border-brandAccent focus:outline-none">
+          <div class="flex gap-2 mt-1.5">
+            <button type="button" onclick="generateSampleTracking('Correo Argentino')" class="text-[10px] text-blue-400 hover:text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/30">
+              Generar Guía Correo Argentino
+            </button>
+            <button type="button" onclick="generateSampleTracking('Andreani')" class="text-[10px] text-amber-400 hover:text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
+              Generar Guía Andreani
+            </button>
+          </div>
+        </div>
+
+        <div class="p-2.5 bg-blue-950/20 border border-blue-500/30 rounded-xl text-[11px] text-blue-300 flex items-center gap-2">
+          <span>ℹ️</span> Al guardar la guía, el estado del pedido se actualizará automáticamente a <b>EN CAMINO</b> y el cliente podrá rastrearlo desde su cuenta.
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button type="button" onclick="closeAdminTrackingModal()" class="w-1/2 bg-brandSurface hover:bg-brandBorder text-gray-300 py-2.5 rounded-xl font-bold uppercase tracking-wider text-xs transition">
+            Cancelar
+          </button>
+          <button type="submit" class="w-1/2 bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-xl font-bold uppercase tracking-wider text-xs transition shadow-lg shadow-blue-600/30">
+            Guardar & Despachar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 </body>
 </html>

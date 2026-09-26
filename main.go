@@ -116,11 +116,28 @@ type Order struct {
 	TotalPaidARS        int              `json:"total_paid_ars"`
 	RemainingBalanceARS int              `json:"remaining_balance_ars"`
 	IsFullyPaid         bool             `json:"is_fully_paid"`
-	DeliveryStatus      string           `json:"delivery_status"` // "BLOQUEADO_POR_SALDO" o "LISTO_PARA_DESPACHAR"
+	DeliveryStatus      string           `json:"delivery_status"` // "BLOQUEADO_POR_SALDO", "LISTO_PARA_DESPACHAR", "EN_CAMINO", "ENTREGADO"
 	OrderType           string           `json:"order_type"` // "VENTA_DIRECTA" o "PRE_VENTA_CON_SEÑA"
+	ShippingMethod      string           `json:"shipping_method"` // "Correo Argentino - Envío a Domicilio", "Correo Argentino - Sucursal", "Andreani Express", "Punto de Retiro KIDO"
+	ShippingCostARS     int              `json:"shipping_cost_ars"`
+	ShippingPostalCode  string           `json:"shipping_postal_code"`
+	ShippingAddress     string           `json:"shipping_address,omitempty"`
+	TrackingNumber      string           `json:"tracking_number"`
+	TrackingCarrier     string           `json:"tracking_carrier"` // "Correo Argentino", "Andreani", "Otro"
 	Items               []OrderItem      `json:"items"`
 	Payments            []PartialPayment `json:"payments"`
 	CreatedAt           time.Time        `json:"created_at"`
+}
+
+type ShippingOption struct {
+	ID              string `json:"id"`
+	Carrier         string `json:"carrier"` // "Correo Argentino", "Andreani", "KIDO Garage"
+	Name            string `json:"name"`
+	EstimatedDays   string `json:"estimated_days"`
+	CostARS         int    `json:"cost_ars"`
+	OriginalCostARS int    `json:"original_cost_ars"`
+	IsFree          bool   `json:"is_free"`
+	Badge           string `json:"badge"`
 }
 
 type RaffleTicket struct {
@@ -356,6 +373,10 @@ func initOrders() {
 			IsFullyPaid:         false,
 			DeliveryStatus:      "BLOQUEADO_POR_SALDO", // No se entrega hasta completar pago
 			OrderType:           "PRE_VENTA_CON_SEÑA",
+			ShippingMethod:      "Correo Argentino - Envío a Domicilio (Clásico)",
+			ShippingCostARS:     5200,
+			ShippingPostalCode:  "1425",
+			ShippingAddress:     "Av. Cabildo 2450, Piso 4 B, CABA",
 			Items: []OrderItem{
 				{ProductID: 10390924034324, ProductTitle: "Mini GT 1:64 Nissan Skyline GT-R C-West 2 Fast 2 Furious", Quantity: 2, UnitPriceARS: 22990, SubtotalARS: 45980, ProductType: "Autito", ScaleOrSize: "1:64"},
 			},
@@ -376,6 +397,10 @@ func initOrders() {
 			IsFullyPaid:         true,
 			DeliveryStatus:      "LISTO_PARA_DESPACHAR", // Pago 100% completado
 			OrderType:           "VENTA_DIRECTA",
+			ShippingMethod:      "Retiro Oficial en KIDO Garage (Villa Urquiza, CABA)",
+			ShippingCostARS:     0,
+			ShippingPostalCode:  "1430",
+			ShippingAddress:     "Punto de Retiro KIDO Showroom",
 			Items: []OrderItem{
 				{ProductID: 999001, ProductTitle: "Pop Race Mazda RX-7 RE-Amemiya Chrome", Quantity: 1, UnitPriceARS: 18500, SubtotalARS: 18500, ProductType: "Autito", ScaleOrSize: "1:64"},
 			},
@@ -396,6 +421,12 @@ func initOrders() {
 			IsFullyPaid:         true,
 			DeliveryStatus:      "EN_CAMINO", // Paquete en tránsito con código de seguimiento
 			OrderType:           "VENTA_DIRECTA",
+			ShippingMethod:      "Correo Argentino - Envío a Domicilio (Clásico)",
+			ShippingCostARS:     5200,
+			ShippingPostalCode:  "1425",
+			ShippingAddress:     "Av. Cabildo 2450, Piso 4 B, CABA",
+			TrackingNumber:      "AR-CORREO-9481827",
+			TrackingCarrier:     "Correo Argentino",
 			Items: []OrderItem{
 				{ProductID: 10390924034324, ProductTitle: "Kaido House Datsun 510 Pro Street BRE", Quantity: 1, UnitPriceARS: 38500, SubtotalARS: 38500, ProductType: "Autito", ScaleOrSize: "1:64"},
 			},
@@ -416,6 +447,12 @@ func initOrders() {
 			IsFullyPaid:         true,
 			DeliveryStatus:      "ENTREGADO", // Paquete entregado
 			OrderType:           "VENTA_DIRECTA",
+			ShippingMethod:      "Andreani Express - Puerta a Puerta Prioritario",
+			ShippingCostARS:     6900,
+			ShippingPostalCode:  "1425",
+			ShippingAddress:     "Av. Cabildo 2450, Piso 4 B, CABA",
+			TrackingNumber:      "ADR-9048123",
+			TrackingCarrier:     "Andreani",
 			Items: []OrderItem{
 				{ProductID: 10390924034324, ProductTitle: "Remera Oversized KIDO Touge Legends Negra", Quantity: 1, UnitPriceARS: 24000, SubtotalARS: 24000, ProductType: "Remera", ScaleOrSize: "L"},
 			},
@@ -425,6 +462,127 @@ func initOrders() {
 			CreatedAt: time.Now().Add(-30 * 24 * time.Hour),
 		},
 	}
+}
+
+// calculateShippingRates determina la zona y calcula las tarifas de Correo Argentino, Andreani y Retiro Oficial KIDO
+func calculateShippingRates(postalCode string, cartTotal int) (string, []ShippingOption) {
+	var digits strings.Builder
+	for _, ch := range postalCode {
+		if ch >= '0' && ch <= '9' {
+			digits.WriteRune(ch)
+		}
+	}
+	cpNum, _ := strconv.Atoi(digits.String())
+
+	zone := "Tarifa Estándar Nacional"
+	costCorreoSuc := 5500
+	costCorreoDom := 7500
+	costAndreani := 9200
+
+	switch {
+	case cpNum >= 1000 && cpNum <= 1999:
+		zone = "CABA y Gran Buenos Aires (AMBA)"
+		costCorreoSuc = 3800
+		costCorreoDom = 5200
+		costAndreani = 6900
+	case (cpNum >= 2000 && cpNum <= 3999):
+		zone = "Litoral y Centro Este (Santa Fe, Entre Ríos, Corrientes, Misiones)"
+		costCorreoSuc = 5400
+		costCorreoDom = 7200
+		costAndreani = 8900
+	case (cpNum >= 5000 && cpNum <= 5999):
+		zone = "Región Centro (Córdoba)"
+		costCorreoSuc = 5400
+		costCorreoDom = 7200
+		costAndreani = 8900
+	case (cpNum >= 6000 && cpNum <= 7999):
+		zone = "Buenos Aires Interior y Región Cuyo (Mendoza, San Juan, San Luis)"
+		costCorreoSuc = 5900
+		costCorreoDom = 7800
+		costAndreani = 9800
+	case (cpNum >= 4000 && cpNum <= 4999):
+		zone = "Región NOA (Tucumán, Salta, Jujuy, Catamarca, Santiago del Estero)"
+		costCorreoSuc = 6500
+		costCorreoDom = 8600
+		costAndreani = 10500
+	case (cpNum >= 8000 && cpNum <= 9999):
+		zone = "Región Patagonia (Neuquén, Río Negro, Chubut, Santa Cruz, TDF)"
+		costCorreoSuc = 7500
+		costCorreoDom = 9900
+		costAndreani = 12800
+	}
+
+	hasFreeShipping := cartTotal >= 80000
+
+	finalCorreoSuc := costCorreoSuc
+	badgeCorreoSuc := "Económico"
+	isFreeSuc := false
+	if hasFreeShipping {
+		finalCorreoSuc = 0
+		badgeCorreoSuc = "¡ENVÍO GRATIS!"
+		isFreeSuc = true
+	}
+
+	finalCorreoDom := costCorreoDom
+	badgeCorreoDom := "Recomendado"
+	isFreeDom := false
+	if hasFreeShipping {
+		finalCorreoDom = 0
+		badgeCorreoDom = "¡ENVÍO GRATIS!"
+		isFreeDom = true
+	}
+
+	finalAndreani := costAndreani
+	badgeAndreani := "Prioritario 24/48hs"
+	if hasFreeShipping {
+		finalAndreani = costAndreani / 2
+		badgeAndreani = "50% OFF PROMO"
+	}
+
+	options := []ShippingOption{
+		{
+			ID:              "correo_domicilio",
+			Carrier:         "Correo Argentino",
+			Name:            "Correo Argentino - Envío Clásico a Domicilio",
+			EstimatedDays:   "3 a 5 días hábiles",
+			CostARS:         finalCorreoDom,
+			OriginalCostARS: costCorreoDom,
+			IsFree:          isFreeDom,
+			Badge:           badgeCorreoDom,
+		},
+		{
+			ID:              "correo_sucursal",
+			Carrier:         "Correo Argentino",
+			Name:            "Correo Argentino - Retiro en Sucursal más cercana",
+			EstimatedDays:   "2 a 4 días hábiles",
+			CostARS:         finalCorreoSuc,
+			OriginalCostARS: costCorreoSuc,
+			IsFree:          isFreeSuc,
+			Badge:           badgeCorreoSuc,
+		},
+		{
+			ID:              "andreani_express",
+			Carrier:         "Andreani",
+			Name:            "Andreani Express - Puerta a Puerta Prioritario",
+			EstimatedDays:   "24 a 48 hs hábiles",
+			CostARS:         finalAndreani,
+			OriginalCostARS: costAndreani,
+			IsFree:          false,
+			Badge:           badgeAndreani,
+		},
+		{
+			ID:              "retiro_kido",
+			Carrier:         "KIDO Garage",
+			Name:            "Retiro Oficial en KIDO Garage (Villa Urquiza, CABA)",
+			EstimatedDays:   "Inmediato con coordinación previa",
+			CostARS:         0,
+			OriginalCostARS: 0,
+			IsFree:          true,
+			Badge:           "PUNTO GRATIS",
+		},
+	}
+
+	return zone, options
 }
 
 // Cargar Catálogo Base
@@ -611,6 +769,13 @@ func initDB() {
 	dbActive = true
 	log.Printf("🐘 PostgreSQL CONECTADO EXITOSAMENTE a kido_db en localhost:5432")
 	_, _ = db.Exec("ALTER TABLE raffles ADD COLUMN IF NOT EXISTS winner_number INTEGER")
+	_, _ = db.Exec(`ALTER TABLE orders 
+		ADD COLUMN IF NOT EXISTS shipping_method VARCHAR(100),
+		ADD COLUMN IF NOT EXISTS shipping_cost_ars INTEGER DEFAULT 0,
+		ADD COLUMN IF NOT EXISTS shipping_postal_code VARCHAR(20),
+		ADD COLUMN IF NOT EXISTS shipping_address TEXT,
+		ADD COLUMN IF NOT EXISTS tracking_number VARCHAR(100),
+		ADD COLUMN IF NOT EXISTS tracking_carrier VARCHAR(50)`)
 
 	// 1. Sincronizar usuarios
 	var userCount int
@@ -801,15 +966,22 @@ func pgSaveOrder(o Order) {
 			}
 		}
 
-		_, err := db.Exec(`INSERT INTO orders (id, order_number, customer_id, total_ars, total_paid_ars, remaining_balance_ars, is_fully_paid, delivery_status, order_type)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		_, err := db.Exec(`INSERT INTO orders (id, order_number, customer_id, total_ars, total_paid_ars, remaining_balance_ars, is_fully_paid, delivery_status, order_type, shipping_method, shipping_cost_ars, shipping_postal_code, shipping_address, tracking_number, tracking_carrier)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 		ON CONFLICT (id) DO UPDATE SET
 			total_paid_ars = EXCLUDED.total_paid_ars,
 			remaining_balance_ars = EXCLUDED.remaining_balance_ars,
 			is_fully_paid = EXCLUDED.is_fully_paid,
 			delivery_status = EXCLUDED.delivery_status,
+			shipping_method = EXCLUDED.shipping_method,
+			shipping_cost_ars = EXCLUDED.shipping_cost_ars,
+			shipping_postal_code = EXCLUDED.shipping_postal_code,
+			shipping_address = EXCLUDED.shipping_address,
+			tracking_number = EXCLUDED.tracking_number,
+			tracking_carrier = EXCLUDED.tracking_carrier,
 			updated_at = CURRENT_TIMESTAMP`,
-			o.ID, o.OrderNumber, custID, o.TotalARS, o.TotalPaidARS, o.RemainingBalanceARS, o.IsFullyPaid, o.DeliveryStatus, o.OrderType)
+			o.ID, o.OrderNumber, custID, o.TotalARS, o.TotalPaidARS, o.RemainingBalanceARS, o.IsFullyPaid, o.DeliveryStatus, o.OrderType,
+			o.ShippingMethod, o.ShippingCostARS, o.ShippingPostalCode, o.ShippingAddress, o.TrackingNumber, o.TrackingCarrier)
 		if err != nil {
 			log.Printf("⚠️ Error guardando orden en PostgreSQL: %v", err)
 		}
@@ -1955,23 +2127,29 @@ func main() {
 		}
 
 		var req struct {
-			CustomerID      int64       `json:"customer_id"`
-			CustomerEmail   string      `json:"customer_email"`
-			CustomerName    string      `json:"customer_name"`
-			Items           []OrderItem `json:"items"`
-			PayPartial      bool        `json:"pay_partial"`       // true si paga seña / reserva
-			PartialAmount   int         `json:"partial_amount"`    // monto pagado ahora
-			OrderType       string      `json:"order_type"`        // "VENTA_DIRECTA" o "PRE_VENTA_CON_SEÑA"
+			CustomerID         int64       `json:"customer_id"`
+			CustomerEmail      string      `json:"customer_email"`
+			CustomerName       string      `json:"customer_name"`
+			Items              []OrderItem `json:"items"`
+			PayPartial         bool        `json:"pay_partial"`          // true si paga seña / reserva
+			PartialAmount      int         `json:"partial_amount"`       // monto pagado ahora
+			OrderType          string      `json:"order_type"`           // "VENTA_DIRECTA" o "PRE_VENTA_CON_SEÑA"
+			ShippingMethod     string      `json:"shipping_method"`      // Método de entrega seleccionado
+			ShippingCostARS    int         `json:"shipping_cost_ars"`    // Costo calculado de envío
+			ShippingPostalCode string      `json:"shipping_postal_code"` // Código postal
+			ShippingAddress    string      `json:"shipping_address"`     // Dirección completa de entrega
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		total := 0
+		itemsSubtotal := 0
 		for _, it := range req.Items {
-			total += it.UnitPriceARS * it.Quantity
+			itemsSubtotal += it.UnitPriceARS * it.Quantity
 		}
+
+		total := itemsSubtotal + req.ShippingCostARS
 
 		paidNow := total
 		if req.PayPartial && req.PartialAmount > 0 && req.PartialAmount < total {
@@ -2011,6 +2189,10 @@ func main() {
 			IsFullyPaid:         isFullyPaid,
 			DeliveryStatus:      deliveryStatus,
 			OrderType:           req.OrderType,
+			ShippingMethod:      req.ShippingMethod,
+			ShippingCostARS:     req.ShippingCostARS,
+			ShippingPostalCode:  req.ShippingPostalCode,
+			ShippingAddress:     req.ShippingAddress,
 			Items:               req.Items,
 			Payments:            []PartialPayment{initialPayment},
 			CreatedAt:           time.Now(),
@@ -2192,6 +2374,81 @@ func main() {
 			}
 		}
 		http.Error(w, "Pedido no encontrado", http.StatusNotFound)
+	})
+
+	// Actualizar Tracking Number y Empresa de Envíos (Admin)
+	mux.HandleFunc("/api/admin/orders/update-tracking", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method != http.MethodPost {
+			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			OrderID         int64  `json:"order_id"`
+			TrackingNumber  string `json:"tracking_number"`
+			TrackingCarrier string `json:"tracking_carrier"` // "Correo Argentino", "Andreani", "Otro"
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		store.mu.Lock()
+		defer store.mu.Unlock()
+
+		for i := range store.orders {
+			if store.orders[i].ID == req.OrderID {
+				store.orders[i].TrackingNumber = strings.TrimSpace(req.TrackingNumber)
+				store.orders[i].TrackingCarrier = strings.TrimSpace(req.TrackingCarrier)
+				// Si se asigna tracking y no está finalizado/entregado, marcar como EN_CAMINO
+				if store.orders[i].TrackingNumber != "" && store.orders[i].DeliveryStatus != "ENTREGADO" {
+					store.orders[i].DeliveryStatus = "EN_CAMINO"
+				}
+				pgSaveOrder(store.orders[i])
+
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"success":          true,
+					"order_id":         req.OrderID,
+					"tracking_number":  store.orders[i].TrackingNumber,
+					"tracking_carrier": store.orders[i].TrackingCarrier,
+					"delivery_status":  store.orders[i].DeliveryStatus,
+					"order":            store.orders[i],
+					"message":          "Código de seguimiento y transporte actualizados correctamente.",
+				})
+				return
+			}
+		}
+		http.Error(w, "Pedido no encontrado", http.StatusNotFound)
+	})
+
+	// Calculador de Envíos y Tarifas por Código Postal
+	mux.HandleFunc("/api/shipping/calculate", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method != http.MethodPost {
+			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			PostalCode string `json:"postal_code"`
+			CartTotal  int    `json:"cart_total"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		zone, options := calculateShippingRates(req.PostalCode, req.CartTotal)
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success":                 true,
+			"postal_code":             strings.TrimSpace(req.PostalCode),
+			"zone_name":               zone,
+			"free_shipping_threshold": 80000,
+			"has_free_shipping":       req.CartTotal >= 80000,
+			"options":                 options,
+		})
 	})
 
 	// Portal de Autoservicio del Cliente ("Mi Cuenta / Mis Pedidos")
