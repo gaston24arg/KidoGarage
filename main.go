@@ -751,7 +751,7 @@ var (
 func initDB() {
 	connStr := os.Getenv("DATABASE_URL")
 	if connStr == "" {
-		connStr = "postgres://postgres:715192@localhost:5432/kido_db?sslmode=disable"
+		connStr = "postgres://postgres:715192@localhost:5432/kido_garage?sslmode=disable"
 	}
 
 	var err error
@@ -762,12 +762,12 @@ func initDB() {
 	}
 
 	if err := db.Ping(); err != nil {
-		log.Printf("⚠️ PostgreSQL: No se pudo conectar a localhost:5432/kido_db: %v", err)
+		log.Printf("⚠️ PostgreSQL: No se pudo conectar a localhost:5432/kido_garage: %v", err)
 		return
 	}
 
 	dbActive = true
-	log.Printf("🐘 PostgreSQL CONECTADO EXITOSAMENTE a kido_db en localhost:5432")
+	log.Printf("🐘 PostgreSQL CONECTADO EXITOSAMENTE a kido_garage en localhost:5432")
 	_, _ = db.Exec("ALTER TABLE raffles ADD COLUMN IF NOT EXISTS winner_number INTEGER")
 	_, _ = db.Exec(`ALTER TABLE orders 
 		ADD COLUMN IF NOT EXISTS shipping_method VARCHAR(100),
