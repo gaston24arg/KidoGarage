@@ -277,13 +277,16 @@
               <input required id="pTitle" type="text" placeholder="Ej: Kaido House Datsun 510 Wagon Pink" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white">
             </div>
 
+            <div>
+              <label class="block text-gray-400 font-semibold mb-1">Código Interno (Opcional)</label>
+              <input id="pInternalCode" type="text" placeholder="Ej: SKU-1001" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white font-mono text-sm">
+            </div>
+
             <!-- TIPO DE ARTÍCULO -->
             <div>
               <label class="block text-gray-400 font-semibold mb-1">Tipo de Artículo</label>
-              <select id="pType" onchange="handleProductTypeChange(this.value)" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white">
-                <option value="Autito">Autito (Coleccionable)</option>
-                <option value="Remera">Remera (Indumentaria)</option>
-                <option value="Sticker">Sticker (Accesorio)</option>
+              <select id="pType" onchange="handleProductTypeChange(this.options[this.selectedIndex].text)" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white">
+                <option value="">Cargando tipos...</option>
               </select>
             </div>
 
@@ -314,7 +317,9 @@
             <div class="grid grid-cols-2 gap-2">
               <div>
                 <label class="block text-gray-400 font-semibold mb-1">Marca / Vendor</label>
-                <input required id="pVendor" type="text" placeholder="Kaido House / Pop Race" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white">
+                <select required id="pVendor" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white">
+                  <option value="">Cargando marcas...</option>
+                </select>
               </div>
               <div>
                 <label class="block text-gray-400 font-semibold mb-1">Precio ARS ($)</label>
@@ -737,6 +742,8 @@
   <script>
     let adminProducts = [];
     let adminOrders = [];
+    let adminBrands = [];
+    let adminProductTypes = [];
     let adminRaffles = [];
     let adminExpenses = [];
     let adminUsers = [];
@@ -747,6 +754,8 @@
 
     async function loadAllAdminData() {
       await loadMetrics();
+      await loadBrands();
+      await loadProductTypes();
       await loadProducts();
       await loadOrders();
       await loadRaffles();
@@ -771,6 +780,34 @@
           }
         }
       } catch (e) { console.error(e); }
+    }
+
+    async function loadBrands() {
+      try {
+        const res = await fetch('/api/brands');
+        if (res.ok) {
+          adminBrands = await res.json();
+          const sel = document.getElementById('pVendor');
+          if (sel) {
+            sel.innerHTML = '<option value="">Selecciona una Marca...</option>' + 
+                            adminBrands.map(b => `<option value="${b.id}">${b.name} (${b.code})</option>`).join('');
+          }
+        }
+      } catch(e) { console.error(e); }
+    }
+
+    async function loadProductTypes() {
+      try {
+        const res = await fetch('/api/product-types');
+        if (res.ok) {
+          adminProductTypes = await res.json();
+          const sel = document.getElementById('pType');
+          if (sel) {
+            sel.innerHTML = '<option value="">Selecciona un Tipo...</option>' + 
+                            adminProductTypes.map(t => `<option value="${t.id}">${t.name} (${t.code})</option>`).join('');
+          }
+        }
+      } catch(e) { console.error(e); }
     }
 
     async function loadProducts() {
@@ -911,9 +948,11 @@
 
     async function handleCreateProduct(e) {
       e.preventDefault();
-      const type = document.getElementById('pType').value;
+      const typeId = parseInt(document.getElementById('pType').value, 10);
+      const typeText = document.getElementById('pType').options[document.getElementById('pType').selectedIndex].text;
       const title = document.getElementById('pTitle').value;
-      const vendor = document.getElementById('pVendor').value;
+      const internalCode = document.getElementById('pInternalCode').value;
+      const vendorId = parseInt(document.getElementById('pVendor').value, 10);
       const price = parseInt(document.getElementById('pPriceARS').value, 10);
       const stock = parseInt(document.getElementById('pStock').value, 10);
       const status = document.getElementById('pStatus').value;
@@ -925,8 +964,10 @@
 
       const payload = {
         title: title,
-        product_type: type,
-        vendor: vendor,
+        internal_code: internalCode,
+        product_type: typeText,
+        product_type_id: typeId,
+        brand_id: vendorId,
         price_ars: price,
         stock_quantity: stock,
         status: status,

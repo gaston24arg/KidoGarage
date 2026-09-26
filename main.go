@@ -58,13 +58,28 @@ type ProductImage struct {
 	Src      string `json:"src"`
 }
 
+type Brand struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+	Code string `json:"code"`
+}
+
+type ProductTypeModel struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+	Code string `json:"code"`
+}
+
 type Product struct {
 	ID             int64            `json:"id"`
+	InternalCode   string           `json:"internal_code,omitempty"`
 	Title          string           `json:"title"`
 	Handle         string           `json:"handle"`
 	BodyHTML       string           `json:"body_html"`
 	Vendor         string           `json:"vendor"`
+	BrandID        *int64           `json:"brand_id,omitempty"`
 	ProductType    string           `json:"product_type"` // "Autito", "Remera", "Sticker"
+	ProductTypeID  *int64           `json:"product_type_id,omitempty"`
 	Scale          string           `json:"scale,omitempty"` // Requerido si Autito (1:64, 1:43, 1:18)
 	ApparelSize    string           `json:"apparel_size,omitempty"` // Requerido si Remera (S, M, L, XL, XXL)
 	Tags           []string         `json:"tags"`
@@ -203,6 +218,8 @@ type StoreData struct {
 	raffles        []Raffle
 	expenses       []Expense
 	purchaseOrders []PurchaseOrder
+	brands         []Brand
+	productTypes   []ProductTypeModel
 }
 
 var store = &StoreData{
@@ -818,21 +835,30 @@ func initDB() {
 			store.mu.RLock()
 			for _, p := range store.products {
 				imgJSON, _ := json.Marshal(p.GalleryImages)
-				_, _ = db.Exec(`INSERT INTO products (id, title, handle, product_type, scale, apparel_size, vendor, price_ars, price_usd, stock_quantity, status, is_active, has_chase_chance, gallery_images, short_video_url, description)
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+				_, _ = db.Exec(`INSERT INTO products (id, internal_code, title, handle, product_type, product_type_id, scale, apparel_size, vendor, brand_id, price_ars, price_usd, stock_quantity, status, is_active, has_chase_chance, gallery_images, short_video_url, description)
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
 				ON CONFLICT (id) DO NOTHING`,
-					p.ID, p.Title, p.Handle, p.ProductType, p.Scale, p.ApparelSize, p.Vendor, p.PriceARS, p.PriceUSD, p.StockQuantity, p.Status, p.IsActive, p.HasChaseChance, string(imgJSON), p.ShortVideoURL, p.BodyHTML)
+					p.ID, p.InternalCode, p.Title, p.Handle, p.ProductType, p.ProductTypeID, p.Scale, p.ApparelSize, p.Vendor, p.BrandID, p.PriceARS, p.PriceUSD, p.StockQuantity, p.Status, p.IsActive, p.HasChaseChance, string(imgJSON), p.ShortVideoURL, p.BodyHTML)
 			}
 			store.mu.RUnlock()
 			log.Printf("🐘 [PostgreSQL] Sembrados %d productos en tabla 'products'", len(store.products))
 		} else {
-			rows, err := db.Query("SELECT id, title, handle, product_type, COALESCE(scale,''), COALESCE(apparel_size,''), vendor, price_ars, price_usd, stock_quantity, status, is_active, has_chase_chance, COALESCE(gallery_images::text,'[]'), COALESCE(short_video_url,''), COALESCE(description,'') FROM products ORDER BY id ASC")
+			rows, err := db.Query("SELECT id, COALESCE(internal_code,''), title, handle, product_type, product_type_id, COALESCE(scale,''), COALESCE(apparel_size,''), vendor, brand_id, price_ars, price_usd, stock_quantity, status, is_active, has_chase_chance, COALESCE(gallery_images::text,'[]'), COALESCE(short_video_url,''), COALESCE(description,'') FROM products ORDER BY id ASC")
 			if err == nil {
 				var pgProducts []Product
 				for rows.Next() {
 					var p Product
 					var imgRaw string
-					if err := rows.Scan(&p.ID, &p.Title, &p.Handle, &p.ProductType, &p.Scale, &p.ApparelSize, &p.Vendor, &p.PriceARS, &p.PriceUSD, &p.StockQuantity, &p.Status, &p.IsActive, &p.HasChaseChance, &imgRaw, &p.ShortVideoURL, &p.BodyHTML); err == nil {
+					var brandID, typeID sql.NullInt64
+					if err := rows.Scan(&p.ID, &p.InternalCode, &p.Title, &p.Handle, &p.ProductType, &typeID, &p.Scale, &p.ApparelSize, &p.Vendor, &brandID, &p.PriceARS, &p.PriceUSD, &p.StockQuantity, &p.Status, &p.IsActive, &p.HasChaseChance, &imgRaw, &p.ShortVideoURL, &p.BodyHTML); err == nil {
+						if brandID.Valid {
+							b := brandID.Int64
+							p.BrandID = &b
+						}
+						if typeID.Valid {
+							t := typeID.Int64
+							p.ProductTypeID = &t
+						}
 						_ = json.Unmarshal([]byte(imgRaw), &p.GalleryImages)
 						if len(p.GalleryImages) > 0 {
 							p.Images = []ProductImage{{ID: 1, Position: 1, Src: p.GalleryImages[0]}}
@@ -929,16 +955,29 @@ func pgSaveProduct(p Product) {
 	}
 	go func() {
 		imgJSON, _ := json.Marshal(p.GalleryImages)
-		_, err := db.Exec(`INSERT INTO products (id, title, handle, product_type, scale, apparel_size, vendor, price_ars, price_usd, stock_quantity, status, is_active, has_chase_chance, gallery_images, short_video_url, description)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+		_, err := db.Exec(`INSERT INTO products (id, internal_code, title, handle, product_type, product_type_id, scale, apparel_size, vendor, brand_id, price_ars, price_usd, stock_quantity, status, is_active, has_chase_chance, gallery_images, short_video_url, description)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
 		ON CONFLICT (id) DO UPDATE SET
+			internal_code = EXCLUDED.internal_code,
+			title = EXCLUDED.title,
+			handle = EXCLUDED.handle,
+			product_type = EXCLUDED.product_type,
+			product_type_id = EXCLUDED.product_type_id,
+			scale = EXCLUDED.scale,
+			apparel_size = EXCLUDED.apparel_size,
+			vendor = EXCLUDED.vendor,
+			brand_id = EXCLUDED.brand_id,
 			stock_quantity = EXCLUDED.stock_quantity,
 			status = EXCLUDED.status,
 			is_active = EXCLUDED.is_active,
 			price_ars = EXCLUDED.price_ars,
 			price_usd = EXCLUDED.price_usd,
+			has_chase_chance = EXCLUDED.has_chase_chance,
+			gallery_images = EXCLUDED.gallery_images,
+			short_video_url = EXCLUDED.short_video_url,
+			description = EXCLUDED.description,
 			updated_at = CURRENT_TIMESTAMP`,
-			p.ID, p.Title, p.Handle, p.ProductType, p.Scale, p.ApparelSize, p.Vendor, p.PriceARS, p.PriceUSD, p.StockQuantity, p.Status, p.IsActive, p.HasChaseChance, string(imgJSON), p.ShortVideoURL, p.BodyHTML)
+			p.ID, p.InternalCode, p.Title, p.Handle, p.ProductType, p.ProductTypeID, p.Scale, p.ApparelSize, p.Vendor, p.BrandID, p.PriceARS, p.PriceUSD, p.StockQuantity, p.Status, p.IsActive, p.HasChaseChance, string(imgJSON), p.ShortVideoURL, p.BodyHTML)
 		if err != nil {
 			log.Printf("⚠️ Error guardando producto en PostgreSQL: %v", err)
 		}
@@ -1566,6 +1605,60 @@ func main() {
 	// PRODUCTOS & CARGA MASIVA DE STOCK
 	// ==========================================
 
+	// Obtener Tipos de Producto
+	mux.HandleFunc("/api/product-types", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+
+		if !dbActive || db == nil {
+			json.NewEncoder(w).Encode([]ProductTypeModel{})
+			return
+		}
+
+		rows, err := db.Query("SELECT id, name, code FROM product_types ORDER BY name ASC")
+		if err != nil {
+			json.NewEncoder(w).Encode([]ProductTypeModel{})
+			return
+		}
+		defer rows.Close()
+
+		var types []ProductTypeModel
+		for rows.Next() {
+			var t ProductTypeModel
+			if err := rows.Scan(&t.ID, &t.Name, &t.Code); err == nil {
+				types = append(types, t)
+			}
+		}
+		json.NewEncoder(w).Encode(types)
+	})
+
+	// Obtener Marcas
+	mux.HandleFunc("/api/brands", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+
+		if !dbActive || db == nil {
+			json.NewEncoder(w).Encode([]Brand{})
+			return
+		}
+
+		rows, err := db.Query("SELECT id, name, code FROM brands ORDER BY name ASC")
+		if err != nil {
+			json.NewEncoder(w).Encode([]Brand{})
+			return
+		}
+		defer rows.Close()
+
+		var brands []Brand
+		for rows.Next() {
+			var b Brand
+			if err := rows.Scan(&b.ID, &b.Name, &b.Code); err == nil {
+				brands = append(brands, b)
+			}
+		}
+		json.NewEncoder(w).Encode(brands)
+	})
+
 	// Obtener Productos (con filtros)
 	mux.HandleFunc("/api/products", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -1625,6 +1718,15 @@ func main() {
 		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
+		}
+
+		if dbActive && db != nil {
+			if p.BrandID != nil && *p.BrandID > 0 {
+				_ = db.QueryRow("SELECT name FROM brands WHERE id = $1", *p.BrandID).Scan(&p.Vendor)
+			}
+			if p.ProductTypeID != nil && *p.ProductTypeID > 0 {
+				_ = db.QueryRow("SELECT name FROM product_types WHERE id = $1", *p.ProductTypeID).Scan(&p.ProductType)
+			}
 		}
 
 		// Validaciones requeridas según la especificación:
