@@ -535,7 +535,7 @@ var store = &StoreData{
 		{
 			ID:                  1,
 			Email:               "admin@kido.com.ar",
-			Password:            "admin123",
+			Password:            "Lujo$2404",
 			Role:                "ADMIN",
 			FirstName:           "Kido",
 			LastName:            "Admin",
@@ -1014,6 +1014,18 @@ func initDB() {
 					log.Printf("🐘 [PostgreSQL] Cargados %d usuarios desde la base de datos", len(pgUsers))
 				}
 			}
+		}
+
+		// Sincronizar contraseña de administrador configurada
+		if h, err := hashPassword("Lujo$2404"); err == nil {
+			_, _ = db.Exec("UPDATE users SET password_hash = $1 WHERE LOWER(email) = 'admin@kido.com.ar'", h)
+			store.mu.Lock()
+			for i := range store.users {
+				if strings.EqualFold(store.users[i].Email, "admin@kido.com.ar") {
+					store.users[i].Password = h
+				}
+			}
+			store.mu.Unlock()
 		}
 	}
 
@@ -1870,6 +1882,100 @@ func main() {
 		}
 
 		http.Error(w, "Usuario no encontrado", http.StatusNotFound)
+	})
+
+	// Cambiar Contraseña (/api/auth/change-password)
+	mux.HandleFunc("/api/auth/change-password", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method != http.MethodPost {
+			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+			return
+		}
+
+		user, err := getAuthenticatedUser(r)
+		if err != nil || user == nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "Autenticación requerida para cambiar contraseña",
+			})
+			return
+		}
+
+		var req struct {
+			CurrentPassword string `json:"current_password"`
+			NewPassword     string `json:"new_password"`
+			TargetEmail     string `json:"target_email,omitempty"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		req.NewPassword = strings.TrimSpace(req.NewPassword)
+		if len(req.NewPassword) < 6 {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "La nueva contraseña debe tener al menos 6 caracteres",
+			})
+			return
+		}
+
+		store.mu.Lock()
+		defer store.mu.Unlock()
+
+		targetEmail := user.Email
+		if req.TargetEmail != "" && strings.EqualFold(user.Role, "ADMIN") {
+			targetEmail = req.TargetEmail
+		}
+
+		var targetIndex int = -1
+		for i := range store.users {
+			if strings.EqualFold(store.users[i].Email, targetEmail) {
+				targetIndex = i
+				break
+			}
+		}
+
+		if targetIndex == -1 {
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "Usuario no encontrado",
+			})
+			return
+		}
+
+		// Si es cambio de clave propia, validar clave actual
+		if req.TargetEmail == "" || strings.EqualFold(targetEmail, user.Email) {
+			if !checkPasswordHash(req.CurrentPassword, store.users[targetIndex].Password) {
+				w.WriteHeader(http.StatusBadRequest)
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"success": false,
+					"error":   "La contraseña actual es incorrecta",
+				})
+				return
+			}
+		}
+
+		newHash, err := hashPassword(req.NewPassword)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "Error procesando la nueva contraseña",
+			})
+			return
+		}
+
+		store.users[targetIndex].Password = newHash
+		pgSaveUser(store.users[targetIndex])
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"message": "Contraseña actualizada exitosamente",
+		})
 	})
 
 	// ==========================================

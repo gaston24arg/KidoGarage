@@ -83,6 +83,9 @@
           <div id="adminUserEmail" class="text-xs font-bold text-white leading-tight">Admin</div>
           <span class="text-[9px] text-emerald-400 font-semibold tracking-wider uppercase">Sesión Segura</span>
         </div>
+        <button onclick="openChangePasswordModal()" title="Cambiar Contraseña" class="bg-brandSurface hover:bg-brandBorder text-gray-300 hover:text-white border border-brandBorder px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1">
+          <span>🔑</span> Contraseña
+        </button>
         <button onclick="doAdminLogout()" title="Cerrar Sesión de Administrador" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1">
           <span>🔒</span> Salir
         </button>
@@ -1870,6 +1873,76 @@
       activeBtn.classList.add('bg-brandAccent', 'text-white');
     }
 
+    // Modal Cambiar Contraseña
+    function openChangePasswordModal() {
+      document.getElementById('adminPassErr').classList.add('hidden');
+      document.getElementById('adminPassSuccess').classList.add('hidden');
+      document.getElementById('adminPassCurrent').value = '';
+      document.getElementById('adminPassNew').value = '';
+      document.getElementById('adminPassConfirm').value = '';
+      document.getElementById('adminPasswordModal').classList.remove('hidden');
+    }
+
+    function closeChangePasswordModal() {
+      document.getElementById('adminPasswordModal').classList.add('hidden');
+    }
+
+    async function handleAdminChangePassword(e) {
+      e.preventDefault();
+      const errEl = document.getElementById('adminPassErr');
+      const succEl = document.getElementById('adminPassSuccess');
+      errEl.classList.add('hidden');
+      succEl.classList.add('hidden');
+
+      const currentPass = document.getElementById('adminPassCurrent').value;
+      const newPass = document.getElementById('adminPassNew').value;
+      const confirmPass = document.getElementById('adminPassConfirm').value;
+
+      if (newPass !== confirmPass) {
+        errEl.innerText = 'La nueva contraseña y su confirmación no coinciden.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      if (newPass.length < 6) {
+        errEl.innerText = 'La nueva contraseña debe tener al menos 6 caracteres.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      const btn = document.getElementById('adminPassBtn');
+      btn.disabled = true;
+      btn.innerText = 'Actualizando...';
+
+      try {
+        const res = await fetch('/api/auth/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            current_password: currentPass,
+            new_password: newPass
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'No se pudo actualizar la contraseña');
+        }
+
+        succEl.innerText = '✅ ¡Contraseña actualizada exitosamente!';
+        succEl.classList.remove('hidden');
+        setTimeout(() => {
+          closeChangePasswordModal();
+        }, 1500);
+      } catch (err) {
+        errEl.innerText = err.message;
+        errEl.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Guardar Nueva Contraseña';
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', checkAdminSession);
   </script>
 
@@ -1977,6 +2050,52 @@
           </button>
           <button type="submit" class="w-1/2 bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-xl font-bold uppercase tracking-wider text-xs transition shadow-lg shadow-blue-600/30">
             Guardar & Despachar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL DE CAMBIO DE CONTRASEÑA -->
+  <div id="adminPasswordModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-brandCard border border-brandBorder rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative space-y-5 animate-in fade-in zoom-in duration-200">
+      <button onclick="closeChangePasswordModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white font-bold p-1">✕</button>
+
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-2xl">
+          🔑
+        </div>
+        <div>
+          <h3 class="font-display font-bold text-lg text-white">Cambiar Contraseña</h3>
+          <p class="text-xs text-gray-400">Actualiza tus credenciales de Administrador</p>
+        </div>
+      </div>
+
+      <div id="adminPassErr" class="hidden p-3 rounded-xl bg-red-950/50 border border-red-500/50 text-xs text-red-200 font-semibold text-center"></div>
+      <div id="adminPassSuccess" class="hidden p-3 rounded-xl bg-emerald-950/50 border border-emerald-500/50 text-xs text-emerald-200 font-semibold text-center"></div>
+
+      <form onsubmit="handleAdminChangePassword(event)" class="space-y-4 text-xs">
+        <div>
+          <label class="block text-gray-300 font-bold mb-1.5 uppercase tracking-wider text-[10px]">Contraseña Actual</label>
+          <input required id="adminPassCurrent" type="password" placeholder="Ingresa tu contraseña actual" class="w-full bg-brandSurface border border-brandBorder rounded-xl p-3 text-white font-semibold focus:border-brandAccent focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block text-gray-300 font-bold mb-1.5 uppercase tracking-wider text-[10px]">Nueva Contraseña</label>
+          <input required id="adminPassNew" type="password" minlength="6" placeholder="Mínimo 6 caracteres" class="w-full bg-brandSurface border border-brandBorder rounded-xl p-3 text-white font-semibold focus:border-brandAccent focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block text-gray-300 font-bold mb-1.5 uppercase tracking-wider text-[10px]">Confirmar Nueva Contraseña</label>
+          <input required id="adminPassConfirm" type="password" minlength="6" placeholder="Repite la nueva contraseña" class="w-full bg-brandSurface border border-brandBorder rounded-xl p-3 text-white font-semibold focus:border-brandAccent focus:outline-none">
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button type="button" onclick="closeChangePasswordModal()" class="w-1/3 bg-brandSurface hover:bg-brandBorder text-gray-300 py-3 rounded-xl font-bold uppercase tracking-wider text-xs transition">
+            Cancelar
+          </button>
+          <button type="submit" id="adminPassBtn" class="w-2/3 bg-brandAccent hover:bg-brandAccentHover text-white py-3 rounded-xl font-bold uppercase tracking-wider text-xs transition shadow-lg shadow-brandAccent/30">
+            Guardar Nueva Contraseña
           </button>
         </div>
       </form>
