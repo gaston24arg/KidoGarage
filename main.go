@@ -17,8 +17,313 @@ import (
 	"sync"
 	"time"
 
+	"crypto/hmac"
+	cryptorand "crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+	"net"
 	_ "github.com/lib/pq"
+	"golang.org/x/crypto/bcrypt"
 )
+
+// ==========================================
+// SEGURIDAD & HASHEO DE CONTRASEÑAS (BCRYPT)
+// ==========================================
+
+func hashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	return string(bytes), err
+}
+
+func checkPasswordHash(password, hash string) bool {
+	if hash == "" || password == "" {
+		return false
+	}
+	if strings.HasPrefix(hash, "$2a$") || strings.HasPrefix(hash, "$2b$") || strings.HasPrefix(hash, "$2y$") {
+		err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+		return err == nil
+	}
+	// Compatibilidad para migración automática de contraseñas previas en texto plano
+	return password == hash
+}
+
+// ==========================================
+// GESTIÓN DE SESIONES & TOKENS SEGUROS (HMAC-SHA256)
+// ==========================================
+
+var sessionSecret []byte
+
+func initSessionSecret() {
+	sec := os.Getenv("SESSION_SECRET")
+	if sec != "" {
+		sessionSecret = []byte(sec)
+	} else {
+		b := make([]byte, 32)
+		_, err := cryptorand.Read(b)
+		if err != nil {
+			sessionSecret = []byte("kido_garage_secret_key_production_2026_salt_32bytes")
+		} else {
+			sessionSecret = b
+		}
+	}
+}
+
+func generateSessionToken(u User) string {
+	payload := fmt.Sprintf("%d:%s:%s:%d", u.ID, u.Email, u.Role, time.Now().Unix())
+	h := hmac.New(sha256.New, sessionSecret)
+	h.Write([]byte(payload))
+	signature := hex.EncodeToString(h.Sum(nil))
+	token := base64.URLEncoding.EncodeToString([]byte(payload + "|" + signature))
+	return token
+}
+
+func validateSessionToken(tokenStr string) (*User, error) {
+	if tokenStr == "" {
+		return nil, fmt.Errorf("token vacío")
+	}
+	raw, err := base64.URLEncoding.DecodeString(tokenStr)
+	if err != nil {
+		return nil, fmt.Errorf("token inválido")
+	}
+	parts := strings.Split(string(raw), "|")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("formato de token incorrecto")
+	}
+	payload := parts[0]
+	signature := parts[1]
+
+	h := hmac.New(sha256.New, sessionSecret)
+	h.Write([]byte(payload))
+	expectedSig := hex.EncodeToString(h.Sum(nil))
+	if !hmac.Equal([]byte(signature), []byte(expectedSig)) {
+		return nil, fmt.Errorf("firma de token inválida")
+	}
+
+	payloadParts := strings.Split(payload, ":")
+	if len(payloadParts) < 4 {
+		return nil, fmt.Errorf("datos de sesión corruptos")
+	}
+	userID, _ := strconv.ParseInt(payloadParts[0], 10, 64)
+	email := payloadParts[1]
+	role := payloadParts[2]
+	issuedAt, _ := strconv.ParseInt(payloadParts[3], 10, 64)
+
+	// Expiración a los 7 días
+	if time.Now().Unix()-issuedAt > 7*24*3600 {
+		return nil, fmt.Errorf("sesión expirada")
+	}
+
+	store.mu.RLock()
+	defer store.mu.RUnlock()
+	for _, u := range store.users {
+		if u.ID == userID && strings.EqualFold(u.Email, email) {
+			userCopy := u
+			userCopy.Password = ""
+			return &userCopy, nil
+		}
+	}
+
+	return &User{
+		ID:    userID,
+		Email: email,
+		Role:  role,
+	}, nil
+}
+
+func getAuthenticatedUser(r *http.Request) (*User, error) {
+	// 1. Intentar desde Cookie 'kido_session'
+	if cookie, err := r.Cookie("kido_session"); err == nil && cookie.Value != "" {
+		if user, err := validateSessionToken(cookie.Value); err == nil {
+			return user, nil
+		}
+	}
+
+	// 2. Intentar desde Header 'Authorization: Bearer <token>'
+	authHeader := r.Header.Get("Authorization")
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		return validateSessionToken(token)
+	}
+
+	// 3. Intentar desde Query param 'token'
+	if qToken := r.URL.Query().Get("token"); qToken != "" {
+		return validateSessionToken(qToken)
+	}
+
+	return nil, fmt.Errorf("no autenticado")
+}
+
+// requireAdmin protege los endpoints administrativos
+func requireAdmin(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		user, err := getAuthenticatedUser(r)
+		if err != nil || user == nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "Autenticación requerida. Inicia sesión como administrador.",
+			})
+			return
+		}
+
+		if !strings.EqualFold(user.Role, "ADMIN") {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusForbidden)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "Acceso denegado: Se requieren permisos de Administrador.",
+			})
+			return
+		}
+
+		next(w, r)
+	}
+}
+
+// ==========================================
+// RATE LIMITER (PROTECCIÓN CONTRA FUERZA BRUTA & DDOS)
+// ==========================================
+
+type RateLimiter struct {
+	mu           sync.Mutex
+	loginFails   map[string][]time.Time
+	generalReqs  map[string][]time.Time
+	maxFails     int           // Max fallos permitidos antes de bloqueo
+	failWindow   time.Duration // Ventana de tiempo para fallos (5 min)
+	maxReqPerMin int           // Max peticiones por minuto general
+}
+
+var globalLimiter = &RateLimiter{
+	loginFails:   make(map[string][]time.Time),
+	generalReqs:  make(map[string][]time.Time),
+	maxFails:     5,
+	failWindow:   5 * time.Minute,
+	maxReqPerMin: 180,
+}
+
+func getClientIP(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		parts := strings.Split(xff, ",")
+		return strings.TrimSpace(parts[0])
+	}
+	if xrip := r.Header.Get("X-Real-IP"); xrip != "" {
+		return strings.TrimSpace(xrip)
+	}
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return ip
+}
+
+func (rl *RateLimiter) RecordFailedLogin(ip string) {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	now := time.Now()
+	rl.loginFails[ip] = append(rl.loginFails[ip], now)
+}
+
+func (rl *RateLimiter) ResetFailedLogins(ip string) {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	delete(rl.loginFails, ip)
+}
+
+func (rl *RateLimiter) IsLoginBlocked(ip string) bool {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	now := time.Now()
+	var valid []time.Time
+	for _, t := range rl.loginFails[ip] {
+		if now.Sub(t) <= rl.failWindow {
+			valid = append(valid, t)
+		}
+	}
+	rl.loginFails[ip] = valid
+	return len(valid) >= rl.maxFails
+}
+
+func (rl *RateLimiter) AllowGeneral(ip string) bool {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	now := time.Now()
+	var valid []time.Time
+	for _, t := range rl.generalReqs[ip] {
+		if now.Sub(t) <= time.Minute {
+			valid = append(valid, t)
+		}
+	}
+	if len(valid) >= rl.maxReqPerMin {
+		rl.generalReqs[ip] = valid
+		return false
+	}
+	valid = append(valid, now)
+	rl.generalReqs[ip] = valid
+	return true
+}
+
+func rateLimitMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ip := getClientIP(r)
+
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			if !globalLimiter.AllowGeneral(ip) {
+				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set("Retry-After", "60")
+				w.WriteHeader(http.StatusTooManyRequests)
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"success": false,
+					"error":   "Demasiadas peticiones. Por favor espera un momento.",
+				})
+				return
+			}
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// ==========================================
+// CORS & CABECERAS DE SEGURIDAD
+// ==========================================
+
+func corsMiddleware(next http.Handler) http.Handler {
+	allowedOriginEnv := os.Getenv("ALLOWED_ORIGIN")
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+		if origin != "" {
+			if allowedOriginEnv != "" && allowedOriginEnv != "*" {
+				if origin == allowedOriginEnv {
+					w.Header().Set("Access-Control-Allow-Origin", origin)
+				}
+			} else {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+			}
+		} else {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+		}
+
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
 
 // ==========================================
 // MODELOS DE DATOS
@@ -62,7 +367,7 @@ type Brand struct {
 	ID       int64  `json:"id"`
 	Name     string `json:"name"`
 	Code     string `json:"code"`
-	Carrusel string `json:"carrusel"`
+	Carrusel bool   `json:"carrusel"`
 	Imagen   string `json:"imagen"`
 }
 
@@ -239,249 +544,41 @@ var store = &StoreData{
 			Street:              "Av. Cabildo",
 			StreetNumber:        "2400",
 			AvatarURL:           "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
-			ConsecutiveMonths:   12,
-			IsFrequentCustomer:  true,
-			FrequentPoints:      9,
-			TotalPurchasesCount: 25,
-		},
-		{
-			ID:                  2,
-			Email:               "martin@kido.com.ar",
-			Password:            "cliente123",
-			Role:                "CLIENT",
-			FirstName:           "Martín",
-			LastName:            "Gómez",
-			Phone:               "+54 11 4444-1234",
-			Locality:            "Vicente López",
-			Street:              "Av. del Libertador",
-			StreetNumber:        "1540",
-			AvatarURL:           "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80",
-			ConsecutiveMonths:   4,    // > 3 meses: CLIENTE FRECUENTE ACTIVO
-			IsFrequentCustomer:  true, // ¡Cliente Frecuente!
-			FrequentPoints:      1,    // 1 mes extra después de los 3 meses
-			TotalPurchasesCount: 8,    // 8 puntos por compras
-			HasClaimedFreeRaffle: false,
-		},
-		{
-			ID:                  3,
-			Email:               "lucas@kido.com.ar",
-			Password:            "cliente123",
-			Role:                "CLIENT",
-			FirstName:           "Lucas",
-			LastName:            "Pérez",
-			Phone:               "+54 11 3333-7890",
-			Locality:            "San Isidro",
-			Street:              "Centenario",
-			StreetNumber:        "820",
-			AvatarURL:           "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=200&q=80",
-			ConsecutiveMonths:   2,     // 2 meses: LE FALTA 1 MES PARA FRECUENTE
-			IsFrequentCustomer:  false, // Aún no es frecuente
+			ConsecutiveMonths:   0,
+			IsFrequentCustomer:  false,
 			FrequentPoints:      0,
-			TotalPurchasesCount: 3,
-			HasClaimedFreeRaffle: false,
+			TotalPurchasesCount: 0,
 		},
 	},
-	expenses: []Expense{
-		{ID: 1, Category: "Flete Internacional", Concept: "Envío aéreo lote Mini GT & Pop Race (Hong Kong -> EZE)", Supplier: "DHL Express Cargo", AmountARS: 540000, AmountUSD: 400, InvoiceNumber: "DHL-98442", Date: "2026-09-15"},
-		{ID: 2, Category: "Packaging Coleccionista", Concept: "Cajas de cartón corrugado triple onda + Pluribol burbujas antishock", Supplier: "Embalajes Colección SRL", AmountARS: 125000, AmountUSD: 92.5, InvoiceNumber: "FAC-B-000412", Date: "2026-09-18"},
-		{ID: 3, Category: "Aduana / Impuestos", Concept: "Arancel nacionalización despacho importación Diecast", Supplier: "Aduana Argentina / Courier", AmountARS: 890000, AmountUSD: 660, InvoiceNumber: "DJAI-2026-901", Date: "2026-09-20"},
+	expenses:       []Expense{},
+	purchaseOrders: []PurchaseOrder{},
+	brands: []Brand{
+		{ID: 1, Name: "Kaido House", Code: "KAIDOHOUSE", Carrusel: true, Imagen: ""},
+		{ID: 2, Name: "Mini GT", Code: "MINIGT", Carrusel: true, Imagen: ""},
+		{ID: 3, Name: "Pop Race", Code: "POPRACE", Carrusel: true, Imagen: ""},
+		{ID: 4, Name: "Inno64", Code: "INNO64", Carrusel: true, Imagen: ""},
+		{ID: 5, Name: "Tarmac Works", Code: "TARMAC", Carrusel: true, Imagen: ""},
+		{ID: 6, Name: "Hot Wheels", Code: "HOTWHEELS", Carrusel: true, Imagen: ""},
+		{ID: 7, Name: "Spark", Code: "SPARK", Carrusel: true, Imagen: ""},
+		{ID: 8, Name: "Ignition Model", Code: "IGNITION", Carrusel: true, Imagen: ""},
+		{ID: 9, Name: "KIDO Apparel", Code: "KIDO_APP", Carrusel: false, Imagen: ""},
+		{ID: 10, Name: "KIDO Accessories", Code: "KIDO_ACC", Carrusel: false, Imagen: ""},
 	},
-	purchaseOrders: []PurchaseOrder{
-		{ID: 1, PONumber: "PO-2026-0089", SupplierName: "M&J Toys Inc. / Mini GT Distribution", Status: "EN_TRANSITO", OrderDate: "2026-09-10", ExpectedETA: "Nov 2026", TotalUSD: 3450.00, TrackingNum: "AWB-77492019"},
-		{ID: 2, PONumber: "PO-2026-0090", SupplierName: "Pop Race HK Models", Status: "EMITIDA", OrderDate: "2026-09-22", ExpectedETA: "Dic 2026", TotalUSD: 1890.00, TrackingNum: "PENDIENTE"},
+	productTypes: []ProductTypeModel{
+		{ID: 1, Name: "Autito", Code: "DIECAST"},
+		{ID: 2, Name: "Remera", Code: "APPAREL"},
+		{ID: 3, Name: "Sticker", Code: "STICKER"},
 	},
 }
 
-// Inicializar Rifa de Ejemplo
+// Inicializar Rifas (vacío para producción limpia)
 func initRaffles() {
-	sampleRaffle := Raffle{
-		ID:               1,
-		RaffleNumber:     "RIFA-#01-CHASE-R34",
-		Title:            "Mini GT 1:64 Nissan Skyline GT-R C-West Brian O'Conner CHASE EDITION",
-		PrizeDescription: "Versión Chase ultra rara 1 de 24 sellada de fábrica. Acabado pulido con llantas especiales y tarjeta numerada.",
-		PrizeImages: []string{
-			"https://cdn.shopify.com/s/files/1/0978/6929/9988/files/797135489_1617113229805704_600506348130599165_n.jpg?v=1790150116",
-		},
-		StartDatetime:  "2026-09-20 10:00",
-		EndDatetime:    "2026-10-15 20:00",
-		DrawDatetime:   "2026-10-16 21:00 (Lotería Nacional Nocturna)",
-		MinNumber:      0,
-		MaxNumber:      99,
-		TicketPriceARS: 2500,
-		Status:         "ACTIVA",
-		Tickets:        make(map[int]RaffleTicket),
-	}
-
-	// Sembrar algunos números vendidos
-	soldNumbers := []int{1, 2, 8, 12, 18, 23, 33, 45, 50, 68, 77, 88}
-	for _, n := range soldNumbers {
-		sampleRaffle.Tickets[n] = RaffleTicket{
-			Number:        n,
-			CustomerID:    99,
-			CustomerEmail: fmt.Sprintf("coleccionista%d@gmail.com", n),
-			CustomerName:  fmt.Sprintf("Coleccionista #%d", n),
-			MercadoPagoID: fmt.Sprintf("MP-TICKET-%d", n),
-			PurchasedAt:   time.Now().Add(-time.Duration(n) * time.Hour),
-		}
-	}
-
-	// Boletos para Martín (Cliente Frecuente) en la rifa activa
-	sampleRaffle.Tickets[7] = RaffleTicket{
-		Number:        7,
-		CustomerID:    2,
-		CustomerEmail: "martin@kido.com.ar",
-		CustomerName:  "Martín Gómez",
-		IsFreeTicket:  true, // Boleto gratis de socio frecuente
-		MercadoPagoID: "MP-FREQUENT-FREE-07",
-		PurchasedAt:   time.Now().Add(-24 * time.Hour),
-	}
-	sampleRaffle.Tickets[24] = RaffleTicket{
-		Number:        24,
-		CustomerID:    2,
-		CustomerEmail: "martin@kido.com.ar",
-		CustomerName:  "Martín Gómez",
-		IsFreeTicket:  false,
-		MercadoPagoID: "MP-TICKET-BUY-24",
-		PurchasedAt:   time.Now().Add(-12 * time.Hour),
-	}
-
-	// Rifa 2: Sorteada (para comprobar ganador)
-	winningNum := 42
-	pastRaffle := Raffle{
-		ID:               2,
-		RaffleNumber:     "RIFA-#00-SUPRA-MK4",
-		Title:            "Inno64 1:64 Toyota Supra MK4 Castrol JGTC Special Edition",
-		PrizeDescription: "Edición especial de colección con vitrina de acrílico y calcas oficiales JGTC.",
-		PrizeImages: []string{
-			"https://cdn.shopify.com/s/files/1/0978/6929/9988/files/IMG_7095.jpg?v=1790150116",
-		},
-		StartDatetime:  "2026-08-01 10:00",
-		EndDatetime:    "2026-08-30 20:00",
-		DrawDatetime:   "2026-08-31 21:00 (Sorteo Oficial)",
-		MinNumber:      0,
-		MaxNumber:      99,
-		TicketPriceARS: 2000,
-		Status:         "SORTEADA",
-		Tickets:        make(map[int]RaffleTicket),
-		WinnerNumber:   &winningNum,
-	}
-	pastRaffle.Tickets[42] = RaffleTicket{
-		Number:        42,
-		CustomerID:    2,
-		CustomerEmail: "martin@kido.com.ar",
-		CustomerName:  "Martín Gómez",
-		IsFreeTicket:  false,
-		MercadoPagoID: "MP-TICKET-PAST-42",
-		PurchasedAt:   time.Now().Add(-720 * time.Hour),
-	}
-
-	store.raffles = []Raffle{sampleRaffle, pastRaffle}
+	store.raffles = []Raffle{}
 }
 
-// Inicializar Pedidos de Ejemplo con Pagos Parciales
+// Inicializar Pedidos (vacío para producción limpia)
 func initOrders() {
-	store.orders = []Order{
-		{
-			ID:                  1001,
-			OrderNumber:         "KIDO-ORD-1001",
-			CustomerID:          2, // Martín (Cliente Frecuente)
-			CustomerEmail:       "martin@kido.com.ar",
-			CustomerName:        "Martín Gómez",
-			TotalARS:            45980,
-			TotalPaidARS:        20000,
-			RemainingBalanceARS: 25980,
-			IsFullyPaid:         false,
-			DeliveryStatus:      "BLOQUEADO_POR_SALDO", // No se entrega hasta completar pago
-			OrderType:           "PRE_VENTA_CON_SEÑA",
-			ShippingMethod:      "Correo Argentino - Envío a Domicilio (Clásico)",
-			ShippingCostARS:     5200,
-			ShippingPostalCode:  "1425",
-			ShippingAddress:     "Av. Cabildo 2450, Piso 4 B, CABA",
-			Items: []OrderItem{
-				{ProductID: 10390924034324, ProductTitle: "Mini GT 1:64 Nissan Skyline GT-R C-West 2 Fast 2 Furious", Quantity: 2, UnitPriceARS: 22990, SubtotalARS: 45980, ProductType: "Autito", ScaleOrSize: "1:64"},
-			},
-			Payments: []PartialPayment{
-				{ID: 1, OrderID: 1001, ProductID: 10390924034324, AmountARS: 20000, PaymentMethod: "Mercado Pago", MercadoPagoID: "MP-SEÑA-9921", PaymentStatus: "approved", IsDownPayment: true, CreatedAt: time.Now().Add(-5 * 24 * time.Hour)},
-			},
-			CreatedAt: time.Now().Add(-5 * 24 * time.Hour),
-		},
-		{
-			ID:                  1002,
-			OrderNumber:         "KIDO-ORD-1002",
-			CustomerID:          3, // Lucas
-			CustomerEmail:       "lucas@kido.com.ar",
-			CustomerName:        "Lucas Pérez",
-			TotalARS:            18500,
-			TotalPaidARS:        18500,
-			RemainingBalanceARS: 0,
-			IsFullyPaid:         true,
-			DeliveryStatus:      "LISTO_PARA_DESPACHAR", // Pago 100% completado
-			OrderType:           "VENTA_DIRECTA",
-			ShippingMethod:      "Retiro Oficial en KIDO Garage (Villa Urquiza, CABA)",
-			ShippingCostARS:     0,
-			ShippingPostalCode:  "1430",
-			ShippingAddress:     "Punto de Retiro KIDO Showroom",
-			Items: []OrderItem{
-				{ProductID: 999001, ProductTitle: "Pop Race Mazda RX-7 RE-Amemiya Chrome", Quantity: 1, UnitPriceARS: 18500, SubtotalARS: 18500, ProductType: "Autito", ScaleOrSize: "1:64"},
-			},
-			Payments: []PartialPayment{
-				{ID: 2, OrderID: 1002, ProductID: 999001, AmountARS: 18500, PaymentMethod: "Mercado Pago", MercadoPagoID: "MP-FULL-8812", PaymentStatus: "approved", IsDownPayment: false, CreatedAt: time.Now().Add(-2 * 24 * time.Hour)},
-			},
-			CreatedAt: time.Now().Add(-2 * 24 * time.Hour),
-		},
-		{
-			ID:                  1003,
-			OrderNumber:         "KIDO-ORD-1003",
-			CustomerID:          2, // Martín
-			CustomerEmail:       "martin@kido.com.ar",
-			CustomerName:        "Martín Gómez",
-			TotalARS:            38500,
-			TotalPaidARS:        38500,
-			RemainingBalanceARS: 0,
-			IsFullyPaid:         true,
-			DeliveryStatus:      "EN_CAMINO", // Paquete en tránsito con código de seguimiento
-			OrderType:           "VENTA_DIRECTA",
-			ShippingMethod:      "Correo Argentino - Envío a Domicilio (Clásico)",
-			ShippingCostARS:     5200,
-			ShippingPostalCode:  "1425",
-			ShippingAddress:     "Av. Cabildo 2450, Piso 4 B, CABA",
-			TrackingNumber:      "AR-CORREO-9481827",
-			TrackingCarrier:     "Correo Argentino",
-			Items: []OrderItem{
-				{ProductID: 10390924034324, ProductTitle: "Kaido House Datsun 510 Pro Street BRE", Quantity: 1, UnitPriceARS: 38500, SubtotalARS: 38500, ProductType: "Autito", ScaleOrSize: "1:64"},
-			},
-			Payments: []PartialPayment{
-				{ID: 3, OrderID: 1003, ProductID: 10390924034324, AmountARS: 38500, PaymentMethod: "Mercado Pago", MercadoPagoID: "MP-FULL-9931", PaymentStatus: "approved", IsDownPayment: false, CreatedAt: time.Now().Add(-8 * 24 * time.Hour)},
-			},
-			CreatedAt: time.Now().Add(-8 * 24 * time.Hour),
-		},
-		{
-			ID:                  1004,
-			OrderNumber:         "KIDO-ORD-1004",
-			CustomerID:          2, // Martín
-			CustomerEmail:       "martin@kido.com.ar",
-			CustomerName:        "Martín Gómez",
-			TotalARS:            24000,
-			TotalPaidARS:        24000,
-			RemainingBalanceARS: 0,
-			IsFullyPaid:         true,
-			DeliveryStatus:      "ENTREGADO", // Paquete entregado
-			OrderType:           "VENTA_DIRECTA",
-			ShippingMethod:      "Andreani Express - Puerta a Puerta Prioritario",
-			ShippingCostARS:     6900,
-			ShippingPostalCode:  "1425",
-			ShippingAddress:     "Av. Cabildo 2450, Piso 4 B, CABA",
-			TrackingNumber:      "ADR-9048123",
-			TrackingCarrier:     "Andreani",
-			Items: []OrderItem{
-				{ProductID: 10390924034324, ProductTitle: "Remera Oversized KIDO Touge Legends Negra", Quantity: 1, UnitPriceARS: 24000, SubtotalARS: 24000, ProductType: "Remera", ScaleOrSize: "L"},
-			},
-			Payments: []PartialPayment{
-				{ID: 4, OrderID: 1004, ProductID: 10390924034324, AmountARS: 24000, PaymentMethod: "Mercado Pago", MercadoPagoID: "MP-FULL-7711", PaymentStatus: "approved", IsDownPayment: false, CreatedAt: time.Now().Add(-30 * 24 * time.Hour)},
-			},
-			CreatedAt: time.Now().Add(-30 * 24 * time.Hour),
-		},
-	}
+	store.orders = []Order{}
 }
 
 // calculateShippingRates determina la zona y calcula las tarifas de Correo Argentino, Andreani y Retiro Oficial KIDO
@@ -605,8 +702,16 @@ func calculateShippingRates(postalCode string, cartTotal int) (string, []Shippin
 	return zone, options
 }
 
-// Cargar Catálogo Base
+// Cargar Catálogo (limpio por defecto en producción a menos que SEED_SAMPLE_DATA=true)
 func loadCatalog() {
+	if os.Getenv("SEED_SAMPLE_DATA") != "true" {
+		store.mu.Lock()
+		store.products = []Product{}
+		store.mu.Unlock()
+		log.Printf("📦 Catálogo inicializado en BLANCO (producción limpia)")
+		return
+	}
+
 	filePath := filepath.Join(".", "products_sample.json")
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -796,6 +901,81 @@ func initDB() {
 		ADD COLUMN IF NOT EXISTS shipping_address TEXT,
 		ADD COLUMN IF NOT EXISTS tracking_number VARCHAR(100),
 		ADD COLUMN IF NOT EXISTS tracking_carrier VARCHAR(50)`)
+	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS product_types (
+		id BIGSERIAL PRIMARY KEY,
+		name VARCHAR(100) UNIQUE NOT NULL,
+		code VARCHAR(50) UNIQUE NOT NULL
+	)`)
+	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS brands (
+		id BIGSERIAL PRIMARY KEY,
+		name VARCHAR(150) UNIQUE NOT NULL,
+		code VARCHAR(50) UNIQUE NOT NULL,
+		carrusel BOOLEAN DEFAULT TRUE,
+		imagen TEXT DEFAULT ''
+	)`)
+	_, _ = db.Exec("ALTER TABLE brands ADD COLUMN IF NOT EXISTS carrusel BOOLEAN DEFAULT TRUE")
+	_, _ = db.Exec("ALTER TABLE brands ADD COLUMN IF NOT EXISTS imagen TEXT DEFAULT ''")
+	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS brand_id BIGINT REFERENCES brands(id)")
+	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS product_type_id BIGINT REFERENCES product_types(id)")
+
+	// 0. Sincronizar product_types y brands
+	var ptCount int
+	if err := db.QueryRow("SELECT COUNT(*) FROM product_types").Scan(&ptCount); err == nil {
+		if ptCount == 0 {
+			store.mu.RLock()
+			for _, pt := range store.productTypes {
+				_, _ = db.Exec(`INSERT INTO product_types (id, name, code) VALUES ($1, $2, $3) ON CONFLICT (name) DO NOTHING`, pt.ID, pt.Name, pt.Code)
+			}
+			store.mu.RUnlock()
+		} else {
+			rows, err := db.Query("SELECT id, name, code FROM product_types ORDER BY id ASC")
+			if err == nil {
+				var pgTypes []ProductTypeModel
+				for rows.Next() {
+					var t ProductTypeModel
+					if err := rows.Scan(&t.ID, &t.Name, &t.Code); err == nil {
+						pgTypes = append(pgTypes, t)
+					}
+				}
+				rows.Close()
+				if len(pgTypes) > 0 {
+					store.mu.Lock()
+					store.productTypes = pgTypes
+					store.mu.Unlock()
+				}
+			}
+		}
+	}
+
+	var brandCount int
+	if err := db.QueryRow("SELECT COUNT(*) FROM brands").Scan(&brandCount); err == nil {
+		if brandCount == 0 {
+			store.mu.RLock()
+			for _, b := range store.brands {
+				_, _ = db.Exec(`INSERT INTO brands (id, name, code, carrusel, imagen) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (name) DO UPDATE SET carrusel=EXCLUDED.carrusel, imagen=EXCLUDED.imagen`, b.ID, b.Name, b.Code, b.Carrusel, b.Imagen)
+			}
+			store.mu.RUnlock()
+			log.Printf("🐘 [PostgreSQL] Sembradas %d marcas en tabla 'brands'", len(store.brands))
+		} else {
+			rows, err := db.Query("SELECT id, name, code, COALESCE(carrusel, true), COALESCE(imagen, '') FROM brands ORDER BY name ASC")
+			if err == nil {
+				var pgBrands []Brand
+				for rows.Next() {
+					var b Brand
+					if err := rows.Scan(&b.ID, &b.Name, &b.Code, &b.Carrusel, &b.Imagen); err == nil {
+						pgBrands = append(pgBrands, b)
+					}
+				}
+				rows.Close()
+				if len(pgBrands) > 0 {
+					store.mu.Lock()
+					store.brands = pgBrands
+					store.mu.Unlock()
+					log.Printf("🐘 [PostgreSQL] Cargadas %d marcas desde la base de datos", len(pgBrands))
+				}
+			}
+		}
+	}
 
 	// 1. Sincronizar usuarios
 	var userCount int
@@ -803,10 +983,16 @@ func initDB() {
 		if userCount == 0 {
 			store.mu.RLock()
 			for _, u := range store.users {
+				pwdHash := u.Password
+				if !strings.HasPrefix(pwdHash, "$2") {
+					if h, err := hashPassword(pwdHash); err == nil {
+						pwdHash = h
+					}
+				}
 				_, _ = db.Exec(`INSERT INTO users (id, email, password_hash, role, first_name, last_name, phone, locality, street, street_number, avatar_url, consecutive_months_buying, is_frequent_customer, frequent_points, total_purchases_count)
 				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 				ON CONFLICT (id) DO NOTHING`,
-					u.ID, u.Email, u.Password, u.Role, u.FirstName, u.LastName, u.Phone, u.Locality, u.Street, u.StreetNumber, u.AvatarURL, u.ConsecutiveMonths, u.IsFrequentCustomer, u.FrequentPoints, u.TotalPurchasesCount)
+					u.ID, u.Email, pwdHash, u.Role, u.FirstName, u.LastName, u.Phone, u.Locality, u.Street, u.StreetNumber, u.AvatarURL, u.ConsecutiveMonths, u.IsFrequentCustomer, u.FrequentPoints, u.TotalPurchasesCount)
 			}
 			store.mu.RUnlock()
 			log.Printf("🐘 [PostgreSQL] Sembrados %d usuarios en tabla 'users'", len(store.users))
@@ -928,10 +1114,17 @@ func pgSaveUser(u User) {
 		return
 	}
 	go func() {
+		pwdHash := u.Password
+		if pwdHash != "" && !strings.HasPrefix(pwdHash, "$2") {
+			if h, err := hashPassword(pwdHash); err == nil {
+				pwdHash = h
+			}
+		}
 		_, err := db.Exec(`INSERT INTO users (id, email, password_hash, role, first_name, last_name, phone, locality, street, street_number, avatar_url, consecutive_months_buying, is_frequent_customer, frequent_points, total_purchases_count)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 		ON CONFLICT (id) DO UPDATE SET
 			email = EXCLUDED.email,
+			password_hash = CASE WHEN EXCLUDED.password_hash != '' THEN EXCLUDED.password_hash ELSE users.password_hash END,
 			role = EXCLUDED.role,
 			first_name = EXCLUDED.first_name,
 			last_name = EXCLUDED.last_name,
@@ -945,7 +1138,7 @@ func pgSaveUser(u User) {
 			frequent_points = EXCLUDED.frequent_points,
 			total_purchases_count = EXCLUDED.total_purchases_count,
 			updated_at = CURRENT_TIMESTAMP`,
-			u.ID, u.Email, u.Password, u.Role, u.FirstName, u.LastName, u.Phone, u.Locality, u.Street, u.StreetNumber, u.AvatarURL, u.ConsecutiveMonths, u.IsFrequentCustomer, u.FrequentPoints, u.TotalPurchasesCount)
+			u.ID, u.Email, pwdHash, u.Role, u.FirstName, u.LastName, u.Phone, u.Locality, u.Street, u.StreetNumber, u.AvatarURL, u.ConsecutiveMonths, u.IsFrequentCustomer, u.FrequentPoints, u.TotalPurchasesCount)
 		if err != nil {
 			log.Printf("⚠️ Error guardando usuario en PostgreSQL: %v", err)
 		}
@@ -1311,6 +1504,7 @@ func processMPPayment(paymentID string) {
 // ==========================================
 
 func main() {
+	initSessionSecret()
 	loadCatalog()
 	initRaffles()
 	initOrders()
@@ -1320,7 +1514,17 @@ func main() {
 	mux := http.NewServeMux()
 
 	// 1. Archivos estáticos en /public
-	fs := http.FileServer(http.Dir("./public"))
+	publicDir := "./public"
+	if fi, err := os.Stat(publicDir); err != nil || !fi.IsDir() {
+		exePath, err := os.Executable()
+		if err == nil {
+			cand := filepath.Join(filepath.Dir(exePath), "public")
+			if fi, err := os.Stat(cand); err == nil && fi.IsDir() {
+				publicDir = cand
+			}
+		}
+	}
+	fs := http.FileServer(http.Dir(publicDir))
 	mux.Handle("/", fs)
 
 	// ==========================================
@@ -1372,10 +1576,16 @@ func main() {
 			avatar = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80"
 		}
 
+		hashedPassword, err := hashPassword(req.Password)
+		if err != nil {
+			http.Error(w, "Error procesando contraseña", http.StatusInternalServerError)
+			return
+		}
+
 		newUser := User{
 			ID:                  int64(len(store.users) + 1),
 			Email:               req.Email,
-			Password:            req.Password,
+			Password:            hashedPassword,
 			Role:                "CLIENT",
 			FirstName:           req.FirstName,
 			LastName:            req.LastName,
@@ -1393,18 +1603,44 @@ func main() {
 		store.users = append(store.users, newUser)
 		pgSaveUser(newUser)
 
+		// Generar token y cookie de sesión
+		token := generateSessionToken(newUser)
+		http.SetCookie(w, &http.Cookie{
+			Name:     "kido_session",
+			Value:    token,
+			Path:     "/",
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+			Expires:  time.Now().Add(7 * 24 * time.Hour),
+		})
+
+		// Ocultar hash en la respuesta al cliente
+		userResp := newUser
+		userResp.Password = ""
+
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
-			"user":    newUser,
+			"user":    userResp,
+			"token":   token,
 			"message": "¡Cuenta de cliente creada exitosamente!",
 		})
 	})
 
-	// Login
+	// Login con Rate Limiting y Protección contra Fuerza Bruta
 	mux.HandleFunc("/api/auth/login", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if r.Method != http.MethodPost {
 			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+			return
+		}
+
+		ip := getClientIP(r)
+		if globalLimiter.IsLoginBlocked(ip) {
+			w.WriteHeader(http.StatusTooManyRequests)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "Demasiados intentos fallidos. Tu IP está temporalmente bloqueada por 5 minutos por seguridad.",
+			})
 			return
 		}
 
@@ -1417,20 +1653,56 @@ func main() {
 			return
 		}
 
-		store.mu.RLock()
-		defer store.mu.RUnlock()
+		store.mu.Lock()
+		defer store.mu.Unlock()
 
-		for _, u := range store.users {
-			if strings.EqualFold(u.Email, req.Email) && u.Password == req.Password {
-				json.NewEncoder(w).Encode(map[string]interface{}{
-					"success": true,
-					"user":    u,
-				})
-				return
+		for i := range store.users {
+			u := &store.users[i]
+			if strings.EqualFold(u.Email, req.Email) {
+				if checkPasswordHash(req.Password, u.Password) {
+					// Resetear contador de fallos para esta IP
+					globalLimiter.ResetFailedLogins(ip)
+
+					// Auto-migración si estaba en texto plano
+					if !strings.HasPrefix(u.Password, "$2") {
+						if newH, err := hashPassword(req.Password); err == nil {
+							u.Password = newH
+							pgSaveUser(*u)
+						}
+					}
+
+					token := generateSessionToken(*u)
+					http.SetCookie(w, &http.Cookie{
+						Name:     "kido_session",
+						Value:    token,
+						Path:     "/",
+						HttpOnly: true,
+						SameSite: http.SameSiteLaxMode,
+						Expires:  time.Now().Add(7 * 24 * time.Hour),
+					})
+
+					userResp := *u
+					userResp.Password = ""
+
+					json.NewEncoder(w).Encode(map[string]interface{}{
+						"success": true,
+						"user":    userResp,
+						"token":   token,
+					})
+					return
+				}
+				break
 			}
 		}
 
-		http.Error(w, "Credenciales incorrectas", http.StatusUnauthorized)
+		// Registrar fallo de autenticación para rate limiting
+		globalLimiter.RecordFailedLogin(ip)
+
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   "Credenciales incorrectas",
+		})
 	})
 
 	// Registro/Login con Google
@@ -1452,9 +1724,21 @@ func main() {
 
 		for _, u := range store.users {
 			if strings.EqualFold(u.Email, req.Email) {
+				token := generateSessionToken(u)
+				http.SetCookie(w, &http.Cookie{
+					Name:     "kido_session",
+					Value:    token,
+					Path:     "/",
+					HttpOnly: true,
+					SameSite: http.SameSiteLaxMode,
+					Expires:  time.Now().Add(7 * 24 * time.Hour),
+				})
+				userResp := u
+				userResp.Password = ""
 				json.NewEncoder(w).Encode(map[string]interface{}{
 					"success": true,
-					"user":    u,
+					"user":    userResp,
+					"token":   token,
 					"message": "Sesión iniciada con Google",
 				})
 				return
@@ -1480,10 +1764,60 @@ func main() {
 		}
 		store.users = append(store.users, newUser)
 
+		token := generateSessionToken(newUser)
+		http.SetCookie(w, &http.Cookie{
+			Name:     "kido_session",
+			Value:    token,
+			Path:     "/",
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+			Expires:  time.Now().Add(7 * 24 * time.Hour),
+		})
+
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
 			"user":    newUser,
+			"token":   token,
 			"message": "Registro completado con cuenta de Google",
+		})
+	})
+
+	// Obtener usuario en sesión actual (/api/auth/me)
+	mux.HandleFunc("/api/auth/me", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		user, err := getAuthenticatedUser(r)
+		if err != nil || user == nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "No autenticado",
+			})
+			return
+		}
+
+		userResp := *user
+		userResp.Password = ""
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"user":    userResp,
+		})
+	})
+
+	// Cerrar sesión (/api/auth/logout)
+	mux.HandleFunc("/api/auth/logout", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		http.SetCookie(w, &http.Cookie{
+			Name:     "kido_session",
+			Value:    "",
+			Path:     "/",
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+			Expires:  time.Unix(0, 0),
+			MaxAge:   -1,
+		})
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"message": "Sesión cerrada exitosamente",
 		})
 	})
 
@@ -1609,7 +1943,7 @@ func main() {
 	// ==========================================
 
 	// Subir archivo (Imagen)
-	mux.HandleFunc("/api/upload", func(w http.ResponseWriter, r *http.Request) {
+	uploadHandler := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		if r.Method != http.MethodPost {
 			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
@@ -1628,6 +1962,9 @@ func main() {
 			return
 		}
 		defer file.Close()
+
+		// Crear directorio si no existe
+		_ = os.MkdirAll(filepath.Join("public", "uploads"), 0755)
 
 		// Crear nombre único
 		ext := filepath.Ext(handler.Filename)
@@ -1650,33 +1987,36 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]string{
 			"url": "/uploads/" + filename,
 		})
-	})
+	}
+	mux.HandleFunc("/api/upload", requireAdmin(uploadHandler))
+	mux.HandleFunc("/api/admin/upload", requireAdmin(uploadHandler))
 
 	// Obtener Tipos de Producto
 	mux.HandleFunc("/api/product-types", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 
-		if !dbActive || db == nil {
-			json.NewEncoder(w).Encode([]ProductTypeModel{})
-			return
-		}
-
-		rows, err := db.Query("SELECT id, name, code FROM product_types ORDER BY name ASC")
-		if err != nil {
-			json.NewEncoder(w).Encode([]ProductTypeModel{})
-			return
-		}
-		defer rows.Close()
-
-		var types []ProductTypeModel
-		for rows.Next() {
-			var t ProductTypeModel
-			if err := rows.Scan(&t.ID, &t.Name, &t.Code); err == nil {
-				types = append(types, t)
+		if dbActive && db != nil {
+			rows, err := db.Query("SELECT id, name, code FROM product_types ORDER BY name ASC")
+			if err == nil {
+				var types []ProductTypeModel
+				for rows.Next() {
+					var t ProductTypeModel
+					if err := rows.Scan(&t.ID, &t.Name, &t.Code); err == nil {
+						types = append(types, t)
+					}
+				}
+				rows.Close()
+				if len(types) > 0 {
+					json.NewEncoder(w).Encode(types)
+					return
+				}
 			}
 		}
-		json.NewEncoder(w).Encode(types)
+
+		store.mu.RLock()
+		defer store.mu.RUnlock()
+		json.NewEncoder(w).Encode(store.productTypes)
 	})
 
 	// Obtener Marcas
@@ -1684,30 +2024,31 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 
-		if !dbActive || db == nil {
-			json.NewEncoder(w).Encode([]Brand{})
-			return
-		}
-
-		rows, err := db.Query("SELECT id, name, code, COALESCE(carrusel, false), COALESCE(imagen, '') FROM brands ORDER BY name ASC")
-		if err != nil {
-			json.NewEncoder(w).Encode([]Brand{})
-			return
-		}
-		defer rows.Close()
-
-		var brands []Brand
-		for rows.Next() {
-			var b Brand
-			if err := rows.Scan(&b.ID, &b.Name, &b.Code, &b.Carrusel, &b.Imagen); err == nil {
-				brands = append(brands, b)
+		if dbActive && db != nil {
+			rows, err := db.Query("SELECT id, name, code, COALESCE(carrusel, true), COALESCE(imagen, '') FROM brands ORDER BY name ASC")
+			if err == nil {
+				var brands []Brand
+				for rows.Next() {
+					var b Brand
+					if err := rows.Scan(&b.ID, &b.Name, &b.Code, &b.Carrusel, &b.Imagen); err == nil {
+						brands = append(brands, b)
+					}
+				}
+				rows.Close()
+				if len(brands) > 0 {
+					json.NewEncoder(w).Encode(brands)
+					return
+				}
 			}
 		}
-		json.NewEncoder(w).Encode(brands)
+
+		store.mu.RLock()
+		defer store.mu.RUnlock()
+		json.NewEncoder(w).Encode(store.brands)
 	})
 
 	// Crear o Actualizar Marca (Admin)
-	mux.HandleFunc("/api/admin/brands", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/admin/brands", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if r.Method != http.MethodPost {
 			http.Error(w, "Metodo no permitido", http.StatusMethodNotAllowed)
@@ -1720,23 +2061,41 @@ func main() {
 			return
 		}
 
-		if b.ID == 0 {
-			// Insert
-			err := db.QueryRow("INSERT INTO brands (name, code, carrusel, imagen) VALUES ($1, $2, $3, $4) RETURNING id", b.Name, b.Code, b.Carrusel, b.Imagen).Scan(&b.ID)
-			if err != nil {
-				http.Error(w, "Error creando marca: "+err.Error(), http.StatusInternalServerError)
-				return
-			}
-		} else {
-			// Update
-			_, err := db.Exec("UPDATE brands SET name=$1, code=$2, carrusel=$3, imagen=$4 WHERE id=$5", b.Name, b.Code, b.Carrusel, b.Imagen, b.ID)
-			if err != nil {
-				http.Error(w, "Error actualizando marca: "+err.Error(), http.StatusInternalServerError)
-				return
+		if dbActive && db != nil {
+			if b.ID == 0 {
+				err := db.QueryRow("INSERT INTO brands (name, code, carrusel, imagen) VALUES ($1, $2, $3, $4) RETURNING id", b.Name, b.Code, b.Carrusel, b.Imagen).Scan(&b.ID)
+				if err != nil {
+					http.Error(w, "Error creando marca: "+err.Error(), http.StatusInternalServerError)
+					return
+				}
+			} else {
+				_, err := db.Exec("UPDATE brands SET name=$1, code=$2, carrusel=$3, imagen=$4 WHERE id=$5", b.Name, b.Code, b.Carrusel, b.Imagen, b.ID)
+				if err != nil {
+					http.Error(w, "Error actualizando marca: "+err.Error(), http.StatusInternalServerError)
+					return
+				}
 			}
 		}
+
+		store.mu.Lock()
+		updated := false
+		for i := range store.brands {
+			if store.brands[i].ID == b.ID || strings.EqualFold(store.brands[i].Name, b.Name) {
+				store.brands[i] = b
+				updated = true
+				break
+			}
+		}
+		if !updated {
+			if b.ID == 0 {
+				b.ID = int64(len(store.brands) + 1)
+			}
+			store.brands = append(store.brands, b)
+		}
+		store.mu.Unlock()
+
 		json.NewEncoder(w).Encode(b)
-	})
+	}))
 
 	// Obtener Productos (con filtros)
 	mux.HandleFunc("/api/products", func(w http.ResponseWriter, r *http.Request) {
@@ -1786,7 +2145,7 @@ func main() {
 	})
 
 	// Crear Nuevo Artículo (Admin)
-	mux.HandleFunc("/api/admin/products", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/admin/products", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if r.Method != http.MethodPost {
 			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
@@ -1844,10 +2203,10 @@ func main() {
 			"product": p,
 			"message": "Artículo agregado correctamente al catálogo",
 		})
-	})
+	}))
 
 	// Carga Masiva de Stock
-	mux.HandleFunc("/api/admin/stock/bulk-add", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/admin/stock/bulk-add", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if r.Method != http.MethodPost {
 			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
@@ -1894,7 +2253,7 @@ func main() {
 		}
 
 		http.Error(w, "Producto no encontrado", http.StatusNotFound)
-	})
+	}))
 
 	// ==========================================
 	// RIFAS & SORTEOS
@@ -1944,7 +2303,7 @@ func main() {
 	})
 
 	// Crear Nueva Rifa (Admin)
-	mux.HandleFunc("/api/admin/raffles", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/admin/raffles", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if r.Method != http.MethodPost {
 			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
@@ -1994,10 +2353,10 @@ func main() {
 			"raffle":  newRaffle,
 			"message": "Rifa creada y abierta al público",
 		})
-	})
+	}))
 
 	// Datos en Vivo para Ruleta / Sorteo en Vivo (Streams & OBS)
-	mux.HandleFunc("/api/admin/raffles/live-data", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/admin/raffles/live-data", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		store.mu.RLock()
 		defer store.mu.RUnlock()
@@ -2070,10 +2429,10 @@ func main() {
 			"participants": participants,
 			"all_raffles":  raffleList,
 		})
-	})
+	}))
 
 	// Ejecutar Sorteo y Registrar Ganador Oficial
-	mux.HandleFunc("/api/admin/raffles/draw", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/admin/raffles/draw", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if r.Method != http.MethodPost {
 			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
@@ -2148,10 +2507,10 @@ func main() {
 			},
 			"raffle": target,
 		})
-	})
+	}))
 
 	// Reiniciar Rifa a Estado Activa (Para Pruebas y Streams)
-	mux.HandleFunc("/api/admin/raffles/reset", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/admin/raffles/reset", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if r.Method != http.MethodPost {
 			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
@@ -2184,7 +2543,7 @@ func main() {
 			}
 		}
 		http.Error(w, "Rifa no encontrada", http.StatusNotFound)
-	})
+	}))
 
 	// Comprar Número de Rifa (o reclamar número gratis si es cliente frecuente)
 	mux.HandleFunc("/api/raffles/buy", func(w http.ResponseWriter, r *http.Request) {
@@ -2774,7 +3133,7 @@ func main() {
 	// ==========================================
 	// USUARIOS (ADMIN VIEW)
 	// ==========================================
-	mux.HandleFunc("/api/admin/users", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/admin/users", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		store.mu.RLock()
 		defer store.mu.RUnlock()
@@ -2797,10 +3156,10 @@ func main() {
 		}
 
 		json.NewEncoder(w).Encode(safeUsers)
-	})
+	}))
 
 	// Toggle / Otorgar insignia de Cliente Frecuente
-	mux.HandleFunc("/api/admin/users/toggle-frequent", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/admin/users/toggle-frequent", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if r.Method != http.MethodPost {
 			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
@@ -2851,12 +3210,12 @@ func main() {
 		}
 
 		http.Error(w, "Usuario no encontrado", http.StatusNotFound)
-	})
+	}))
 
 	// ==========================================
 	// MÉTRICAS & CONTABILIDAD (ADMIN DASHBOARD)
 	// ==========================================
-	mux.HandleFunc("/api/admin/metrics", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/admin/metrics", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		store.mu.RLock()
 		defer store.mu.RUnlock()
@@ -2900,10 +3259,10 @@ func main() {
 			"db_status":                 "PostgreSQL kido_db (localhost:5432)",
 			"db_active":                 dbActive,
 		})
-	})
+	}))
 
 	// Gastos
-	mux.HandleFunc("/api/admin/expenses", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/admin/expenses", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if r.Method == http.MethodPost {
 			var newExp Expense
@@ -2927,7 +3286,7 @@ func main() {
 		store.mu.RLock()
 		defer store.mu.RUnlock()
 		json.NewEncoder(w).Encode(store.expenses)
-	})
+	}))
 
 	// Webhook de Mercado Pago
 	mux.HandleFunc("/api/webhooks/mercadopago", func(w http.ResponseWriter, r *http.Request) {
@@ -2966,7 +3325,7 @@ func main() {
 	})
 
 	// Configuración de Mercado Pago (Admin Panel)
-	mux.HandleFunc("/api/admin/mercadopago/config", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/admin/mercadopago/config", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if r.Method == http.MethodPost {
 			var newCfg MPConfig
@@ -3015,10 +3374,10 @@ func main() {
 			"public_key":    mpConfig.PublicKey,
 			"webhook_url":   "/api/webhooks/mercadopago",
 		})
-	})
+	}))
 
 	// Purchase Orders
-	mux.HandleFunc("/api/admin/purchase-orders", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/admin/purchase-orders", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if r.Method == http.MethodPost {
 			var newPO PurchaseOrder
@@ -3043,9 +3402,18 @@ func main() {
 		store.mu.RLock()
 		defer store.mu.RUnlock()
 		json.NewEncoder(w).Encode(store.purchaseOrders)
-	})
+	}))
 
 	port := 8080
+	if p := os.Getenv("PORT"); p != "" {
+		if pNum, err := strconv.Atoi(p); err == nil && pNum > 0 {
+			port = pNum
+		}
+	}
+
+	// Wrapper global con CORS y Rate Limiter
+	handler := corsMiddleware(rateLimitMiddleware(mux))
+
 	fmt.Printf("\n======================================================\n")
 	fmt.Printf("🚀 SERVIDOR KIDO DIECAST & COLLECTIBLES (ECOMMERCE & ADMIN)\n")
 	fmt.Printf("👉 Tienda Frontend:     http://localhost:%d/\n", port)
@@ -3053,9 +3421,10 @@ func main() {
 	fmt.Printf("👉 API Productos:       http://localhost:%d/api/products\n", port)
 	fmt.Printf("👉 API Rankings:        http://localhost:%d/api/rankings\n", port)
 	fmt.Printf("👉 API Rifas & Sorteos: http://localhost:%d/api/raffles\n", port)
+	fmt.Printf("🛡️  Seguridad: Rate Limiting & Admin Auth ACTIVOS\n")
 	fmt.Printf("======================================================\n\n")
 
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", port), mux); err != nil {
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", port), handler); err != nil {
 		log.Fatalf("Error iniciando servidor: %v", err)
 	}
 }

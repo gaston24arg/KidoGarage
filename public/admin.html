@@ -74,8 +74,18 @@
       <a href="index.html" class="bg-brandSurface hover:bg-brandBorder border border-brandBorder text-gray-300 hover:text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
         <span>🏪</span> Ir a la Tienda
       </a>
-      <div class="w-8 h-8 rounded-full bg-brandAccent flex items-center justify-center text-white font-bold text-xs">
-        KG
+      <!-- Admin User Badge & Logout -->
+      <div id="adminUserHeader" class="flex items-center gap-2 pl-2 border-l border-brandBorder">
+        <div id="adminUserAvatar" class="w-8 h-8 rounded-full bg-brandAccent flex items-center justify-center text-white font-bold text-xs ring-2 ring-brandAccent/40 overflow-hidden">
+          KG
+        </div>
+        <div class="hidden lg:block text-left">
+          <div id="adminUserEmail" class="text-xs font-bold text-white leading-tight">Admin</div>
+          <span class="text-[9px] text-emerald-400 font-semibold tracking-wider uppercase">Sesión Segura</span>
+        </div>
+        <button onclick="doAdminLogout()" title="Cerrar Sesión de Administrador" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1">
+          <span>🔒</span> Salir
+        </button>
       </div>
     </div>
   </header>
@@ -801,12 +811,12 @@
 
       </div>
     </section>
-
   </main>
   </div>
 
   <!-- JAVASCRIPT DEL ADMIN -->
   <script>
+    let currentAdminUser = null;
     let adminProducts = [];
     let adminOrders = [];
     let adminBrands = [];
@@ -817,6 +827,110 @@
 
     function formatARS(val) {
       return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(val);
+    }
+
+    async function checkAdminSession() {
+      try {
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.user && data.user.role === 'ADMIN') {
+            currentAdminUser = data.user;
+            updateAdminHeaderUI(data.user);
+            closeAdminAuthModal();
+            await loadAllAdminData();
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Error verificando sesión admin:', e);
+      }
+      openAdminAuthModal('Inicia sesión con credenciales de Administrador para acceder al panel.');
+    }
+
+    function updateAdminHeaderUI(user) {
+      if (!user) return;
+      const emailEl = document.getElementById('adminUserEmail');
+      const avatarEl = document.getElementById('adminUserAvatar');
+      if (emailEl) emailEl.textContent = user.first_name ? `${user.first_name} (${user.role})` : user.email;
+      if (avatarEl) {
+        if (user.avatar_url) {
+          avatarEl.innerHTML = `<img src="${user.avatar_url}" class="w-full h-full object-cover" onerror="this.parentElement.textContent='KG'" />`;
+        } else {
+          avatarEl.textContent = (user.first_name ? user.first_name[0] : 'A').toUpperCase();
+        }
+      }
+    }
+
+    function openAdminAuthModal(msg) {
+      const modal = document.getElementById('adminAuthModal');
+      const errBox = document.getElementById('adminLoginErr');
+      if (modal) modal.classList.remove('hidden');
+      if (errBox && msg) {
+        errBox.textContent = msg;
+        errBox.classList.remove('hidden');
+      }
+    }
+
+    function closeAdminAuthModal() {
+      const modal = document.getElementById('adminAuthModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    async function handleAdminLoginSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('adminLoginEmail').value.trim();
+      const password = document.getElementById('adminLoginPass').value;
+      const errBox = document.getElementById('adminLoginErr');
+      const btn = document.getElementById('adminLoginBtn');
+
+      errBox.classList.add('hidden');
+      btn.disabled = true;
+      btn.textContent = 'Verificando...';
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+          credentials: 'include'
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          errBox.textContent = data.error || 'Credenciales incorrectas o acceso restringido';
+          errBox.classList.remove('hidden');
+          btn.disabled = false;
+          btn.textContent = 'Ingresar al Panel';
+          return;
+        }
+
+        if (data.user.role !== 'ADMIN') {
+          errBox.textContent = 'Acceso denegado: Tu cuenta no tiene permisos de Administrador.';
+          errBox.classList.remove('hidden');
+          btn.disabled = false;
+          btn.textContent = 'Ingresar al Panel';
+          return;
+        }
+
+        currentAdminUser = data.user;
+        updateAdminHeaderUI(data.user);
+        closeAdminAuthModal();
+        await loadAllAdminData();
+      } catch (err) {
+        errBox.textContent = 'Error de conexión con el servidor.';
+        errBox.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Ingresar al Panel';
+      }
+    }
+
+    async function doAdminLogout() {
+      try {
+        await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+      } catch (e) {}
+      location.reload();
     }
 
     async function loadAllAdminData() {
@@ -1756,8 +1870,57 @@
       activeBtn.classList.add('bg-brandAccent', 'text-white');
     }
 
-    document.addEventListener('DOMContentLoaded', loadAllAdminData);
+    document.addEventListener('DOMContentLoaded', checkAdminSession);
   </script>
+
+  <!-- MODAL DE ACCESO / AUTENTICACIÓN ADMIN -->
+  <div id="adminAuthModal" class="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-xl hidden flex items-center justify-center p-4">
+    <div class="bg-brandCard border border-brandBorder rounded-3xl max-w-md w-full p-8 shadow-2xl relative space-y-6 animate-in fade-in zoom-in duration-200">
+      
+      <div class="text-center space-y-2">
+        <div class="w-16 h-16 rounded-2xl bg-brandAccent/20 border border-brandAccent/40 flex items-center justify-center text-3xl mx-auto ring-4 ring-brandAccent/10">
+          🛡️
+        </div>
+        <h2 class="text-2xl font-black text-white font-display">Acceso Administrativo</h2>
+        <p class="text-xs text-gray-400">Panel de Control & Gestión Segura KIDO GARAGE</p>
+      </div>
+
+      <div id="adminLoginErr" class="hidden p-3 rounded-xl bg-red-950/50 border border-red-500/50 text-xs text-red-200 font-semibold text-center">
+        <!-- Error message -->
+      </div>
+
+      <form onsubmit="handleAdminLoginSubmit(event)" class="space-y-4 text-xs">
+        <div>
+          <label class="block text-gray-300 font-bold mb-1.5 uppercase tracking-wider text-[11px]">Usuario o Correo Electrónico</label>
+          <div class="relative">
+            <span class="absolute left-3.5 top-3.5 text-gray-400">👤</span>
+            <input required id="adminLoginEmail" type="text" placeholder="admin o admin@kido.com" class="w-full bg-brandSurface border border-brandBorder rounded-xl p-3 pl-10 text-white font-semibold focus:border-brandAccent focus:outline-none focus:ring-1 focus:ring-brandAccent transition">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-gray-300 font-bold mb-1.5 uppercase tracking-wider text-[11px]">Contraseña de Administrador</label>
+          <div class="relative">
+            <span class="absolute left-3.5 top-3.5 text-gray-400">🔑</span>
+            <input required id="adminLoginPass" type="password" placeholder="••••••••" class="w-full bg-brandSurface border border-brandBorder rounded-xl p-3 pl-10 text-white font-semibold focus:border-brandAccent focus:outline-none focus:ring-1 focus:ring-brandAccent transition">
+          </div>
+        </div>
+
+        <div class="pt-2">
+          <button type="submit" id="adminLoginBtn" class="w-full bg-brandAccent hover:bg-brandAccentHover text-white py-3.5 rounded-xl font-bold uppercase tracking-wider text-xs transition shadow-lg shadow-brandAccent/30 flex items-center justify-center gap-2">
+            <span>🔓</span> Ingresar al Panel
+          </button>
+        </div>
+
+        <div class="text-center pt-2">
+          <a href="index.html" class="text-gray-400 hover:text-gray-200 text-xs transition inline-flex items-center gap-1.5">
+            <span>←</span> Volver a la Tienda Pública
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- MODAL DE CARGA DE SEGUIMIENTO (TRACKING) -->
   <div id="adminTrackingModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
     <div class="bg-brandCard border border-brandBorder rounded-3xl max-w-md w-full p-6 shadow-2xl relative space-y-4">

@@ -13,3 +13,6 @@ Desktop.ini
 .vscode/
 .idea/
 *.log
+cookies.txt
+.env
+

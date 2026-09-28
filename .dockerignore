@@ -1,0 +1,6 @@
+.git
+*.exe
+*.exe~
+.env
+cookies.txt
+.system_generated

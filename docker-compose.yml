@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  # Base de Datos PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: kido_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-kido_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kido_secure_pass_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-kido_garage}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kido_user} -d ${POSTGRES_DB:-kido_garage}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Aplicación Web Kido Garage (Backend Go + Frontend)
+  app:
+    build: .
+    container_name: kido_app
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 8080
+      DATABASE_URL: postgres://${POSTGRES_USER:-kido_user}:${POSTGRES_PASSWORD:-kido_secure_pass_2026}@postgres:5432/${POSTGRES_DB:-kido_garage}?sslmode=disable
+      SESSION_SECRET: ${SESSION_SECRET:-change_this_to_a_random_32char_secret}
+      ALLOWED_ORIGIN: ${ALLOWED_ORIGIN:-*}
+      MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN:-}
+      MP_PUBLIC_KEY: ${MP_PUBLIC_KEY:-}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./public/uploads:/app/public/uploads
+
+volumes:
+  pgdata:
