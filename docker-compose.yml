@@ -34,6 +34,7 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-kido_user}:${POSTGRES_PASSWORD:-kido_secure_pass_2026}@postgres:5432/${POSTGRES_DB:-kido_garage}?sslmode=disable
       SESSION_SECRET: ${SESSION_SECRET:-change_this_to_a_random_32char_secret}
       ALLOWED_ORIGIN: ${ALLOWED_ORIGIN:-*}
+      SEED_SAMPLE_DATA: ${SEED_SAMPLE_DATA:-false}
       MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN:-}
       MP_PUBLIC_KEY: ${MP_PUBLIC_KEY:-}
     ports:
