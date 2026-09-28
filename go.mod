@@ -1,8 +1,8 @@
 module kido
 
-go 1.24
+go 1.22
 
 require (
-	github.com/lib/pq v1.12.3 // indirect
-	golang.org/x/crypto v0.57.0 // indirect
+	github.com/lib/pq v1.10.9
+	golang.org/x/crypto v0.31.0
 )
