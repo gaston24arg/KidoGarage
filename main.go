@@ -23,6 +23,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"net"
+
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -330,23 +331,23 @@ func corsMiddleware(next http.Handler) http.Handler {
 // ==========================================
 
 type User struct {
-	ID                     int64  `json:"id"`
-	Email                  string `json:"email"` // Nombre de usuario
-	Password               string `json:"password,omitempty"`
-	Role                   string `json:"role"` // "ADMIN" o "CLIENT"
-	GoogleID               string `json:"google_id,omitempty"`
-	FirstName              string `json:"first_name"`
-	LastName               string `json:"last_name"`
-	Phone                  string `json:"phone"`
-	Locality               string `json:"locality"`
-	Street                 string `json:"street"`
-	StreetNumber           string `json:"street_number"`
-	AvatarURL              string `json:"avatar_url"`
-	ConsecutiveMonths      int    `json:"consecutive_months"` // Meses seguidos con compra
-	IsFrequentCustomer     bool   `json:"is_frequent_customer"` // true si > 3 meses
-	FrequentPoints         int    `json:"frequent_points"`     // 1 pt por cada mes extra después de los 3 meses
-	TotalPurchasesCount    int    `json:"total_purchases_count"` // 1 pt por cada compra
-	HasClaimedFreeRaffle   bool   `json:"has_claimed_free_raffle"` // 1 ticket gratis por sorteo
+	ID                   int64  `json:"id"`
+	Email                string `json:"email"` // Nombre de usuario
+	Password             string `json:"password,omitempty"`
+	Role                 string `json:"role"` // "ADMIN" o "CLIENT"
+	GoogleID             string `json:"google_id,omitempty"`
+	FirstName            string `json:"first_name"`
+	LastName             string `json:"last_name"`
+	Phone                string `json:"phone"`
+	Locality             string `json:"locality"`
+	Street               string `json:"street"`
+	StreetNumber         string `json:"street_number"`
+	AvatarURL            string `json:"avatar_url"`
+	ConsecutiveMonths    int    `json:"consecutive_months"`      // Meses seguidos con compra
+	IsFrequentCustomer   bool   `json:"is_frequent_customer"`    // true si > 3 meses
+	FrequentPoints       int    `json:"frequent_points"`         // 1 pt por cada mes extra después de los 3 meses
+	TotalPurchasesCount  int    `json:"total_purchases_count"`   // 1 pt por cada compra
+	HasClaimedFreeRaffle bool   `json:"has_claimed_free_raffle"` // 1 ticket gratis por sorteo
 }
 
 type ProductVariant struct {
@@ -371,7 +372,6 @@ type Brand struct {
 	Imagen   string `json:"imagen"`
 }
 
-
 type ProductTypeModel struct {
 	ID   int64  `json:"id"`
 	Name string `json:"name"`
@@ -388,7 +388,7 @@ type Product struct {
 	BrandID        *int64           `json:"brand_id,omitempty"`
 	ProductType    string           `json:"product_type"` // "Autito", "Remera", "Sticker"
 	ProductTypeID  *int64           `json:"product_type_id,omitempty"`
-	Scale          string           `json:"scale,omitempty"` // Requerido si Autito (1:64, 1:43, 1:18)
+	Scale          string           `json:"scale,omitempty"`        // Requerido si Autito (1:64, 1:43, 1:18)
 	ApparelSize    string           `json:"apparel_size,omitempty"` // Requerido si Remera (S, M, L, XL, XXL)
 	Tags           []string         `json:"tags"`
 	Variants       []ProductVariant `json:"variants"`
@@ -408,15 +408,15 @@ type ProductCatalog struct {
 }
 
 type PartialPayment struct {
-	ID              int64     `json:"id"`
-	OrderID         int64     `json:"order_id"`
-	ProductID       int64     `json:"product_id"`
-	AmountARS       int       `json:"amount_ars"`
-	PaymentMethod   string    `json:"payment_method"`
-	MercadoPagoID   string    `json:"mercadopago_id"`
-	PaymentStatus   string    `json:"payment_status"` // "approved"
-	IsDownPayment   bool      `json:"is_downpayment"` // Seña/reserva
-	CreatedAt       time.Time `json:"created_at"`
+	ID            int64     `json:"id"`
+	OrderID       int64     `json:"order_id"`
+	ProductID     int64     `json:"product_id"`
+	AmountARS     int       `json:"amount_ars"`
+	PaymentMethod string    `json:"payment_method"`
+	MercadoPagoID string    `json:"mercadopago_id"`
+	PaymentStatus string    `json:"payment_status"` // "approved"
+	IsDownPayment bool      `json:"is_downpayment"` // Seña/reserva
+	CreatedAt     time.Time `json:"created_at"`
 }
 
 type OrderItem struct {
@@ -440,7 +440,7 @@ type Order struct {
 	RemainingBalanceARS int              `json:"remaining_balance_ars"`
 	IsFullyPaid         bool             `json:"is_fully_paid"`
 	DeliveryStatus      string           `json:"delivery_status"` // "BLOQUEADO_POR_SALDO", "LISTO_PARA_DESPACHAR", "EN_CAMINO", "ENTREGADO"
-	OrderType           string           `json:"order_type"` // "VENTA_DIRECTA" o "PRE_VENTA_CON_SEÑA"
+	OrderType           string           `json:"order_type"`      // "VENTA_DIRECTA" o "PRE_VENTA_CON_SEÑA"
 	ShippingMethod      string           `json:"shipping_method"` // "Correo Argentino - Envío a Domicilio", "Correo Argentino - Sucursal", "Andreani Express", "Punto de Retiro KIDO"
 	ShippingCostARS     int              `json:"shipping_cost_ars"`
 	ShippingPostalCode  string           `json:"shipping_postal_code"`
@@ -464,30 +464,30 @@ type ShippingOption struct {
 }
 
 type RaffleTicket struct {
-	Number           int       `json:"number"`
-	CustomerID       int64     `json:"customer_id"`
-	CustomerEmail    string    `json:"customer_email"`
-	CustomerName     string    `json:"customer_name"`
-	IsFreeTicket     bool      `json:"is_free_ticket"`
-	MercadoPagoID    string    `json:"mercadopago_id"`
-	PurchasedAt      time.Time `json:"purchased_at"`
+	Number        int       `json:"number"`
+	CustomerID    int64     `json:"customer_id"`
+	CustomerEmail string    `json:"customer_email"`
+	CustomerName  string    `json:"customer_name"`
+	IsFreeTicket  bool      `json:"is_free_ticket"`
+	MercadoPagoID string    `json:"mercadopago_id"`
+	PurchasedAt   time.Time `json:"purchased_at"`
 }
 
 type Raffle struct {
-	ID               int64               `json:"id"`
-	RaffleNumber     string              `json:"raffle_number"` // "RIFA-#01-CHASE-R34"
-	Title            string              `json:"title"`
-	PrizeDescription string              `json:"prize_description"`
-	PrizeImages      []string            `json:"prize_images"`
-	StartDatetime    string              `json:"start_datetime"`
-	EndDatetime      string              `json:"end_datetime"`
-	DrawDatetime     string              `json:"draw_datetime"`
-	MinNumber        int                 `json:"min_number"` // ej: 0
-	MaxNumber        int                 `json:"max_number"` // ej: 99
-	TicketPriceARS   int                 `json:"ticket_price_ars"`
-	Status           string              `json:"status"` // "ACTIVA", "FINALIZADA", "SORTEADA"
+	ID               int64                `json:"id"`
+	RaffleNumber     string               `json:"raffle_number"` // "RIFA-#01-CHASE-R34"
+	Title            string               `json:"title"`
+	PrizeDescription string               `json:"prize_description"`
+	PrizeImages      []string             `json:"prize_images"`
+	StartDatetime    string               `json:"start_datetime"`
+	EndDatetime      string               `json:"end_datetime"`
+	DrawDatetime     string               `json:"draw_datetime"`
+	MinNumber        int                  `json:"min_number"` // ej: 0
+	MaxNumber        int                  `json:"max_number"` // ej: 99
+	TicketPriceARS   int                  `json:"ticket_price_ars"`
+	Status           string               `json:"status"`  // "ACTIVA", "FINALIZADA", "SORTEADA"
 	Tickets          map[int]RaffleTicket `json:"tickets"` // number -> ticket
-	WinnerNumber     *int                `json:"winner_number,omitempty"`
+	WinnerNumber     *int                 `json:"winner_number,omitempty"`
 }
 
 type Expense struct {
@@ -800,58 +800,58 @@ func loadCatalog() {
 	// Remeras y Stickers
 	apparelAndStickers := []Product{
 		{
-			ID:             999001,
-			Title:          "Remera Oversize JDM Culture Black - KIDO Garage",
-			Handle:         "remera-oversize-jdm-culture-black",
-			BodyHTML:       "<p>Remera 100% Algodón Peinado 24/1 pesado. Estampa serigráfica de alta durabilidad en espalda y pecho. Corte boxy fit oversize japonés.</p>",
-			Vendor:         "KIDO Apparel",
-			ProductType:    "Remera",
-			ApparelSize:    "L (Oversize)",
-			Scale:          "",
-			Tags:           []string{"Indumentaria", "Remeras", "JDM", "Streetwear"},
-			PriceARS:       14000,
-			PriceUSD:       "10.50",
-			Status:         "STOCK",
-			StockQuantity:  40,
-			IsActive:       true,
-			GalleryImages:  []string{"https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80"},
-			ShortVideoURL:  "",
+			ID:            999001,
+			Title:         "Remera Oversize JDM Culture Black - KIDO Garage",
+			Handle:        "remera-oversize-jdm-culture-black",
+			BodyHTML:      "<p>Remera 100% Algodón Peinado 24/1 pesado. Estampa serigráfica de alta durabilidad en espalda y pecho. Corte boxy fit oversize japonés.</p>",
+			Vendor:        "KIDO Apparel",
+			ProductType:   "Remera",
+			ApparelSize:   "L (Oversize)",
+			Scale:         "",
+			Tags:          []string{"Indumentaria", "Remeras", "JDM", "Streetwear"},
+			PriceARS:      14000,
+			PriceUSD:      "10.50",
+			Status:        "STOCK",
+			StockQuantity: 40,
+			IsActive:      true,
+			GalleryImages: []string{"https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80"},
+			ShortVideoURL: "",
 		},
 		{
-			ID:             999002,
-			Title:          "Pack x10 Stickers Vinilo Holográfico Resistente al Agua",
-			Handle:         "pack-10-stickers-vinilo-diecast-jdm",
-			BodyHTML:       "<p>Pack de 10 stickers troquelados de vinilo premium con laminado UV resistente a la intemperie y agua. Diseños exclusivos de Kaido House, Mini GT, Pop Race y KIDO Garage.</p>",
-			Vendor:         "KIDO Accessories",
-			ProductType:    "Sticker",
-			Scale:          "",
-			ApparelSize:    "",
-			Tags:           []string{"Accesorios", "Stickers", "Vinyl", "JDM"},
-			PriceARS:       3500,
-			PriceUSD:       "2.60",
-			Status:         "STOCK",
-			StockQuantity:  100,
-			IsActive:       true,
-			GalleryImages:  []string{"https://images.unsplash.com/photo-1589384267710-7a170981ca78?auto=format&fit=crop&w=800&q=80"},
-			ShortVideoURL:  "",
+			ID:            999002,
+			Title:         "Pack x10 Stickers Vinilo Holográfico Resistente al Agua",
+			Handle:        "pack-10-stickers-vinilo-diecast-jdm",
+			BodyHTML:      "<p>Pack de 10 stickers troquelados de vinilo premium con laminado UV resistente a la intemperie y agua. Diseños exclusivos de Kaido House, Mini GT, Pop Race y KIDO Garage.</p>",
+			Vendor:        "KIDO Accessories",
+			ProductType:   "Sticker",
+			Scale:         "",
+			ApparelSize:   "",
+			Tags:          []string{"Accesorios", "Stickers", "Vinyl", "JDM"},
+			PriceARS:      3500,
+			PriceUSD:      "2.60",
+			Status:        "STOCK",
+			StockQuantity: 100,
+			IsActive:      true,
+			GalleryImages: []string{"https://images.unsplash.com/photo-1589384267710-7a170981ca78?auto=format&fit=crop&w=800&q=80"},
+			ShortVideoURL: "",
 		},
 		{
-			ID:             999003,
-			Title:          "Buzo Hoodie JDM Kanjozoku Night Runner",
-			Handle:         "buzo-hoodie-jdm-kanjozoku-night-runner",
-			BodyHTML:       "<p>Buzo canguro con frisa invisible premium, interior abrigado y capucha forrada. Gráficos inspirados en el Loop One de Osaka.</p>",
-			Vendor:         "KIDO Apparel",
-			ProductType:    "Remera",
-			ApparelSize:    "XL",
-			Scale:          "",
-			Tags:           []string{"Indumentaria", "Hoodies", "JDM"},
-			PriceARS:       38000,
-			PriceUSD:       "28.00",
-			Status:         "STOCK",
-			StockQuantity:  15,
-			IsActive:       true,
-			GalleryImages:  []string{"https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=80"},
-			ShortVideoURL:  "",
+			ID:            999003,
+			Title:         "Buzo Hoodie JDM Kanjozoku Night Runner",
+			Handle:        "buzo-hoodie-jdm-kanjozoku-night-runner",
+			BodyHTML:      "<p>Buzo canguro con frisa invisible premium, interior abrigado y capucha forrada. Gráficos inspirados en el Loop One de Osaka.</p>",
+			Vendor:        "KIDO Apparel",
+			ProductType:   "Remera",
+			ApparelSize:   "XL",
+			Scale:         "",
+			Tags:          []string{"Indumentaria", "Hoodies", "JDM"},
+			PriceARS:      38000,
+			PriceUSD:      "28.00",
+			Status:        "STOCK",
+			StockQuantity: 15,
+			IsActive:      true,
+			GalleryImages: []string{"https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=80"},
+			ShortVideoURL: "",
 		},
 	}
 
@@ -2499,10 +2499,10 @@ func main() {
 			"raffle_id":      target.ID,
 			"winning_number": chosenNumber,
 			"winner": map[string]interface{}{
-				"number":        chosenNumber,
-				"name":          ticket.CustomerName,
-				"email":         ticket.CustomerEmail,
-				"is_free":       ticket.IsFreeTicket,
+				"number":         chosenNumber,
+				"name":           ticket.CustomerName,
+				"email":          ticket.CustomerEmail,
+				"is_free":        ticket.IsFreeTicket,
 				"mercadopago_id": ticket.MercadoPagoID,
 			},
 			"raffle": target,
@@ -2627,11 +2627,11 @@ func main() {
 		pgSaveRaffleTicket(targetRaffle.ID, targetRaffle.Tickets[req.Number])
 
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success":          true,
-			"ticket_number":    req.Number,
-			"is_free":          isFree,
-			"mercadopago_id":   mpID,
-			"message":          fmt.Sprintf("¡Número %d asignado con éxito para %s!", req.Number, req.CustomerName),
+			"success":        true,
+			"ticket_number":  req.Number,
+			"is_free":        isFree,
+			"mercadopago_id": mpID,
+			"message":        fmt.Sprintf("¡Número %d asignado con éxito para %s!", req.Number, req.CustomerName),
 		})
 	})
 
@@ -2861,17 +2861,17 @@ func main() {
 				pgSaveOrder(*ord)
 
 				json.NewEncoder(w).Encode(map[string]interface{}{
-					"success":                true,
-					"order_id":               ord.ID,
-					"amount_paid":            req.AmountARS,
-					"remaining_balance_ars":  ord.RemainingBalanceARS,
-					"is_fully_paid":          ord.IsFullyPaid,
-					"delivery_status":        ord.DeliveryStatus,
-					"init_point":             initPoint,
-					"sandbox_init_point":     sandboxInitPoint,
-					"preference_id":          prefID,
-					"is_real_mp":             mpConfig.AccessToken != "",
-					"message":                "Pago de saldo procesado exitosamente.",
+					"success":               true,
+					"order_id":              ord.ID,
+					"amount_paid":           req.AmountARS,
+					"remaining_balance_ars": ord.RemainingBalanceARS,
+					"is_fully_paid":         ord.IsFullyPaid,
+					"delivery_status":       ord.DeliveryStatus,
+					"init_point":            initPoint,
+					"sandbox_init_point":    sandboxInitPoint,
+					"preference_id":         prefID,
+					"is_real_mp":            mpConfig.AccessToken != "",
+					"message":               "Pago de saldo procesado exitosamente.",
 				})
 				return
 			}
@@ -3141,17 +3141,17 @@ func main() {
 		var safeUsers []map[string]interface{}
 		for _, u := range store.users {
 			safeUsers = append(safeUsers, map[string]interface{}{
-				"id":                     u.ID,
-				"email":                  u.Email,
-				"role":                   u.Role,
-				"name":                   u.FirstName + " " + u.LastName,
-				"phone":                  u.Phone,
-				"address":                fmt.Sprintf("%s %s, %s", u.Street, u.StreetNumber, u.Locality),
-				"consecutive_months":     u.ConsecutiveMonths,
-				"is_frequent_customer":   u.IsFrequentCustomer,
-				"frequent_points":        u.FrequentPoints,
-				"total_purchases_count":  u.TotalPurchasesCount,
-				"avatar_url":             u.AvatarURL,
+				"id":                    u.ID,
+				"email":                 u.Email,
+				"role":                  u.Role,
+				"name":                  u.FirstName + " " + u.LastName,
+				"phone":                 u.Phone,
+				"address":               fmt.Sprintf("%s %s, %s", u.Street, u.StreetNumber, u.Locality),
+				"consecutive_months":    u.ConsecutiveMonths,
+				"is_frequent_customer":  u.IsFrequentCustomer,
+				"frequent_points":       u.FrequentPoints,
+				"total_purchases_count": u.TotalPurchasesCount,
+				"avatar_url":            u.AvatarURL,
 			})
 		}
 
@@ -3356,12 +3356,12 @@ func main() {
 			}
 
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"success":      true,
-				"message":      "Credenciales de Mercado Pago guardadas y validadas exitosamente",
-				"is_sandbox":   mpConfig.IsSandbox,
+				"success":       true,
+				"message":       "Credenciales de Mercado Pago guardadas y validadas exitosamente",
+				"is_sandbox":    mpConfig.IsSandbox,
 				"is_configured": mpConfig.AccessToken != "",
-				"masked_token": maskToken(mpConfig.AccessToken),
-				"account_info": accountInfo,
+				"masked_token":  maskToken(mpConfig.AccessToken),
+				"account_info":  accountInfo,
 			})
 			return
 		}
