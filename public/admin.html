@@ -1184,31 +1184,38 @@
       const tbody = document.getElementById('brandsTableBody');
       if (!tbody) return;
       if (!adminBrands || adminBrands.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-gray-500 italic">No hay marcas registradas.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-gray-500 italic">No hay marcas registradas en la base de datos.</td></tr>';
         return;
       }
       tbody.innerHTML = adminBrands.map(b => `
-        <tr class="hover:bg-brandCard/30 transition">
-          <td class="p-3">#${b.id}</td>
-          <td class="p-3 font-bold text-white flex items-center gap-2">
-            ${b.imagen ? `<img src="${b.imagen}" class="h-6 object-contain bg-brandCard p-0.5 rounded" />` : ''}
-            ${b.name}
+        <tr class="hover:bg-brandCard/40 transition">
+          <td class="p-3 text-xs font-mono text-gray-400">#${b.id}</td>
+          <td class="p-3 font-bold text-white flex items-center gap-3">
+            ${b.imagen ? `<img src="${b.imagen}" alt="${b.name}" class="h-7 w-12 object-contain bg-black/40 border border-brandBorder p-1 rounded-lg" onerror="this.style.display='none'" />` : '<div class="h-7 w-7 rounded-lg bg-brandCard border border-brandBorder flex items-center justify-center text-xs text-gray-400">🏷️</div>'}
+            <div>
+              <div class="text-white font-bold text-xs">${b.name}</div>
+              <span class="text-[10px] text-gray-400 font-mono">${b.code || 'SIN CÓDIGO'}</span>
+            </div>
           </td>
           <td class="p-3 text-center">
-            ${b.carrusel ? '<span class="text-green-400 font-bold">Sí</span>' : '<span class="text-gray-500">No</span>'}
+            ${b.carrusel ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">SÍ</span>' : '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-500/10 text-gray-500 border border-gray-500/20">NO</span>'}
           </td>
-          <td class="p-3">
-            <button onclick='editBrand(${JSON.stringify(b)})' class="text-blue-400 hover:text-blue-300 text-[10px] uppercase font-bold tracking-wider px-2 py-1 border border-blue-500/30 rounded bg-blue-500/10 transition">Editar</button>
+          <td class="p-3 text-right">
+            <button onclick="editBrandById(${b.id})" class="text-blue-400 hover:text-blue-300 text-[10px] uppercase font-bold tracking-wider px-2.5 py-1.5 border border-blue-500/30 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 transition inline-flex items-center gap-1">
+              <span>✏️</span> Editar
+            </button>
           </td>
         </tr>
       `).join('');
     }
 
-    function editBrand(b) {
+    function editBrandById(id) {
+      const b = adminBrands.find(x => x.id == id);
+      if (!b) return;
       document.getElementById('brandId').value = b.id;
       document.getElementById('brandName').value = b.name;
       document.getElementById('brandCode').value = b.code;
-      document.getElementById('brandCarrusel').checked = b.carrusel;
+      document.getElementById('brandCarrusel').checked = !!b.carrusel;
       document.getElementById('brandImageUrl').value = b.imagen || '';
       
       const previewDiv = document.getElementById('brandImagePreview');
@@ -1251,20 +1258,20 @@
             const data = await uploadRes.json();
             imageUrl = data.url;
           } else {
-            alert('Error al subir la imagen');
+            kidoToast('Error al subir la imagen del logo', 'error', 'Subida Fallida');
             return;
           }
         } catch (err) {
           console.error('Error subiendo imagen:', err);
-          alert('Error de conexión al subir la imagen.');
+          kidoToast('Error de conexión al subir el archivo de imagen.', 'error', 'Error de Red');
           return;
         }
       }
 
       const b = {
         id: parseInt(document.getElementById('brandId').value) || 0,
-        name: document.getElementById('brandName').value,
-        code: document.getElementById('brandCode').value,
+        name: document.getElementById('brandName').value.trim(),
+        code: document.getElementById('brandCode').value.trim(),
         carrusel: document.getElementById('brandCarrusel').checked,
         imagen: imageUrl
       };
@@ -1277,15 +1284,15 @@
         });
         
         if (res.ok) {
-          alert('Marca guardada correctamente.');
+          kidoToast(`¡Marca "${b.name}" guardada y actualizada con éxito!`, 'success', 'Directorio de Marcas');
           resetBrandForm();
-          await loadBrands(); // Recargar
+          await loadBrands(); // Recarga y renderiza el directorio
         } else {
-          alert('Error al guardar la marca');
+          kidoToast('No se pudo guardar la marca en la base de datos.', 'error', 'Error al Guardar');
         }
       } catch (err) {
         console.error(err);
-        alert('Error de conexión.');
+        kidoToast('Error de comunicación con el servidor.', 'error', 'Error de Red');
       }
     }
 
@@ -1299,6 +1306,7 @@
             sel.innerHTML = '<option value="">Selecciona una Marca...</option>' + 
                             adminBrands.map(b => `<option value="${b.id}">${b.name} (${b.code})</option>`).join('');
           }
+          renderBrandsAdminTable();
         }
       } catch(e) { console.error(e); }
     }
@@ -2080,10 +2088,17 @@
         btn.classList.add('bg-brandSurface', 'text-gray-400');
       });
 
-      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+      const targetPane = document.getElementById(`tab-${tabId}`);
+      if (targetPane) targetPane.classList.remove('hidden');
       const activeBtn = document.getElementById(`tabBtn-${tabId}`);
-      activeBtn.classList.remove('bg-brandSurface', 'text-gray-400');
-      activeBtn.classList.add('bg-brandAccent', 'text-white');
+      if (activeBtn) {
+        activeBtn.classList.remove('bg-brandSurface', 'text-gray-400');
+        activeBtn.classList.add('bg-brandAccent', 'text-white');
+      }
+
+      if (tabId === 'brands') {
+        renderBrandsAdminTable();
+      }
     }
 
     // Modal Cambiar Contraseña
