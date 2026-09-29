@@ -1336,7 +1336,15 @@
         </div>
 
         <!-- Indicadores Rápidos de Envíos -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div class="bg-brandCard/60 border border-brandBorder rounded-2xl p-3.5 cursor-pointer hover:border-purple-500/50 transition" onclick="setShippingFilter('RETIRO_LOCAL')">
+            <div class="text-[10px] text-purple-400 font-semibold uppercase tracking-wider flex items-center justify-between">
+              <span>Retiro en Local</span>
+              <span>🏪</span>
+            </div>
+            <div id="shipStatPickup" class="text-xl font-black text-purple-300 font-display mt-0.5">0</div>
+            <div class="text-[10px] text-gray-400">Showroom / Presencial</div>
+          </div>
           <div class="bg-brandCard/60 border border-brandBorder rounded-2xl p-3.5 cursor-pointer hover:border-teal-500/50 transition" onclick="setShippingFilter('LISTO_PARA_DESPACHAR')">
             <div class="text-[10px] text-teal-400 font-semibold uppercase tracking-wider flex items-center justify-between">
               <span>Listos para Despachar</span>
@@ -1376,6 +1384,9 @@
           <div class="flex flex-wrap items-center gap-1.5 p-1 bg-brandDark/70 rounded-2xl border border-brandBorder">
             <button onclick="setShippingFilter('ALL')" id="shipFilterBtn-ALL" class="shipping-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition bg-brandAccent text-white">
               Todos (<span id="countShip-ALL">0</span>)
+            </button>
+            <button onclick="setShippingFilter('RETIRO_LOCAL')" id="shipFilterBtn-RETIRO_LOCAL" class="shipping-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition text-gray-400 hover:text-white">
+              🏪 Retiro en Local (<span id="countShip-RETIRO_LOCAL">0</span>)
             </button>
             <button onclick="setShippingFilter('LISTO_PARA_DESPACHAR')" id="shipFilterBtn-LISTO_PARA_DESPACHAR" class="shipping-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition text-gray-400 hover:text-white">
               📦 Listos (<span id="countShip-LISTO_PARA_DESPACHAR">0</span>)
@@ -3860,16 +3871,32 @@
       renderShippingTable();
     }
 
+    function isOrderPickup(o) {
+      if (!o) return false;
+      const method = (o.shipping_method || '').toLowerCase();
+      const addr = (o.shipping_address || '').toLowerCase();
+      return o.order_type === 'EN_PERSONA' || 
+             method.includes('retiro') || 
+             method.includes('showroom') || 
+             method.includes('mano') ||
+             addr.includes('showroom') ||
+             addr.includes('mostrador') ||
+             addr.includes('retiro');
+    }
+
     function renderShippingTable() {
       const tbody = document.getElementById('shippingTableBody');
       if (!tbody) return;
 
+      let countPickup = 0;
       let countReady = 0;
       let countInTransit = 0;
       let countDelivered = 0;
       let countBlocked = 0;
 
       adminOrders.forEach(o => {
+        const isPick = isOrderPickup(o);
+        if (isPick) countPickup++;
         if (o.delivery_status === 'LISTO_PARA_DESPACHAR') countReady++;
         else if (o.delivery_status === 'EN_CAMINO') countInTransit++;
         else if (o.delivery_status === 'ENTREGADO') countDelivered++;
@@ -3878,6 +3905,8 @@
 
       const badgeCount = document.getElementById('shippingCountBadge');
       if (badgeCount) badgeCount.textContent = `${adminOrders.length} envíos`;
+      const elPickup = document.getElementById('shipStatPickup');
+      if (elPickup) elPickup.textContent = countPickup;
       const elReady = document.getElementById('shipStatReady');
       if (elReady) elReady.textContent = countReady;
       const elInTransit = document.getElementById('shipStatInTransit');
@@ -3889,6 +3918,8 @@
 
       const cAll = document.getElementById('countShip-ALL');
       if (cAll) cAll.textContent = adminOrders.length;
+      const cPickup = document.getElementById('countShip-RETIRO_LOCAL');
+      if (cPickup) cPickup.textContent = countPickup;
       const cReady = document.getElementById('countShip-LISTO_PARA_DESPACHAR');
       if (cReady) cReady.textContent = countReady;
       const cTransit = document.getElementById('countShip-EN_CAMINO');
@@ -3899,15 +3930,22 @@
       if (cBlock) cBlock.textContent = countBlocked;
 
       let filtered = adminOrders.filter(o => {
-        if (currentShippingFilter !== 'ALL' && o.delivery_status !== currentShippingFilter) return false;
+        const isPick = isOrderPickup(o);
+        if (currentShippingFilter === 'RETIRO_LOCAL') {
+          if (!isPick) return false;
+        } else if (currentShippingFilter !== 'ALL') {
+          if (o.delivery_status !== currentShippingFilter) return false;
+        }
+
         if (currentShippingSearch) {
           const matchNumber = (o.order_number || '').toLowerCase().includes(currentShippingSearch);
           const matchTracking = (o.tracking_number || '').toLowerCase().includes(currentShippingSearch);
           const matchCarrier = (o.tracking_carrier || '').toLowerCase().includes(currentShippingSearch);
           const matchCustomer = (o.customer_name || '').toLowerCase().includes(currentShippingSearch);
           const matchAddress = (o.shipping_address || '').toLowerCase().includes(currentShippingSearch);
+          const matchMethod = (o.shipping_method || '').toLowerCase().includes(currentShippingSearch);
           const matchCP = (o.shipping_postal_code || '').toLowerCase().includes(currentShippingSearch);
-          if (!matchNumber && !matchTracking && !matchCarrier && !matchCustomer && !matchAddress && !matchCP) return false;
+          if (!matchNumber && !matchTracking && !matchCarrier && !matchCustomer && !matchAddress && !matchMethod && !matchCP) return false;
         }
         return true;
       });
@@ -3916,7 +3954,7 @@
         tbody.innerHTML = `
           <tr>
             <td colspan="7" class="p-8 text-center text-gray-500 italic">
-              No se encontraron envíos para los filtros seleccionados.
+              No se encontraron envíos ni retiros para los filtros seleccionados.
             </td>
           </tr>
         `;
@@ -3925,6 +3963,96 @@
 
       tbody.innerHTML = filtered.map(o => {
         const isFully = o.is_fully_paid;
+        const isPick = isOrderPickup(o);
+
+        let destinationHtml = '';
+        if (isPick) {
+          destinationHtml = `
+            <div class="space-y-1">
+              <span class="px-2 py-0.5 rounded text-[10px] font-black bg-purple-500/20 text-purple-300 border border-purple-500/40 inline-flex items-center gap-1">
+                🏪 RETIRO EN LOCAL
+              </span>
+              <div class="font-bold text-white text-xs truncate max-w-[210px]">Showroom KIDO Garage</div>
+              <div class="text-[10px] text-gray-400">Villa Urquiza, CABA • Entrega presencial</div>
+              <div class="text-[10px] text-emerald-400 font-bold">Sin costo de flete ($0)</div>
+            </div>
+          `;
+        } else {
+          destinationHtml = `
+            <div class="space-y-0.5">
+              <div class="font-bold text-white text-xs truncate max-w-[200px]" title="${escapeHtml(o.shipping_method) || 'Envío por Correo'}">
+                ${escapeHtml(o.shipping_method) || 'Envío por Correo'}
+              </div>
+              <div class="text-[10px] text-gray-400 truncate max-w-[200px]" title="${escapeHtml(o.shipping_address) || 'Sin dirección'}">
+                ${escapeHtml(o.shipping_address) || (o.shipping_postal_code ? 'CP ' + o.shipping_postal_code : '-')}
+              </div>
+              <div class="text-[10px] ${o.shipping_cost_ars ? 'text-gray-300 font-semibold' : 'text-emerald-400 font-bold'}">
+                ${o.shipping_cost_ars ? formatARS(o.shipping_cost_ars) : 'Envío Bonificado / Gratis'}
+              </div>
+            </div>
+          `;
+        }
+
+        let selectOptionsHtml = '';
+        if (isPick) {
+          selectOptionsHtml = `
+            <option value="LISTO_PARA_DESPACHAR" ${o.delivery_status === 'LISTO_PARA_DESPACHAR' ? 'selected' : ''}>🏪 Listo p/ Retirar en Local</option>
+            <option value="ENTREGADO" ${o.delivery_status === 'ENTREGADO' ? 'selected' : ''}>✅ Retirado en Local</option>
+            <option value="BLOQUEADO_POR_SALDO" ${o.delivery_status === 'BLOQUEADO_POR_SALDO' ? 'selected' : ''}>⛔ Bloqueado x Saldo</option>
+            <option value="CANCELADO" ${o.delivery_status === 'CANCELADO' ? 'selected' : ''}>❌ Cancelado</option>
+          `;
+        } else {
+          selectOptionsHtml = `
+            <option value="LISTO_PARA_DESPACHAR" ${o.delivery_status === 'LISTO_PARA_DESPACHAR' ? 'selected' : ''}>📦 Listo p/ Despachar</option>
+            <option value="EN_CAMINO" ${o.delivery_status === 'EN_CAMINO' ? 'selected' : ''}>🚚 En Camino</option>
+            <option value="ENTREGADO" ${o.delivery_status === 'ENTREGADO' ? 'selected' : ''}>✅ Entregado</option>
+            <option value="BLOQUEADO_POR_SALDO" ${o.delivery_status === 'BLOQUEADO_POR_SALDO' ? 'selected' : ''}>⛔ Bloqueado x Saldo</option>
+            <option value="CANCELADO" ${o.delivery_status === 'CANCELADO' ? 'selected' : ''}>❌ Cancelado</option>
+          `;
+        }
+
+        let trackingColHtml = '';
+        if (isPick) {
+          trackingColHtml = `
+            <div class="space-y-1.5">
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">Punto Showroom</span>
+                <span class="text-[10px] ${o.delivery_status === 'ENTREGADO' ? 'text-emerald-400 font-bold' : 'text-amber-400 font-medium'}">
+                  ${o.delivery_status === 'ENTREGADO' ? 'Entregado en mano' : 'Esperando retiro'}
+                </span>
+              </div>
+              ${o.delivery_status !== 'ENTREGADO' ? `
+                <button onclick="adminUpdateDeliveryStatus(${o.id}, 'ENTREGADO')" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-wider transition shadow-sm flex items-center gap-1">
+                  <span>🤝</span> Marcar como Retirado
+                </button>
+              ` : `
+                <div class="text-[10px] text-gray-400 font-mono">Retiro completado ✓</div>
+              `}
+            </div>
+          `;
+        } else if (o.tracking_number) {
+          trackingColHtml = `
+            <div class="space-y-1">
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">${escapeHtml(o.tracking_carrier) || 'Transporte'}</span>
+                <span class="font-mono text-white text-[11px] font-bold">${escapeHtml(o.tracking_number)}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <button onclick="openAdminTrackingModal(${o.id})" class="text-[10px] text-gray-400 hover:text-white underline">Editar</button>
+                <a href="${getTrackingUrl(o.tracking_carrier, o.tracking_number)}" target="_blank" rel="noopener noreferrer" class="text-[10px] text-blue-400 hover:text-blue-300 font-bold inline-flex items-center gap-0.5">
+                  <span>Rastrear</span> ↗
+                </a>
+              </div>
+            </div>
+          `;
+        } else {
+          trackingColHtml = `
+            <button onclick="openAdminTrackingModal(${o.id})" class="bg-brandCard hover:bg-blue-600 hover:text-white text-blue-400 border border-blue-500/40 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition flex items-center gap-1">
+              <span>🚚</span> Cargar Guía
+            </button>
+          `;
+        }
+
         return `
           <tr class="hover:bg-brandCardHover transition">
             <td class="p-3">
@@ -3936,15 +4064,7 @@
               <div class="text-[10px] text-gray-400 font-mono">${o.customer_phone ? '📞 ' + escapeHtml(o.customer_phone) : (escapeHtml(o.customer_email) || 'Sin datos')}</div>
             </td>
             <td class="p-3">
-              <div class="font-bold text-white text-xs truncate max-w-[200px]" title="${escapeHtml(o.shipping_method) || 'Envío estándar'}">
-                ${escapeHtml(o.shipping_method) || 'Envío estándar'}
-              </div>
-              <div class="text-[10px] text-gray-400 truncate max-w-[200px]" title="${escapeHtml(o.shipping_address) || 'Sin dirección'}">
-                ${escapeHtml(o.shipping_address) || (o.shipping_postal_code ? 'CP ' + o.shipping_postal_code : 'Retiro en Showroom')}
-              </div>
-              <div class="text-[10px] ${o.shipping_cost_ars ? 'text-gray-300 font-semibold' : 'text-emerald-400 font-bold'}">
-                ${o.shipping_cost_ars ? formatARS(o.shipping_cost_ars) : 'Envío Bonificado / Gratis'}
-              </div>
+              ${destinationHtml}
             </td>
             <td class="p-3">
               ${isFully ? `
@@ -3956,7 +4076,7 @@
                   <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 inline-flex items-center gap-1">
                     ⛔ Resta ${formatARS(o.remaining_balance_ars)}
                   </span>
-                  <div class="text-[9px] text-red-400">Bloquea Despacho</div>
+                  <div class="text-[9px] text-red-400">Bloquea Entrega</div>
                 </div>
               `}
             </td>
@@ -3968,41 +4088,22 @@
                 o.delivery_status === 'CANCELADO' ? 'text-gray-400 border-gray-500/40' :
                 'text-amber-400 border-amber-500/40'
               }">
-                <option value="LISTO_PARA_DESPACHAR" ${o.delivery_status === 'LISTO_PARA_DESPACHAR' ? 'selected' : ''}>📦 Listo p/ Despachar</option>
-                <option value="EN_CAMINO" ${o.delivery_status === 'EN_CAMINO' ? 'selected' : ''}>🚚 En Camino</option>
-                <option value="ENTREGADO" ${o.delivery_status === 'ENTREGADO' ? 'selected' : ''}>✅ Entregado</option>
-                <option value="BLOQUEADO_POR_SALDO" ${o.delivery_status === 'BLOQUEADO_POR_SALDO' ? 'selected' : ''}>⛔ Bloqueado x Saldo</option>
-                <option value="CANCELADO" ${o.delivery_status === 'CANCELADO' ? 'selected' : ''}>❌ Cancelado</option>
+                ${selectOptionsHtml}
               </select>
             </td>
             <td class="p-3">
-              ${o.tracking_number ? `
-                <div class="space-y-1">
-                  <div class="flex items-center gap-1.5">
-                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">${o.tracking_carrier || 'Transporte'}</span>
-                    <span class="font-mono text-white text-[11px] font-bold">${o.tracking_number}</span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <button onclick="openAdminTrackingModal(${o.id})" class="text-[10px] text-gray-400 hover:text-white underline">Editar</button>
-                    <a href="${getTrackingUrl(o.tracking_carrier, o.tracking_number)}" target="_blank" rel="noopener noreferrer" class="text-[10px] text-blue-400 hover:text-blue-300 font-bold inline-flex items-center gap-0.5">
-                      <span>Rastrear</span> ↗
-                    </a>
-                  </div>
-                </div>
-              ` : `
-                <button onclick="openAdminTrackingModal(${o.id})" class="bg-brandCard hover:bg-blue-600 hover:text-white text-blue-400 border border-blue-500/40 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition flex items-center gap-1">
-                  <span>🚚</span> Cargar Guía
-                </button>
-              `}
+              ${trackingColHtml}
             </td>
             <td class="p-3 text-right">
               <div class="flex items-center justify-end gap-1.5">
                 <button onclick="openOrderDetailModal(${o.id})" class="px-2.5 py-1 rounded-lg bg-brandCard hover:bg-brandBorder text-gray-300 hover:text-white border border-brandBorder text-xs font-semibold transition" title="Ver detalle de pedido">
                   👁️
                 </button>
-                <button onclick="openAdminTrackingModal(${o.id})" class="px-2 py-1 rounded-lg bg-brandSurface hover:bg-brandBorder text-gray-300 text-xs font-semibold transition" title="Editar Guía">
-                  ✏️
-                </button>
+                ${!isPick ? `
+                  <button onclick="openAdminTrackingModal(${o.id})" class="px-2 py-1 rounded-lg bg-brandSurface hover:bg-brandBorder text-gray-300 text-xs font-semibold transition" title="Editar Guía">
+                    ✏️
+                  </button>
+                ` : ''}
               </div>
             </td>
           </tr>
