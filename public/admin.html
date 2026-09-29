@@ -178,6 +178,9 @@
       <button onclick="switchTab('brands')" id="tabBtn-brands" class="tab-btn px-4 py-3 md:w-full rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-3 whitespace-nowrap border border-transparent hover:border-brandBorder text-xs font-semibold text-left">
         <span class="text-lg">✨</span> Marcas & Carrusel
       </button>
+      <button onclick="switchTab('types')" id="tabBtn-types" class="tab-btn px-4 py-3 md:w-full rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-3 whitespace-nowrap border border-transparent hover:border-brandBorder text-xs font-semibold text-left">
+        <span class="text-lg">🧩</span> Tipos de Artículos
+      </button>
       <button onclick="switchTab('raffles')" id="tabBtn-raffles" class="tab-btn px-4 py-3 md:w-full rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-3 whitespace-nowrap border border-transparent hover:border-brandBorder text-xs font-semibold text-left">
         <span class="text-lg">🎟️</span> Rifas y Sorteos
       </button>
@@ -531,6 +534,71 @@
               </thead>
               <tbody id="brandsTableBody" class="divide-y divide-brandBorder">
                 <!-- JS render -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- TAB 4C: TIPOS DE ARTÍCULOS                               -->
+    <!-- ======================================================== -->
+    <section id="tab-types" class="tab-pane hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Formulario para Crear/Editar Tipo de Artículo -->
+        <div class="bg-brandSurface border border-brandBorder rounded-2xl p-5 shadow-lg h-fit">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-xl">🧩</span>
+            <h3 class="font-bold text-white text-base font-display">Tipo de Artículo</h3>
+          </div>
+          <p class="text-xs text-gray-400 mb-4">Crea o edita categorías de artículos para clasificar tus productos (ej. Autito, Remera, Sticker, Diorama, Llavero, Taza).</p>
+
+          <form id="productTypeForm" class="space-y-4 text-xs" onsubmit="saveProductType(event)">
+            <input type="hidden" id="typeId" value="0">
+            <div>
+              <label class="block text-gray-400 font-semibold mb-1">Nombre del Tipo / Categoría</label>
+              <input required id="typeName" type="text" placeholder="Ej: Diorama, Llavero, Taza" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white text-xs focus:border-brandAccent focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-gray-400 font-semibold mb-1">Código Identificador (Mayúsculas)</label>
+              <input required id="typeCode" type="text" placeholder="Ej: DIORAMA, KEYCHAIN, MUG" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white text-xs font-mono focus:border-brandAccent focus:outline-none uppercase">
+            </div>
+            <div class="pt-2 space-y-2">
+              <button type="submit" id="typeSubmitBtn" class="w-full bg-brandAccent hover:bg-brandAccentHover text-white py-2.5 rounded-xl font-bold uppercase tracking-wider text-xs transition shadow-lg shadow-brandAccent/20 flex items-center justify-center gap-2">
+                <span>💾</span> Guardar Tipo de Artículo
+              </button>
+              <button type="button" onclick="resetProductTypeForm()" class="w-full bg-brandCard hover:bg-brandBorder border border-brandBorder text-gray-300 py-2 rounded-xl text-xs font-semibold transition">
+                Limpiar Formulario
+              </button>
+            </div>
+          </form>
+        </div>
+        
+        <!-- Directorio y Grilla de Tipos de Artículos -->
+        <div class="lg:col-span-2 bg-brandSurface border border-brandBorder rounded-2xl p-5 shadow-lg">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="font-bold text-white text-base font-display">Directorio de Tipos de Artículos</h3>
+              <p class="text-xs text-gray-400">Listado de tipos de productos habilitados en la plataforma</p>
+            </div>
+            <span id="typesTotalBadge" class="px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-brandCard border border-brandBorder text-brandAccent">3 Tipos</span>
+          </div>
+          
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-gray-300">
+              <thead class="bg-brandDark/50 text-gray-400 uppercase text-[10px] tracking-wider">
+                <tr>
+                  <th class="p-3 rounded-l-xl">ID</th>
+                  <th class="p-3">Nombre del Tipo</th>
+                  <th class="p-3 font-mono">Código</th>
+                  <th class="p-3 text-center">Artículos Asociados</th>
+                  <th class="p-3 text-right rounded-r-xl">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="productTypesTableBody" class="divide-y divide-brandBorder">
+                <!-- Renderizado dinámico vía JS -->
               </tbody>
             </table>
           </div>
@@ -1311,6 +1379,88 @@
       } catch(e) { console.error(e); }
     }
 
+    function renderProductTypesAdminTable() {
+      const tbody = document.getElementById('productTypesTableBody');
+      const badge = document.getElementById('typesTotalBadge');
+      if (badge) badge.textContent = `${adminProductTypes ? adminProductTypes.length : 0} Tipos`;
+      if (!tbody) return;
+      if (!adminProductTypes || adminProductTypes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-500 italic">No hay tipos de artículos registrados.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = adminProductTypes.map(t => {
+        const count = adminProducts ? adminProducts.filter(p => p.product_type_id === t.id || p.product_type === t.name).length : 0;
+        return `
+          <tr class="hover:bg-brandCard/40 transition">
+            <td class="p-3 text-xs font-mono text-gray-400">#${t.id}</td>
+            <td class="p-3 font-bold text-white flex items-center gap-2.5">
+              <span class="w-7 h-7 rounded-lg bg-brandCard border border-brandBorder flex items-center justify-center text-xs">🧩</span>
+              <span class="text-xs font-bold text-white">${t.name}</span>
+            </td>
+            <td class="p-3 font-mono text-xs text-amber-300 font-bold">${t.code}</td>
+            <td class="p-3 text-center">
+              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${count > 0 ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40' : 'bg-gray-500/10 text-gray-500 border border-gray-500/20'}">
+                ${count} artículo(s)
+              </span>
+            </td>
+            <td class="p-3 text-right">
+              <button onclick="editProductTypeById(${t.id})" class="text-blue-400 hover:text-blue-300 text-[10px] uppercase font-bold tracking-wider px-2.5 py-1.5 border border-blue-500/30 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 transition inline-flex items-center gap-1">
+                <span>✏️</span> Editar
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function editProductTypeById(id) {
+      const t = adminProductTypes.find(x => x.id == id);
+      if (!t) return;
+      document.getElementById('typeId').value = t.id;
+      document.getElementById('typeName').value = t.name;
+      document.getElementById('typeCode').value = t.code;
+      document.getElementById('typeSubmitBtn').innerHTML = `<span>💾</span> Actualizar Tipo (#${t.id})`;
+      switchTab('types');
+    }
+
+    function resetProductTypeForm() {
+      document.getElementById('typeId').value = '0';
+      document.getElementById('typeName').value = '';
+      document.getElementById('typeCode').value = '';
+      document.getElementById('typeSubmitBtn').innerHTML = `<span>💾</span> Guardar Tipo de Artículo`;
+    }
+
+    async function saveProductType(e) {
+      e.preventDefault();
+      const id = parseInt(document.getElementById('typeId').value, 10) || 0;
+      const name = document.getElementById('typeName').value.trim();
+      const code = document.getElementById('typeCode').value.trim().toUpperCase();
+
+      if (!name || !code) {
+        kidoToast('Por favor completá el nombre y el código del tipo de artículo.', 'warning', 'Campos Requeridos');
+        return;
+      }
+
+      const payload = { id, name, code };
+      try {
+        const res = await fetch('/api/admin/product-types', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          kidoToast(`¡Tipo de artículo "${name}" guardado exitosamente!`, 'success', 'Tipos de Artículos');
+          resetProductTypeForm();
+          await loadProductTypes();
+        } else {
+          kidoToast('No se pudo guardar el tipo de artículo.', 'error', 'Error al Guardar');
+        }
+      } catch (err) {
+        console.error(err);
+        kidoToast('Error de comunicación con el servidor.', 'error', 'Error de Red');
+      }
+    }
+
     async function loadProductTypes() {
       try {
         const res = await fetch('/api/product-types');
@@ -1321,6 +1471,7 @@
             sel.innerHTML = '<option value="">Selecciona un Tipo...</option>' + 
                             adminProductTypes.map(t => `<option value="${t.id}">${t.name} (${t.code})</option>`).join('');
           }
+          renderProductTypesAdminTable();
         }
       } catch(e) { console.error(e); }
     }
@@ -2098,6 +2249,8 @@
 
       if (tabId === 'brands') {
         renderBrandsAdminTable();
+      } else if (tabId === 'types') {
+        renderProductTypesAdminTable();
       }
     }
 

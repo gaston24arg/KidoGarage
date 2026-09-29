@@ -2125,6 +2125,63 @@ func main() {
 		json.NewEncoder(w).Encode(store.productTypes)
 	})
 
+	// Crear o Actualizar Tipo de Producto (Admin)
+	mux.HandleFunc("/api/admin/product-types", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method != http.MethodPost {
+			http.Error(w, "Metodo no permitido", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var pt ProductTypeModel
+		if err := json.NewDecoder(r.Body).Decode(&pt); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		pt.Name = strings.TrimSpace(pt.Name)
+		pt.Code = strings.ToUpper(strings.TrimSpace(pt.Code))
+		if pt.Name == "" || pt.Code == "" {
+			http.Error(w, "Nombre y código son requeridos", http.StatusBadRequest)
+			return
+		}
+
+		if dbActive && db != nil {
+			if pt.ID == 0 {
+				err := db.QueryRow("INSERT INTO product_types (name, code) VALUES ($1, $2) RETURNING id", pt.Name, pt.Code).Scan(&pt.ID)
+				if err != nil {
+					http.Error(w, "Error creando tipo de producto: "+err.Error(), http.StatusInternalServerError)
+					return
+				}
+			} else {
+				_, err := db.Exec("UPDATE product_types SET name=$1, code=$2 WHERE id=$3", pt.Name, pt.Code, pt.ID)
+				if err != nil {
+					http.Error(w, "Error actualizando tipo de producto: "+err.Error(), http.StatusInternalServerError)
+					return
+				}
+			}
+		}
+
+		store.mu.Lock()
+		updated := false
+		for i := range store.productTypes {
+			if store.productTypes[i].ID == pt.ID || strings.EqualFold(store.productTypes[i].Name, pt.Name) {
+				store.productTypes[i] = pt
+				updated = true
+				break
+			}
+		}
+		if !updated {
+			if pt.ID == 0 {
+				pt.ID = int64(len(store.productTypes) + 1)
+			}
+			store.productTypes = append(store.productTypes, pt)
+		}
+		store.mu.Unlock()
+
+		json.NewEncoder(w).Encode(pt)
+	}))
+
 	// Obtener Marcas
 	mux.HandleFunc("/api/brands", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
