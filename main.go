@@ -733,13 +733,13 @@ func calculateShippingRates(postalCode string, cartTotal int) (string, []Shippin
 	return zone, options
 }
 
-// Cargar Catálogo (carga products_sample.json por defecto; solo queda en blanco si SEED_EMPTY_CATALOG=true)
+// Cargar Catálogo (inicializado en blanco para empezar con un sistema limpio; solo carga muestra si SEED_SAMPLE_DATA=true)
 func loadCatalog() {
-	if os.Getenv("SEED_EMPTY_CATALOG") == "true" {
+	if os.Getenv("SEED_SAMPLE_DATA") != "true" {
 		store.mu.Lock()
 		store.products = []Product{}
 		store.mu.Unlock()
-		log.Printf("📦 Catálogo inicializado en BLANCO (SEED_EMPTY_CATALOG=true)")
+		log.Printf("📦 Catálogo inicializado en BLANCO para sistema limpio")
 		return
 	}
 
@@ -910,23 +910,30 @@ var (
 func initDB() {
 	connStr := os.Getenv("DATABASE_URL")
 	if connStr == "" {
-		connStr = "postgres://postgres:715192@localhost:5432/kido_garage?sslmode=disable"
+		connStr = "postgres://postgres:715192@localhost:5432/kido_db?sslmode=disable"
 	}
 
 	var err error
 	db, err = sql.Open("postgres", connStr)
-	if err != nil {
-		log.Printf("⚠️ PostgreSQL: No se pudo crear el pool de conexiones: %v", err)
-		return
+	if err == nil && db.Ping() == nil {
+		dbActive = true
+		log.Printf("🐘 PostgreSQL CONECTADO EXITOSAMENTE en %s", connStr)
+	} else {
+		// Fallback si estamos en localhost
+		altConn := "postgres://postgres:715192@localhost:5432/kido_garage?sslmode=disable"
+		if strings.Contains(connStr, "kido_garage") {
+			altConn = "postgres://postgres:715192@localhost:5432/kido_db?sslmode=disable"
+		}
+		if altDB, altErr := sql.Open("postgres", altConn); altErr == nil && altDB.Ping() == nil {
+			db = altDB
+			dbActive = true
+			connStr = altConn
+			log.Printf("🐘 PostgreSQL CONECTADO EXITOSAMENTE a base fallback %s", connStr)
+		} else {
+			log.Printf("⚠️ PostgreSQL: No se pudo conectar: %v", err)
+			return
+		}
 	}
-
-	if err := db.Ping(); err != nil {
-		log.Printf("⚠️ PostgreSQL: No se pudo conectar a localhost:5432/kido_garage: %v", err)
-		return
-	}
-
-	dbActive = true
-	log.Printf("🐘 PostgreSQL CONECTADO EXITOSAMENTE a kido_garage en localhost:5432")
 	_, _ = db.Exec("ALTER TABLE raffles ADD COLUMN IF NOT EXISTS winner_number INTEGER")
 	_, _ = db.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT")
 	_, _ = db.Exec(`ALTER TABLE orders 
