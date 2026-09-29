@@ -375,6 +375,12 @@
       <button onclick="switchTab('stock')" id="tabBtn-stock" class="tab-btn px-4 py-3 md:w-full rounded-xl bg-brandAccent text-white transition flex items-center gap-3 whitespace-nowrap text-xs font-semibold text-left">
         <span class="text-lg">📦</span> Control de Stock & Grilla
       </button>
+      <button onclick="switchTab('sales')" id="tabBtn-sales" class="tab-btn px-4 py-3 md:w-full rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-3 whitespace-nowrap border border-transparent hover:border-brandBorder text-xs font-semibold text-left">
+        <span class="text-lg">🛍️</span> Ventas Realizadas
+      </button>
+      <button onclick="switchTab('shipping')" id="tabBtn-shipping" class="tab-btn px-4 py-3 md:w-full rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-3 whitespace-nowrap border border-transparent hover:border-brandBorder text-xs font-semibold text-left">
+        <span class="text-lg">🚚</span> Envíos & Despachos
+      </button>
       <button onclick="switchTab('bulk-stock')" id="tabBtn-bulk-stock" class="tab-btn px-4 py-3 md:w-full rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-3 whitespace-nowrap border border-transparent hover:border-brandBorder text-xs font-semibold text-left">
         <span class="text-lg">➕</span> Carga Masiva
       </button>
@@ -1188,6 +1194,233 @@
           <div id="adminRafflesContainer" class="space-y-4">
             <!-- Rendered by JS -->
           </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- TAB: VENTAS REALIZADAS (ONLINE, PRE-VENTAS & EN PERSONA)  -->
+    <!-- ======================================================== -->
+    <section id="tab-sales" class="tab-pane hidden">
+      <div class="bg-brandSurface border border-brandBorder rounded-3xl p-5 sm:p-6 shadow-2xl mb-6 space-y-6">
+        
+        <!-- Header con Botón de Nueva Venta (En Persona) -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-brandBorder pb-5">
+          <div class="flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-2xl bg-brandAccent/15 border border-brandAccent/30 flex items-center justify-center text-2xl shadow-lg shadow-brandAccent/10 shrink-0">
+              🛍️
+            </div>
+            <div>
+              <h3 class="font-bold text-white text-xl font-display flex items-center gap-2">
+                Grilla de Ventas Realizadas
+                <span id="salesCountBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-brandCard border border-brandBorder text-gray-300 font-mono">0 ventas</span>
+              </h3>
+              <p class="text-xs text-gray-400 mt-0.5">Control unificado de ventas Online, Pre-Ventas y Ventas Presenciales (Mostrador / Showroom).</p>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2.5">
+            <button onclick="openManualSaleModal()" class="btn-underglow btn-underglow-green bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs uppercase tracking-wider transition shadow-lg shadow-emerald-600/30 flex items-center gap-2 hover:scale-[1.02]">
+              <span class="text-base">➕</span> Nueva Venta (En Persona)
+            </button>
+            <button onclick="loadOrders()" class="bg-brandCard hover:bg-brandBorder text-gray-300 px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-brandBorder" title="Recargar ventas">
+              <span>🔄</span> Actualizar
+            </button>
+          </div>
+        </div>
+
+        <!-- Métricas Rápidas de Ventas -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="bg-brandCard/60 border border-brandBorder rounded-2xl p-3.5">
+            <div class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Total Facturado</div>
+            <div id="salesStatTotalARS" class="text-lg font-black text-white font-display mt-0.5">$0</div>
+            <div class="text-[10px] text-emerald-400 font-semibold">Todas las fuentes</div>
+          </div>
+          <div class="bg-brandCard/60 border border-brandBorder rounded-2xl p-3.5">
+            <div class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">En Persona / Presencial</div>
+            <div id="salesStatInPersonARS" class="text-lg font-black text-emerald-400 font-display mt-0.5">$0</div>
+            <div id="salesStatInPersonCount" class="text-[10px] text-gray-400 font-medium">0 ventas</div>
+          </div>
+          <div class="bg-brandCard/60 border border-brandBorder rounded-2xl p-3.5">
+            <div class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Ventas Online</div>
+            <div id="salesStatOnlineARS" class="text-lg font-black text-blue-400 font-display mt-0.5">$0</div>
+            <div id="salesStatOnlineCount" class="text-[10px] text-gray-400 font-medium">0 pedidos</div>
+          </div>
+          <div class="bg-brandCard/60 border border-brandBorder rounded-2xl p-3.5">
+            <div class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Pre-Ventas</div>
+            <div id="salesStatPreOrderARS" class="text-lg font-black text-amber-400 font-display mt-0.5">$0</div>
+            <div id="salesStatPreOrderCount" class="text-[10px] text-gray-400 font-medium">0 reservas</div>
+          </div>
+        </div>
+
+        <!-- Barra de Filtros y Búsqueda -->
+        <div class="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">
+          <div class="flex flex-wrap items-center gap-1.5 p-1 bg-brandDark/70 rounded-2xl border border-brandBorder">
+            <button onclick="setSalesFilter('ALL')" id="salesFilterBtn-ALL" class="sales-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition bg-brandAccent text-white">
+              Todas (<span id="countSales-ALL">0</span>)
+            </button>
+            <button onclick="setSalesFilter('ONLINE')" id="salesFilterBtn-ONLINE" class="sales-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition text-gray-400 hover:text-white">
+              🌐 Online (<span id="countSales-ONLINE">0</span>)
+            </button>
+            <button onclick="setSalesFilter('PRE_VENTA')" id="salesFilterBtn-PRE_VENTA" class="sales-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition text-gray-400 hover:text-white">
+              ⏳ Pre-Ventas (<span id="countSales-PRE_VENTA">0</span>)
+            </button>
+            <button onclick="setSalesFilter('EN_PERSONA')" id="salesFilterBtn-EN_PERSONA" class="sales-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition text-gray-400 hover:text-white">
+              🏪 En Persona (<span id="countSales-EN_PERSONA">0</span>)
+            </button>
+          </div>
+
+          <div class="relative min-w-[240px]">
+            <span class="absolute left-3 top-2.5 text-gray-400 text-xs">🔍</span>
+            <input 
+              id="salesSearchInput" 
+              type="text" 
+              placeholder="Buscar por Nº, cliente, artículo..." 
+              class="w-full bg-brandDark border border-brandBorder rounded-xl py-2 pl-8 pr-3 text-xs text-white focus:outline-none focus:border-brandAccent transition"
+              oninput="handleSalesSearch(this.value)"
+            >
+          </div>
+        </div>
+
+        <!-- Tabla de Ventas -->
+        <div class="overflow-x-auto rounded-2xl border border-brandBorder bg-brandDark/40">
+          <table class="w-full text-left text-xs text-gray-300">
+            <thead class="bg-brandCard text-gray-400 uppercase font-semibold text-[10px] tracking-wider border-b border-brandBorder">
+              <tr>
+                <th class="p-3">Comprobante / Nº</th>
+                <th class="p-3">Fecha</th>
+                <th class="p-3">Cliente / Contacto</th>
+                <th class="p-3">Artículos</th>
+                <th class="p-3">Medio de Pago</th>
+                <th class="p-3">Total / Cobrado</th>
+                <th class="p-3">Entrega</th>
+                <th class="p-3 text-right">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="salesTableBody" class="divide-y divide-brandBorder">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- TAB: ENVÍOS & DESPACHOS (LOGÍSTICA & SEGUIMIENTO)         -->
+    <!-- ======================================================== -->
+    <section id="tab-shipping" class="tab-pane hidden">
+      <div class="bg-brandSurface border border-brandBorder rounded-3xl p-5 sm:p-6 shadow-2xl mb-6 space-y-6">
+        
+        <!-- Header -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-brandBorder pb-5">
+          <div class="flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-2xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-2xl shadow-lg shadow-blue-500/10 shrink-0">
+              🚚
+            </div>
+            <div>
+              <h3 class="font-bold text-white text-xl font-display flex items-center gap-2">
+                Grilla de Envíos & Despachos
+                <span id="shippingCountBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-brandCard border border-brandBorder text-gray-300 font-mono">0 envíos</span>
+              </h3>
+              <p class="text-xs text-gray-400 mt-0.5">Control logístico y seguimiento de pedidos. Cambiá el estado de entrega y cargá códigos de guía al instante.</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2.5">
+            <button onclick="loadOrders()" class="bg-brandCard hover:bg-brandBorder text-gray-300 px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-brandBorder">
+              <span>🔄</span> Actualizar
+            </button>
+          </div>
+        </div>
+
+        <!-- Indicadores Rápidos de Envíos -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="bg-brandCard/60 border border-brandBorder rounded-2xl p-3.5 cursor-pointer hover:border-teal-500/50 transition" onclick="setShippingFilter('LISTO_PARA_DESPACHAR')">
+            <div class="text-[10px] text-teal-400 font-semibold uppercase tracking-wider flex items-center justify-between">
+              <span>Listos para Despachar</span>
+              <span>📦</span>
+            </div>
+            <div id="shipStatReady" class="text-xl font-black text-teal-300 font-display mt-0.5">0</div>
+            <div class="text-[10px] text-gray-400">100% abonados sin enviar</div>
+          </div>
+          <div class="bg-brandCard/60 border border-brandBorder rounded-2xl p-3.5 cursor-pointer hover:border-blue-500/50 transition" onclick="setShippingFilter('EN_CAMINO')">
+            <div class="text-[10px] text-blue-400 font-semibold uppercase tracking-wider flex items-center justify-between">
+              <span>En Camino</span>
+              <span>🚚</span>
+            </div>
+            <div id="shipStatInTransit" class="text-xl font-black text-blue-300 font-display mt-0.5">0</div>
+            <div class="text-[10px] text-gray-400">Con guía asignada</div>
+          </div>
+          <div class="bg-brandCard/60 border border-brandBorder rounded-2xl p-3.5 cursor-pointer hover:border-emerald-500/50 transition" onclick="setShippingFilter('ENTREGADO')">
+            <div class="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider flex items-center justify-between">
+              <span>Entregados</span>
+              <span>✅</span>
+            </div>
+            <div id="shipStatDelivered" class="text-xl font-black text-emerald-300 font-display mt-0.5">0</div>
+            <div class="text-[10px] text-gray-400">Completados con éxito</div>
+          </div>
+          <div class="bg-brandCard/60 border border-brandBorder rounded-2xl p-3.5 cursor-pointer hover:border-amber-500/50 transition" onclick="setShippingFilter('BLOQUEADO_POR_SALDO')">
+            <div class="text-[10px] text-amber-400 font-semibold uppercase tracking-wider flex items-center justify-between">
+              <span>Bloqueados x Saldo</span>
+              <span>⛔</span>
+            </div>
+            <div id="shipStatBlocked" class="text-xl font-black text-amber-400 font-display mt-0.5">0</div>
+            <div class="text-[10px] text-amber-400/80">Esperan pago restante</div>
+          </div>
+        </div>
+
+        <!-- Filtros de Estado Logístico y Búsqueda -->
+        <div class="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">
+          <div class="flex flex-wrap items-center gap-1.5 p-1 bg-brandDark/70 rounded-2xl border border-brandBorder">
+            <button onclick="setShippingFilter('ALL')" id="shipFilterBtn-ALL" class="shipping-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition bg-brandAccent text-white">
+              Todos (<span id="countShip-ALL">0</span>)
+            </button>
+            <button onclick="setShippingFilter('LISTO_PARA_DESPACHAR')" id="shipFilterBtn-LISTO_PARA_DESPACHAR" class="shipping-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition text-gray-400 hover:text-white">
+              📦 Listos (<span id="countShip-LISTO_PARA_DESPACHAR">0</span>)
+            </button>
+            <button onclick="setShippingFilter('EN_CAMINO')" id="shipFilterBtn-EN_CAMINO" class="shipping-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition text-gray-400 hover:text-white">
+              🚚 En Camino (<span id="countShip-EN_CAMINO">0</span>)
+            </button>
+            <button onclick="setShippingFilter('ENTREGADO')" id="shipFilterBtn-ENTREGADO" class="shipping-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition text-gray-400 hover:text-white">
+              ✅ Entregados (<span id="countShip-ENTREGADO">0</span>)
+            </button>
+            <button onclick="setShippingFilter('BLOQUEADO_POR_SALDO')" id="shipFilterBtn-BLOQUEADO_POR_SALDO" class="shipping-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition text-gray-400 hover:text-white">
+              ⛔ Bloqueados (<span id="countShip-BLOQUEADO_POR_SALDO">0</span>)
+            </button>
+          </div>
+
+          <div class="relative min-w-[240px]">
+            <span class="absolute left-3 top-2.5 text-gray-400 text-xs">🔍</span>
+            <input 
+              id="shippingSearchInput" 
+              type="text" 
+              placeholder="Buscar por Nº, guía, cliente, CP..." 
+              class="w-full bg-brandDark border border-brandBorder rounded-xl py-2 pl-8 pr-3 text-xs text-white focus:outline-none focus:border-brandAccent transition"
+              oninput="handleShippingSearch(this.value)"
+            >
+          </div>
+        </div>
+
+        <!-- Tabla de Envíos -->
+        <div class="overflow-x-auto rounded-2xl border border-brandBorder bg-brandDark/40">
+          <table class="w-full text-left text-xs text-gray-300">
+            <thead class="bg-brandCard text-gray-400 uppercase font-semibold text-[10px] tracking-wider border-b border-brandBorder">
+              <tr>
+                <th class="p-3">Pedido Nº</th>
+                <th class="p-3">Destinatario</th>
+                <th class="p-3">Destino & Transporte</th>
+                <th class="p-3">Condición Saldo</th>
+                <th class="p-3">Estado del Envío</th>
+                <th class="p-3">Seguimiento (Tracking)</th>
+                <th class="p-3 text-right">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="shippingTableBody" class="divide-y divide-brandBorder">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
         </div>
 
       </div>
@@ -3364,15 +3597,722 @@
       }
     }
 
-    // Pedidos & Pagos
+    // Helper seguro para escapar HTML
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // Variables de Estado de Filtros & Carrito POS Manual
+    let currentSalesFilter = 'ALL';
+    let currentSalesSearch = '';
+    let currentShippingFilter = 'ALL';
+    let currentShippingSearch = '';
+    let manualSaleItems = []; // [{ product_id, title, price, quantity, max_stock, image }]
+    let msSelectedPaymentMethod = 'EFECTIVO';
+
+    // Pedidos & Pagos Central
     async function loadOrders() {
       try {
         const res = await fetch('/api/orders');
         if (res.ok) {
           adminOrders = await res.json();
           renderOrdersTable();
+          renderSalesTable();
+          renderShippingTable();
         }
-      } catch (e) { console.error(e); }
+      } catch (e) { console.error('Error cargando órdenes:', e); }
+    }
+
+    function getOrderChannel(o) {
+      if (!o) return 'ONLINE';
+      if (o.order_type === 'EN_PERSONA' || o.payment_method === 'EFECTIVO' || (o.shipping_method && o.shipping_method.toLowerCase().includes('showroom')) || (o.shipping_method && o.shipping_method.toLowerCase().includes('en mano'))) {
+        return 'EN_PERSONA';
+      }
+      if (o.order_type === 'PRE_VENTA' || o.order_type === 'PRE_VENTA_CON_SEÑA') {
+        return 'PRE_VENTA';
+      }
+      return 'ONLINE';
+    }
+
+    // ==========================================
+    // GRILLA DE VENTAS REALIZADAS
+    // ==========================================
+    function setSalesFilter(filter) {
+      currentSalesFilter = filter;
+      document.querySelectorAll('.sales-filter-btn').forEach(btn => {
+        btn.classList.remove('bg-brandAccent', 'text-white');
+        btn.classList.add('text-gray-400');
+      });
+      const activeBtn = document.getElementById(`salesFilterBtn-${filter}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('text-gray-400');
+        activeBtn.classList.add('bg-brandAccent', 'text-white');
+      }
+      renderSalesTable();
+    }
+
+    function handleSalesSearch(q) {
+      currentSalesSearch = (q || '').trim().toLowerCase();
+      renderSalesTable();
+    }
+
+    function renderSalesTable() {
+      const tbody = document.getElementById('salesTableBody');
+      if (!tbody) return;
+
+      let totalSalesARS = 0;
+      let totalInPersonARS = 0;
+      let countInPerson = 0;
+      let totalOnlineARS = 0;
+      let countOnline = 0;
+      let totalPreOrderARS = 0;
+      let countPreOrder = 0;
+
+      adminOrders.forEach(o => {
+        const channel = getOrderChannel(o);
+        totalSalesARS += (o.total_ars || 0);
+        if (channel === 'EN_PERSONA') {
+          totalInPersonARS += (o.total_ars || 0);
+          countInPerson++;
+        } else if (channel === 'PRE_VENTA') {
+          totalPreOrderARS += (o.total_ars || 0);
+          countPreOrder++;
+        } else {
+          totalOnlineARS += (o.total_ars || 0);
+          countOnline++;
+        }
+      });
+
+      const badgeCount = document.getElementById('salesCountBadge');
+      if (badgeCount) badgeCount.textContent = `${adminOrders.length} ventas`;
+      const statTotal = document.getElementById('salesStatTotalARS');
+      if (statTotal) statTotal.textContent = formatARS(totalSalesARS);
+      const statInPerson = document.getElementById('salesStatInPersonARS');
+      if (statInPerson) statInPerson.textContent = formatARS(totalInPersonARS);
+      const countInPersonEl = document.getElementById('salesStatInPersonCount');
+      if (countInPersonEl) countInPersonEl.textContent = `${countInPerson} ventas`;
+      const statOnline = document.getElementById('salesStatOnlineARS');
+      if (statOnline) statOnline.textContent = formatARS(totalOnlineARS);
+      const countOnlineEl = document.getElementById('salesStatOnlineCount');
+      if (countOnlineEl) countOnlineEl.textContent = `${countOnline} pedidos`;
+      const statPre = document.getElementById('salesStatPreOrderARS');
+      if (statPre) statPre.textContent = formatARS(totalPreOrderARS);
+      const countPreEl = document.getElementById('salesStatPreOrderCount');
+      if (countPreEl) countPreEl.textContent = `${countPreOrder} reservas`;
+
+      const cAll = document.getElementById('countSales-ALL');
+      if (cAll) cAll.textContent = adminOrders.length;
+      const cOnline = document.getElementById('countSales-ONLINE');
+      if (cOnline) cOnline.textContent = countOnline;
+      const cPre = document.getElementById('countSales-PRE_VENTA');
+      if (cPre) cPre.textContent = countPreOrder;
+      const cInP = document.getElementById('countSales-EN_PERSONA');
+      if (cInP) cInP.textContent = countInPerson;
+
+      let filtered = adminOrders.filter(o => {
+        const ch = getOrderChannel(o);
+        if (currentSalesFilter !== 'ALL' && ch !== currentSalesFilter) return false;
+        if (currentSalesSearch) {
+          const matchNumber = (o.order_number || '').toLowerCase().includes(currentSalesSearch);
+          const matchCustomer = (o.customer_name || '').toLowerCase().includes(currentSalesSearch);
+          const matchEmail = (o.customer_email || '').toLowerCase().includes(currentSalesSearch);
+          const matchPhone = (o.customer_phone || '').toLowerCase().includes(currentSalesSearch);
+          const matchItem = (o.items || []).some(it => (it.product_title || '').toLowerCase().includes(currentSalesSearch));
+          if (!matchNumber && !matchCustomer && !matchEmail && !matchPhone && !matchItem) return false;
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="p-8 text-center text-gray-500 italic">
+              No se encontraron ventas para los filtros seleccionados.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(o => {
+        const ch = getOrderChannel(o);
+        let channelBadge = '';
+        if (ch === 'EN_PERSONA') {
+          channelBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-purple-500/20 text-purple-300 border border-purple-500/40">🏪 EN PERSONA</span>`;
+        } else if (ch === 'PRE_VENTA') {
+          channelBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">⏳ PRE-VENTA</span>`;
+        } else {
+          channelBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-black bg-blue-500/20 text-blue-300 border border-blue-500/40">🌐 ONLINE</span>`;
+        }
+
+        let dateStr = '-';
+        if (o.created_at) {
+          try {
+            const d = new Date(o.created_at);
+            dateStr = d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + '<br><span class="text-[10px] text-gray-500">' + d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) + '</span>';
+          } catch(e) { dateStr = o.created_at; }
+        }
+
+        const items = o.items || [];
+        const itemsHtml = items.length > 0 ? `
+          <div class="space-y-1 max-w-[240px]">
+            ${items.slice(0, 3).map(it => `
+              <div class="text-xs text-gray-200 flex justify-between gap-1.5 leading-tight">
+                <span class="truncate font-semibold" title="${escapeHtml(it.product_title)}">• ${it.quantity}x ${escapeHtml(it.product_title)}</span>
+                <span class="font-mono text-gray-400 text-[11px] shrink-0">${formatARS(it.subtotal_ars || (it.unit_price_ars * it.quantity))}</span>
+              </div>
+            `).join('')}
+            ${items.length > 3 ? `<div class="text-[10px] text-gray-400 font-bold">+ ${items.length - 3} artículo(s) más</div>` : ''}
+          </div>
+        ` : '<span class="text-gray-500 text-xs italic">Sin detalle</span>';
+
+        let payBadge = '';
+        const pm = (o.payment_method || '').toUpperCase();
+        if (pm === 'EFECTIVO' || (ch === 'EN_PERSONA' && pm !== 'QR_MERCADOPAGO')) {
+          payBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">💵 Efectivo</span>`;
+        } else if (pm === 'QR_MERCADOPAGO') {
+          payBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">📱 QR Mercado Pago</span>`;
+        } else {
+          payBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/40">💳 Mercado Pago</span>`;
+        }
+
+        let delBadge = '';
+        if (o.delivery_status === 'ENTREGADO') {
+          delBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">✅ Entregado</span>`;
+        } else if (o.delivery_status === 'EN_CAMINO') {
+          delBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/40">🚚 En Camino</span>`;
+        } else if (o.delivery_status === 'LISTO_PARA_DESPACHAR') {
+          delBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-500/20 text-teal-300 border border-teal-500/40">📦 Listo p/ Despachar</span>`;
+        } else if (o.delivery_status === 'CANCELADO') {
+          delBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-500/20 text-gray-400 border border-gray-500/40">❌ Cancelado</span>`;
+        } else {
+          delBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">⛔ Bloqueado Saldo</span>`;
+        }
+
+        return `
+          <tr class="hover:bg-brandCardHover transition">
+            <td class="p-3">
+              <div class="font-mono font-bold text-white text-xs">${o.order_number}</div>
+              <div class="mt-1">${channelBadge}</div>
+            </td>
+            <td class="p-3 text-gray-400 font-mono text-[11px] whitespace-nowrap">
+              ${dateStr}
+            </td>
+            <td class="p-3">
+              <div class="font-bold text-white text-xs">${escapeHtml(o.customer_name) || 'Consumidor'}</div>
+              <div class="text-[10px] text-gray-400 font-mono">${o.customer_phone ? '📞 ' + escapeHtml(o.customer_phone) : (escapeHtml(o.customer_email) || 'Mostrador')}</div>
+            </td>
+            <td class="p-3">
+              ${itemsHtml}
+            </td>
+            <td class="p-3">
+              ${payBadge}
+            </td>
+            <td class="p-3 font-display">
+              <div class="font-bold text-white text-sm">${formatARS(o.total_ars)}</div>
+              <div class="text-[10px] text-emerald-400 font-bold">Cobrado: ${formatARS(o.total_paid_ars)}</div>
+              ${o.remaining_balance_ars > 0 ? `<div class="text-[10px] text-amber-400 font-bold">Resta: ${formatARS(o.remaining_balance_ars)}</div>` : ''}
+            </td>
+            <td class="p-3">
+              ${delBadge}
+            </td>
+            <td class="p-3 text-right">
+              <div class="flex items-center justify-end gap-1.5">
+                <button onclick="openOrderDetailModal(${o.id})" class="px-2.5 py-1 rounded-lg bg-brandCard hover:bg-brandBorder text-gray-300 hover:text-white border border-brandBorder text-xs font-semibold transition flex items-center gap-1" title="Ver comprobante y detalle">
+                  <span>👁️</span> Ver
+                </button>
+                ${o.remaining_balance_ars > 0 ? `
+                  <button onclick="adminApplyPayment(${o.id}, ${o.remaining_balance_ars})" class="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition">
+                    Cobrar
+                  </button>
+                ` : ''}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ==========================================
+    // GRILLA DE ENVÍOS & DESPACHOS
+    // ==========================================
+    function setShippingFilter(filter) {
+      currentShippingFilter = filter;
+      document.querySelectorAll('.shipping-filter-btn').forEach(btn => {
+        btn.classList.remove('bg-brandAccent', 'text-white');
+        btn.classList.add('text-gray-400');
+      });
+      const activeBtn = document.getElementById(`shipFilterBtn-${filter}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('text-gray-400');
+        activeBtn.classList.add('bg-brandAccent', 'text-white');
+      }
+      renderShippingTable();
+    }
+
+    function handleShippingSearch(q) {
+      currentShippingSearch = (q || '').trim().toLowerCase();
+      renderShippingTable();
+    }
+
+    function renderShippingTable() {
+      const tbody = document.getElementById('shippingTableBody');
+      if (!tbody) return;
+
+      let countReady = 0;
+      let countInTransit = 0;
+      let countDelivered = 0;
+      let countBlocked = 0;
+
+      adminOrders.forEach(o => {
+        if (o.delivery_status === 'LISTO_PARA_DESPACHAR') countReady++;
+        else if (o.delivery_status === 'EN_CAMINO') countInTransit++;
+        else if (o.delivery_status === 'ENTREGADO') countDelivered++;
+        else if (o.delivery_status === 'BLOQUEADO_POR_SALDO') countBlocked++;
+      });
+
+      const badgeCount = document.getElementById('shippingCountBadge');
+      if (badgeCount) badgeCount.textContent = `${adminOrders.length} envíos`;
+      const elReady = document.getElementById('shipStatReady');
+      if (elReady) elReady.textContent = countReady;
+      const elInTransit = document.getElementById('shipStatInTransit');
+      if (elInTransit) elInTransit.textContent = countInTransit;
+      const elDelivered = document.getElementById('shipStatDelivered');
+      if (elDelivered) elDelivered.textContent = countDelivered;
+      const elBlocked = document.getElementById('shipStatBlocked');
+      if (elBlocked) elBlocked.textContent = countBlocked;
+
+      const cAll = document.getElementById('countShip-ALL');
+      if (cAll) cAll.textContent = adminOrders.length;
+      const cReady = document.getElementById('countShip-LISTO_PARA_DESPACHAR');
+      if (cReady) cReady.textContent = countReady;
+      const cTransit = document.getElementById('countShip-EN_CAMINO');
+      if (cTransit) cTransit.textContent = countInTransit;
+      const cDel = document.getElementById('countShip-ENTREGADO');
+      if (cDel) cDel.textContent = countDelivered;
+      const cBlock = document.getElementById('countShip-BLOQUEADO_POR_SALDO');
+      if (cBlock) cBlock.textContent = countBlocked;
+
+      let filtered = adminOrders.filter(o => {
+        if (currentShippingFilter !== 'ALL' && o.delivery_status !== currentShippingFilter) return false;
+        if (currentShippingSearch) {
+          const matchNumber = (o.order_number || '').toLowerCase().includes(currentShippingSearch);
+          const matchTracking = (o.tracking_number || '').toLowerCase().includes(currentShippingSearch);
+          const matchCarrier = (o.tracking_carrier || '').toLowerCase().includes(currentShippingSearch);
+          const matchCustomer = (o.customer_name || '').toLowerCase().includes(currentShippingSearch);
+          const matchAddress = (o.shipping_address || '').toLowerCase().includes(currentShippingSearch);
+          const matchCP = (o.shipping_postal_code || '').toLowerCase().includes(currentShippingSearch);
+          if (!matchNumber && !matchTracking && !matchCarrier && !matchCustomer && !matchAddress && !matchCP) return false;
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="p-8 text-center text-gray-500 italic">
+              No se encontraron envíos para los filtros seleccionados.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(o => {
+        const isFully = o.is_fully_paid;
+        return `
+          <tr class="hover:bg-brandCardHover transition">
+            <td class="p-3">
+              <div class="font-mono font-bold text-white text-xs">${o.order_number}</div>
+              <div class="text-[10px] text-gray-400 mt-0.5">${o.order_type === 'EN_PERSONA' ? '🏪 Mostrador' : (o.order_type === 'PRE_VENTA' ? '⏳ Pre-Venta' : '🌐 Online')}</div>
+            </td>
+            <td class="p-3">
+              <div class="font-bold text-white text-xs">${escapeHtml(o.customer_name) || 'Consumidor'}</div>
+              <div class="text-[10px] text-gray-400 font-mono">${o.customer_phone ? '📞 ' + escapeHtml(o.customer_phone) : (escapeHtml(o.customer_email) || 'Sin datos')}</div>
+            </td>
+            <td class="p-3">
+              <div class="font-bold text-white text-xs truncate max-w-[200px]" title="${escapeHtml(o.shipping_method) || 'Envío estándar'}">
+                ${escapeHtml(o.shipping_method) || 'Envío estándar'}
+              </div>
+              <div class="text-[10px] text-gray-400 truncate max-w-[200px]" title="${escapeHtml(o.shipping_address) || 'Sin dirección'}">
+                ${escapeHtml(o.shipping_address) || (o.shipping_postal_code ? 'CP ' + o.shipping_postal_code : 'Retiro en Showroom')}
+              </div>
+              <div class="text-[10px] ${o.shipping_cost_ars ? 'text-gray-300 font-semibold' : 'text-emerald-400 font-bold'}">
+                ${o.shipping_cost_ars ? formatARS(o.shipping_cost_ars) : 'Envío Bonificado / Gratis'}
+              </div>
+            </td>
+            <td class="p-3">
+              ${isFully ? `
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 inline-flex items-center gap-1">
+                  ✓ 100% Abonado
+                </span>
+              ` : `
+                <div class="space-y-0.5">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 inline-flex items-center gap-1">
+                    ⛔ Resta ${formatARS(o.remaining_balance_ars)}
+                  </span>
+                  <div class="text-[9px] text-red-400">Bloquea Despacho</div>
+                </div>
+              `}
+            </td>
+            <td class="p-3">
+              <select onchange="adminUpdateDeliveryStatus(${o.id}, this.value)" class="bg-brandDark border border-brandBorder rounded-xl px-2.5 py-1.5 text-[11px] font-bold transition focus:outline-none ${
+                o.delivery_status === 'ENTREGADO' ? 'text-emerald-400 border-emerald-500/40' :
+                o.delivery_status === 'EN_CAMINO' ? 'text-blue-400 border-blue-500/40' :
+                o.delivery_status === 'LISTO_PARA_DESPACHAR' ? 'text-teal-400 border-teal-500/40' :
+                o.delivery_status === 'CANCELADO' ? 'text-gray-400 border-gray-500/40' :
+                'text-amber-400 border-amber-500/40'
+              }">
+                <option value="LISTO_PARA_DESPACHAR" ${o.delivery_status === 'LISTO_PARA_DESPACHAR' ? 'selected' : ''}>📦 Listo p/ Despachar</option>
+                <option value="EN_CAMINO" ${o.delivery_status === 'EN_CAMINO' ? 'selected' : ''}>🚚 En Camino</option>
+                <option value="ENTREGADO" ${o.delivery_status === 'ENTREGADO' ? 'selected' : ''}>✅ Entregado</option>
+                <option value="BLOQUEADO_POR_SALDO" ${o.delivery_status === 'BLOQUEADO_POR_SALDO' ? 'selected' : ''}>⛔ Bloqueado x Saldo</option>
+                <option value="CANCELADO" ${o.delivery_status === 'CANCELADO' ? 'selected' : ''}>❌ Cancelado</option>
+              </select>
+            </td>
+            <td class="p-3">
+              ${o.tracking_number ? `
+                <div class="space-y-1">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">${o.tracking_carrier || 'Transporte'}</span>
+                    <span class="font-mono text-white text-[11px] font-bold">${o.tracking_number}</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button onclick="openAdminTrackingModal(${o.id})" class="text-[10px] text-gray-400 hover:text-white underline">Editar</button>
+                    <a href="${getTrackingUrl(o.tracking_carrier, o.tracking_number)}" target="_blank" rel="noopener noreferrer" class="text-[10px] text-blue-400 hover:text-blue-300 font-bold inline-flex items-center gap-0.5">
+                      <span>Rastrear</span> ↗
+                    </a>
+                  </div>
+                </div>
+              ` : `
+                <button onclick="openAdminTrackingModal(${o.id})" class="bg-brandCard hover:bg-blue-600 hover:text-white text-blue-400 border border-blue-500/40 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition flex items-center gap-1">
+                  <span>🚚</span> Cargar Guía
+                </button>
+              `}
+            </td>
+            <td class="p-3 text-right">
+              <div class="flex items-center justify-end gap-1.5">
+                <button onclick="openOrderDetailModal(${o.id})" class="px-2.5 py-1 rounded-lg bg-brandCard hover:bg-brandBorder text-gray-300 hover:text-white border border-brandBorder text-xs font-semibold transition" title="Ver detalle de pedido">
+                  👁️
+                </button>
+                <button onclick="openAdminTrackingModal(${o.id})" class="px-2 py-1 rounded-lg bg-brandSurface hover:bg-brandBorder text-gray-300 text-xs font-semibold transition" title="Editar Guía">
+                  ✏️
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ==========================================
+    // MODAL NUEVA VENTA (EN PERSONA / POS)
+    // ==========================================
+    function openManualSaleModal() {
+      manualSaleItems = [];
+      msSelectedPaymentMethod = 'EFECTIVO';
+      document.getElementById('msCustomerName').value = 'Cliente Mostrador';
+      document.getElementById('msCustomerPhone').value = '';
+      document.getElementById('msCustomerEmail').value = '';
+      document.getElementById('msNotes').value = '';
+
+      const radEf = document.querySelector('input[name="msPaymentMethod"][value="EFECTIVO"]');
+      if (radEf) radEf.checked = true;
+      handlePaymentMethodChange('EFECTIVO');
+
+      populateManualSaleProductSelect();
+      renderManualSaleItems();
+
+      document.getElementById('adminManualSaleModal').classList.remove('hidden');
+    }
+
+    function closeManualSaleModal() {
+      document.getElementById('adminManualSaleModal').classList.add('hidden');
+    }
+
+    function handlePaymentMethodChange(method) {
+      msSelectedPaymentMethod = method;
+      const cardEf = document.getElementById('msPayMethodCard-EFECTIVO');
+      const cardQr = document.getElementById('msPayMethodCard-QR_MERCADOPAGO');
+      if (cardEf && cardQr) {
+        if (method === 'EFECTIVO') {
+          cardEf.classList.add('border-emerald-400', 'bg-emerald-500/10');
+          cardQr.classList.remove('border-cyan-400', 'bg-cyan-500/10');
+          cardQr.classList.add('border-brandBorder');
+        } else {
+          cardQr.classList.add('border-cyan-400', 'bg-cyan-500/10');
+          cardEf.classList.remove('border-emerald-400', 'bg-emerald-500/10');
+          cardEf.classList.add('border-brandBorder');
+        }
+      }
+    }
+
+    function populateManualSaleProductSelect() {
+      const select = document.getElementById('msProductSelect');
+      if (!select) return;
+
+      const available = adminProducts.filter(p => (p.stock_quantity > 0 || p.status === 'STOCK'));
+      if (available.length === 0) {
+        select.innerHTML = '<option value="">(No hay artículos con stock disponibles en el catálogo)</option>';
+        return;
+      }
+
+      select.innerHTML = available.map(p => `
+        <option value="${p.id}">
+          ${p.internal_code ? `[${p.internal_code}] ` : ''}${escapeHtml(p.title)} — Stock: ${p.stock_quantity} u. — ${formatARS(p.price_ars)}
+        </option>
+      `).join('');
+    }
+
+    function addManualSaleItem() {
+      const select = document.getElementById('msProductSelect');
+      const qtyInput = document.getElementById('msProductQty');
+      if (!select || !select.value) {
+        kidoToast('Seleccioná un artículo disponible del catálogo.', 'warning', 'Atención');
+        return;
+      }
+
+      const prodId = parseInt(select.value, 10);
+      const qty = parseInt(qtyInput.value, 10) || 1;
+      if (qty <= 0) {
+        kidoToast('La cantidad debe ser mayor a 0.', 'warning', 'Cantidad Inválida');
+        return;
+      }
+
+      const prod = adminProducts.find(p => p.id === prodId);
+      if (!prod) {
+        kidoToast('Artículo no encontrado.', 'error');
+        return;
+      }
+
+      const existing = manualSaleItems.find(it => it.product_id === prodId);
+      const currentQty = existing ? existing.quantity : 0;
+      const totalWanted = currentQty + qty;
+
+      if (totalWanted > prod.stock_quantity) {
+        kidoToast(`Stock insuficiente para "${prod.title}". Disponibles: ${prod.stock_quantity} u. (Ya tenés ${currentQty} en la venta)`, 'warning', 'Stock Limitado');
+        return;
+      }
+
+      if (existing) {
+        existing.quantity += qty;
+      } else {
+        manualSaleItems.push({
+          product_id: prod.id,
+          title: prod.title,
+          price: prod.price_ars,
+          quantity: qty,
+          max_stock: prod.stock_quantity,
+          image: (prod.images && prod.images[0] && prod.images[0].src) || (prod.gallery_images && prod.gallery_images[0]) || ''
+        });
+      }
+
+      qtyInput.value = 1;
+      renderManualSaleItems();
+      kidoToast(`Se agregó ${qty}x "${prod.title}" a la venta.`, 'success', 'Artículo Agregado');
+    }
+
+    function removeManualSaleItem(index) {
+      if (index >= 0 && index < manualSaleItems.length) {
+        manualSaleItems.splice(index, 1);
+        renderManualSaleItems();
+      }
+    }
+
+    function changeManualSaleItemQty(index, newQty) {
+      const qty = parseInt(newQty, 10);
+      if (isNaN(qty) || qty <= 0) return;
+      const item = manualSaleItems[index];
+      if (!item) return;
+
+      if (qty > item.max_stock) {
+        kidoToast(`La cantidad solicitada supera el stock disponible (${item.max_stock} u.).`, 'warning', 'Stock Máximo');
+        renderManualSaleItems();
+        return;
+      }
+
+      item.quantity = qty;
+      renderManualSaleItems();
+    }
+
+    function renderManualSaleItems() {
+      const tbody = document.getElementById('msItemsTableBody');
+      const emptyNotice = document.getElementById('msItemsEmptyNotice');
+      const totalDisplay = document.getElementById('msTotalDisplay');
+      const unitsDisplay = document.getElementById('msUnitsDisplay');
+
+      if (!tbody) return;
+
+      let total = 0;
+      let totalUnits = 0;
+
+      if (manualSaleItems.length === 0) {
+        tbody.innerHTML = '';
+        if (emptyNotice) emptyNotice.classList.remove('hidden');
+      } else {
+        if (emptyNotice) emptyNotice.classList.add('hidden');
+        tbody.innerHTML = manualSaleItems.map((it, idx) => {
+          const subtotal = it.price * it.quantity;
+          total += subtotal;
+          totalUnits += it.quantity;
+
+          return `
+            <tr class="hover:bg-brandCard/60 transition">
+              <td class="p-2.5">
+                <div class="font-bold text-white leading-tight">${escapeHtml(it.title)}</div>
+                <div class="text-[10px] text-gray-400">Stock disponible: ${it.max_stock} u.</div>
+              </td>
+              <td class="p-2.5 text-center">
+                <input 
+                  type="number" 
+                  min="1" 
+                  max="${it.max_stock}" 
+                  value="${it.quantity}" 
+                  class="w-14 bg-brandDark border border-brandBorder rounded-lg p-1 text-center font-bold text-white focus:outline-none focus:border-emerald-500"
+                  onchange="changeManualSaleItemQty(${idx}, this.value)"
+                >
+              </td>
+              <td class="p-2.5 text-right font-mono font-bold text-gray-300">
+                ${formatARS(it.price)}
+              </td>
+              <td class="p-2.5 text-right font-mono font-black text-emerald-400">
+                ${formatARS(subtotal)}
+              </td>
+              <td class="p-2.5 text-center">
+                <button type="button" onclick="removeManualSaleItem(${idx})" class="text-red-400 hover:text-red-300 font-bold p-1 text-sm" title="Quitar artículo">
+                  ✕
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      if (totalDisplay) totalDisplay.textContent = formatARS(total);
+      if (unitsDisplay) unitsDisplay.textContent = `${totalUnits} artículo(s) seleccionado(s)`;
+    }
+
+    async function handleManualSaleSubmit(e) {
+      e.preventDefault();
+
+      if (manualSaleItems.length === 0) {
+        kidoToast('Por favor agregá al menos un artículo a la venta.', 'warning', 'Venta Vacía');
+        return;
+      }
+
+      const customerName = document.getElementById('msCustomerName').value.trim();
+      const customerPhone = document.getElementById('msCustomerPhone').value.trim();
+      const customerEmail = document.getElementById('msCustomerEmail').value.trim();
+      const notes = document.getElementById('msNotes').value.trim();
+
+      const submitBtn = document.getElementById('msSubmitBtn');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span>⏳</span> Registrando venta y descontando stock...';
+
+      const payload = {
+        customer_name: customerName,
+        customer_phone: customerPhone,
+        customer_email: customerEmail,
+        payment_method: msSelectedPaymentMethod,
+        notes: notes,
+        items: manualSaleItems.map(it => ({
+          product_id: it.product_id,
+          product_title: it.title,
+          quantity: it.quantity,
+          unit_price_ars: it.price
+        }))
+      };
+
+      try {
+        const res = await fetch('/api/admin/orders/manual-sale', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          closeManualSaleModal();
+          kidoToast(data.message, 'success', '¡Venta Registrada!');
+          await loadAllAdminData();
+          switchTab('sales');
+        } else {
+          kidoToast(data.error || data.message || 'Error al procesar la venta.', 'error', 'Error en Venta');
+        }
+      } catch (err) {
+        console.error('Error al enviar venta en persona:', err);
+        kidoToast('Error de conexión al registrar la venta.', 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      }
+    }
+
+    // ==========================================
+    // DETALLE DE ORDEN / COMPROBANTE MODAL
+    // ==========================================
+    function openOrderDetailModal(orderId) {
+      const ord = adminOrders.find(o => o.id === orderId);
+      if (!ord) return;
+
+      document.getElementById('odModalTitle').textContent = `Comprobante ${ord.order_number}`;
+      document.getElementById('odModalSubtitle').textContent = `Canal: ${getOrderChannel(ord)} • Estado: ${ord.delivery_status}`;
+
+      const container = document.getElementById('odModalContent');
+      let itemsListHtml = (ord.items || []).map(it => `
+        <div class="flex items-center justify-between p-2.5 rounded-xl bg-brandDark border border-brandBorder">
+          <div>
+            <div class="font-bold text-white">${escapeHtml(it.product_title)}</div>
+            <div class="text-[10px] text-gray-400 font-mono">${it.quantity} x ${formatARS(it.unit_price_ars)}</div>
+          </div>
+          <div class="font-mono font-bold text-emerald-400 text-xs">
+            ${formatARS(it.subtotal_ars || (it.unit_price_ars * it.quantity))}
+          </div>
+        </div>
+      `).join('');
+
+      container.innerHTML = `
+        <div class="p-3.5 bg-brandDark rounded-2xl border border-brandBorder grid grid-cols-2 gap-2 text-[11px]">
+          <div><span class="text-gray-400 font-semibold">Cliente:</span> <b class="text-white">${escapeHtml(ord.customer_name) || 'Consumidor Final'}</b></div>
+          <div><span class="text-gray-400 font-semibold">Teléfono:</span> <span class="text-gray-200">${escapeHtml(ord.customer_phone) || '-'}</span></div>
+          <div><span class="text-gray-400 font-semibold">Email:</span> <span class="text-gray-200 font-mono">${escapeHtml(ord.customer_email) || '-'}</span></div>
+          <div><span class="text-gray-400 font-semibold">Método de Pago:</span> <span class="text-emerald-400 font-bold">${escapeHtml(ord.payment_method) || 'Efectivo'}</span></div>
+          <div class="col-span-2"><span class="text-gray-400 font-semibold">Dirección / Entrega:</span> <span class="text-gray-200">${escapeHtml(ord.shipping_address) || escapeHtml(ord.shipping_method) || 'Showroom'}</span></div>
+          ${ord.notes ? `<div class="col-span-2"><span class="text-gray-400 font-semibold">Notas:</span> <span class="text-amber-300 italic">${escapeHtml(ord.notes)}</span></div>` : ''}
+          ${ord.tracking_number ? `<div class="col-span-2"><span class="text-gray-400 font-semibold">Guía Transporte:</span> <span class="font-mono font-bold text-blue-300">${escapeHtml(ord.tracking_carrier)}: ${escapeHtml(ord.tracking_number)}</span></div>` : ''}
+        </div>
+
+        <div class="space-y-2">
+          <div class="font-bold text-gray-300 text-xs uppercase tracking-wider">Artículos Desglosados (${(ord.items || []).length}):</div>
+          <div class="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+            ${itemsListHtml || '<div class="text-gray-500 italic">No hay artículos registrados en esta orden.</div>'}
+          </div>
+        </div>
+
+        <div class="p-3.5 rounded-2xl bg-brandCard border border-brandBorder flex justify-between items-center text-xs">
+          <div>
+            <div class="text-[10px] text-gray-400 font-semibold uppercase">Total de la Operación</div>
+            <div class="font-black text-xl text-white font-display">${formatARS(ord.total_ars)}</div>
+          </div>
+          <div class="text-right">
+            <div class="text-emerald-400 font-bold">Cobrado: ${formatARS(ord.total_paid_ars)}</div>
+            ${ord.remaining_balance_ars > 0 ? `<div class="text-amber-400 font-bold">Saldo Restante: ${formatARS(ord.remaining_balance_ars)}</div>` : '<div class="text-gray-400 text-[10px]">100% Abonado</div>'}
+          </div>
+        </div>
+      `;
+
+      document.getElementById('adminOrderDetailModal').classList.remove('hidden');
+    }
+
+    function closeOrderDetailModal() {
+      document.getElementById('adminOrderDetailModal').classList.add('hidden');
     }
 
     function getTrackingUrl(carrier, tracking) {
@@ -3386,21 +4326,22 @@
 
     function renderOrdersTable() {
       const tbody = document.getElementById('ordersPaymentsTableBody');
+      if (!tbody) return;
       tbody.innerHTML = adminOrders.map(o => {
         const isFully = o.is_fully_paid;
         return `
           <tr class="hover:bg-brandCardHover transition">
             <td class="p-3 font-mono font-bold text-white">${o.order_number}</td>
             <td class="p-3">
-              <div class="font-bold text-white">${o.customer_name}</div>
-              <div class="text-[10px] text-gray-500">${o.customer_email}</div>
+              <div class="font-bold text-white">${escapeHtml(o.customer_name)}</div>
+              <div class="text-[10px] text-gray-500">${escapeHtml(o.customer_email)}</div>
             </td>
             <td class="p-3">
-              <div class="font-bold text-white text-xs truncate max-w-[170px]" title="${o.shipping_method || 'Envío estándar'}">
-                ${o.shipping_method || 'Envío estándar'}
+              <div class="font-bold text-white text-xs truncate max-w-[170px]" title="${escapeHtml(o.shipping_method) || 'Envío estándar'}">
+                ${escapeHtml(o.shipping_method) || 'Envío estándar'}
               </div>
-              <div class="text-[10px] text-gray-400 truncate max-w-[170px]" title="${o.shipping_address || 'Sin dirección'}">
-                ${o.shipping_address || (o.shipping_postal_code ? 'CP ' + o.shipping_postal_code : 'Retiro en Showroom')}
+              <div class="text-[10px] text-gray-400 truncate max-w-[170px]" title="${escapeHtml(o.shipping_address) || 'Sin dirección'}">
+                ${escapeHtml(o.shipping_address) || (o.shipping_postal_code ? 'CP ' + o.shipping_postal_code : 'Retiro en Showroom')}
               </div>
               <div class="text-[10px] ${o.shipping_cost_ars ? 'text-gray-300' : 'text-emerald-400 font-bold'}">
                 ${o.shipping_cost_ars ? formatARS(o.shipping_cost_ars) : 'Envío Gratis ($0)'}
@@ -3537,15 +4478,19 @@
         const res = await fetch('/api/orders/update-delivery-status', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ order_id: orderId, status: status })
         });
         if (res.ok) {
-          loadOrders();
+          kidoToast(`Estado logístico actualizado a: ${status.replace(/_/g, ' ')}`, 'success', 'Envíos & Despachos');
+          await loadOrders();
+          await loadMetrics();
         } else {
-          alert('Error actualizando estado de entrega.');
+          kidoToast('Error al actualizar el estado de entrega.', 'error');
         }
       } catch (e) {
         console.error(e);
+        kidoToast('Error de conexión al actualizar estado de entrega.', 'error');
       }
     }
 
@@ -3818,7 +4763,11 @@
         activeBtn.classList.add('bg-brandAccent', 'text-white');
       }
 
-      if (tabId === 'brands') {
+      if (tabId === 'sales') {
+        renderSalesTable();
+      } else if (tabId === 'shipping') {
+        renderShippingTable();
+      } else if (tabId === 'brands') {
         renderBrandsAdminTable();
       } else if (tabId === 'types') {
         renderProductTypesAdminTable();
@@ -4009,6 +4958,180 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: NUEVA VENTA (EN PERSONA / SHOWROOM / POS) -->
+  <div id="adminManualSaleModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="bg-brandCard border border-brandBorder rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative space-y-5 animate-in fade-in zoom-in duration-200 max-h-[92vh] overflow-y-auto">
+      <button onclick="closeManualSaleModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white font-bold p-1">✕</button>
+
+      <!-- Encabezado con estética Tuning Fast & Furious -->
+      <div class="flex items-center gap-3.5 border-b border-brandBorder pb-4">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 flex items-center justify-center text-2xl text-emerald-400 font-bold shrink-0 shadow-lg shadow-emerald-500/10">
+          🏪
+        </div>
+        <div>
+          <h3 class="font-display font-black text-xl text-white">Nueva Venta Presencial (En Persona)</h3>
+          <p class="text-xs text-gray-400">Punto de Venta Showroom / Mostrador. Se descuenta stock y se acredita el cobro en cuenta.</p>
+        </div>
+      </div>
+
+      <form onsubmit="handleManualSaleSubmit(event)" class="space-y-5 text-xs">
+        
+        <!-- 1. Datos del Cliente -->
+        <div class="bg-brandSurface/80 p-4 rounded-2xl border border-brandBorder space-y-3">
+          <div class="font-bold text-white text-xs uppercase tracking-wider flex items-center gap-1.5">
+            <span>👤</span> Datos del Comprador
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-gray-400 font-semibold mb-1 text-[11px]">Nombre y Apellido *</label>
+              <input required id="msCustomerName" type="text" placeholder="Ej: Juan Pérez" value="Cliente Mostrador" class="w-full bg-brandDark border border-brandBorder rounded-xl p-2.5 text-white font-semibold focus:border-emerald-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-gray-400 font-semibold mb-1 text-[11px]">Teléfono / WhatsApp</label>
+              <input id="msCustomerPhone" type="text" placeholder="Ej: 11 3456 7890" class="w-full bg-brandDark border border-brandBorder rounded-xl p-2.5 text-white font-semibold focus:border-emerald-500 focus:outline-none">
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-gray-400 font-semibold mb-1 text-[11px]">Correo Electrónico (Opcional)</label>
+              <input id="msCustomerEmail" type="email" placeholder="cliente@correo.com (suma compras si existe)" class="w-full bg-brandDark border border-brandBorder rounded-xl p-2.5 text-white font-semibold focus:border-emerald-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-gray-400 font-semibold mb-1 text-[11px]">Notas / Detalle de la Operación</label>
+              <input id="msNotes" type="text" placeholder="Ej: Compra presencial en showroom" class="w-full bg-brandDark border border-brandBorder rounded-xl p-2.5 text-white font-semibold focus:border-emerald-500 focus:outline-none">
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Selector de Artículos para la Venta -->
+        <div class="bg-brandSurface/80 p-4 rounded-2xl border border-brandBorder space-y-3">
+          <div class="font-bold text-white text-xs uppercase tracking-wider flex items-center justify-between">
+            <span class="flex items-center gap-1.5"><span>🏎️</span> Artículos a Vender</span>
+            <span class="text-[10px] text-gray-400 font-normal">Podés agregar uno o varios artículos</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
+            <div class="sm:col-span-8">
+              <label class="block text-gray-400 font-semibold mb-1 text-[11px]">Seleccionar del Catálogo</label>
+              <select id="msProductSelect" class="w-full bg-brandDark border border-brandBorder rounded-xl p-2.5 text-white font-bold focus:border-emerald-500 focus:outline-none">
+                <!-- Populated dynamically with available products -->
+              </select>
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-gray-400 font-semibold mb-1 text-[11px]">Cantidad</label>
+              <input id="msProductQty" type="number" min="1" value="1" class="w-full bg-brandDark border border-brandBorder rounded-xl p-2.5 text-white font-bold text-center focus:border-emerald-500 focus:outline-none">
+            </div>
+            <div class="sm:col-span-2">
+              <button type="button" onclick="addManualSaleItem()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-bold uppercase tracking-wider text-[11px] transition shadow-lg shadow-emerald-600/20">
+                + Agregar
+              </button>
+            </div>
+          </div>
+
+          <!-- Tabla de ítems en el carrito de la venta -->
+          <div class="rounded-xl border border-brandBorder overflow-hidden bg-brandDark/50">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-brandCard text-gray-400 text-[10px] uppercase font-semibold border-b border-brandBorder">
+                <tr>
+                  <th class="p-2.5">Artículo</th>
+                  <th class="p-2.5 text-center">Cant.</th>
+                  <th class="p-2.5 text-right">Precio Unit.</th>
+                  <th class="p-2.5 text-right">Subtotal</th>
+                  <th class="p-2.5 text-center">✕</th>
+                </tr>
+              </thead>
+              <tbody id="msItemsTableBody" class="divide-y divide-brandBorder">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+            <div id="msItemsEmptyNotice" class="p-4 text-center text-xs text-gray-500 italic">
+              Aún no agregaste artículos a esta venta. Seleccioná uno arriba y hacé clic en "+ Agregar".
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Tipo de Pago (Efectivo vs QR Mercado Pago) -->
+        <div class="bg-brandSurface/80 p-4 rounded-2xl border border-brandBorder space-y-3">
+          <div class="font-bold text-white text-xs uppercase tracking-wider flex items-center gap-1.5">
+            <span>💳</span> Método de Pago del Cliente
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- Efectivo -->
+            <label class="relative flex items-center gap-3 p-3.5 rounded-2xl border cursor-pointer transition select-none bg-brandDark border-emerald-500/50 has-[:checked]:border-emerald-400 has-[:checked]:bg-emerald-500/10" id="msPayMethodCard-EFECTIVO">
+              <input type="radio" name="msPaymentMethod" value="EFECTIVO" checked onchange="handlePaymentMethodChange('EFECTIVO')" class="text-emerald-500 focus:ring-emerald-500 w-4 h-4">
+              <div class="flex items-center gap-2.5">
+                <span class="text-2xl">💵</span>
+                <div>
+                  <div class="font-bold text-white text-xs">Efectivo</div>
+                  <div class="text-[10px] text-gray-400">Cobro presencial en billetes / mano</div>
+                </div>
+              </div>
+            </label>
+
+            <!-- QR Mercado Pago -->
+            <label class="relative flex items-center gap-3 p-3.5 rounded-2xl border cursor-pointer transition select-none bg-brandDark border-brandBorder has-[:checked]:border-cyan-400 has-[:checked]:bg-cyan-500/10" id="msPayMethodCard-QR_MERCADOPAGO">
+              <input type="radio" name="msPaymentMethod" value="QR_MERCADOPAGO" onchange="handlePaymentMethodChange('QR_MERCADOPAGO')" class="text-cyan-500 focus:ring-cyan-500 w-4 h-4">
+              <div class="flex items-center gap-2.5">
+                <span class="text-2xl">📱</span>
+                <div>
+                  <div class="font-bold text-white text-xs">QR Mercado Pago</div>
+                  <div class="text-[10px] text-gray-400">Cobro escaneado en mostrador</div>
+                </div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- 4. Resumen Total y Acciones -->
+        <div class="p-4 rounded-2xl bg-gradient-to-r from-brandDark via-brandCard to-brandDark border border-emerald-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xl">
+          <div>
+            <div class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Total a Cobrar</div>
+            <div id="msTotalDisplay" class="text-2xl font-black text-emerald-400 font-display">$0</div>
+            <div id="msUnitsDisplay" class="text-[10px] text-gray-400">0 unidades seleccionadas</div>
+          </div>
+
+          <div class="flex items-center gap-2.5">
+            <button type="button" onclick="closeManualSaleModal()" class="px-4 py-3 rounded-xl border border-brandBorder hover:bg-brandBorder text-gray-300 font-bold uppercase tracking-wider text-xs transition">
+              Cancelar
+            </button>
+            <button type="submit" id="msSubmitBtn" class="btn-underglow btn-underglow-green bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-6 py-3 rounded-xl font-bold uppercase tracking-wider text-xs transition shadow-lg shadow-emerald-600/30 flex items-center gap-2">
+              <span>✅</span> Confirmar Venta & Descontar Stock
+            </button>
+          </div>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: DETALLE COMPLETO DE VENTA / PEDIDO -->
+  <div id="adminOrderDetailModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="bg-brandCard border border-brandBorder rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl relative space-y-4 animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
+      <button onclick="closeOrderDetailModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white font-bold p-1">✕</button>
+
+      <div class="flex items-center gap-3 border-b border-brandBorder pb-3">
+        <div class="w-10 h-10 rounded-xl bg-brandAccent/20 border border-brandAccent/30 flex items-center justify-center text-xl text-brandAccent font-bold">
+          📄
+        </div>
+        <div>
+          <h3 id="odModalTitle" class="font-display font-bold text-lg text-white">Detalle de la Venta</h3>
+          <p id="odModalSubtitle" class="text-xs text-gray-400">Comprobante y desglose de artículos</p>
+        </div>
+      </div>
+
+      <div id="odModalContent" class="space-y-4 text-xs">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <div class="pt-2 flex justify-end gap-2 border-t border-brandBorder">
+        <button onclick="closeOrderDetailModal()" class="bg-brandSurface hover:bg-brandBorder text-gray-300 px-5 py-2.5 rounded-xl font-bold uppercase tracking-wider text-xs transition">
+          Cerrar
+        </button>
+      </div>
     </div>
   </div>
 

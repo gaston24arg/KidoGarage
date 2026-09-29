@@ -461,18 +461,21 @@ type Order struct {
 	CustomerID          int64            `json:"customer_id"`
 	CustomerEmail       string           `json:"customer_email"`
 	CustomerName        string           `json:"customer_name"`
+	CustomerPhone       string           `json:"customer_phone,omitempty"`
 	TotalARS            int              `json:"total_ars"`
 	TotalPaidARS        int              `json:"total_paid_ars"`
 	RemainingBalanceARS int              `json:"remaining_balance_ars"`
 	IsFullyPaid         bool             `json:"is_fully_paid"`
-	DeliveryStatus      string           `json:"delivery_status"` // "BLOQUEADO_POR_SALDO", "LISTO_PARA_DESPACHAR", "EN_CAMINO", "ENTREGADO"
-	OrderType           string           `json:"order_type"`      // "VENTA_DIRECTA" o "PRE_VENTA_CON_SEÑA"
-	ShippingMethod      string           `json:"shipping_method"` // "Correo Argentino - Envío a Domicilio", "Correo Argentino - Sucursal", "Andreani Express", "Punto de Retiro KIDO"
+	DeliveryStatus      string           `json:"delivery_status"` // "BLOQUEADO_POR_SALDO", "LISTO_PARA_DESPACHAR", "EN_CAMINO", "ENTREGADO", "CANCELADO"
+	OrderType           string           `json:"order_type"`      // "ONLINE", "PRE_VENTA", "EN_PERSONA" (o "VENTA_DIRECTA", "PRE_VENTA_CON_SEÑA")
+	PaymentMethod       string           `json:"payment_method"`  // "EFECTIVO", "QR_MERCADOPAGO", "MERCADOPAGO"
+	ShippingMethod      string           `json:"shipping_method"` // "Correo Argentino - Envío a Domicilio", "Correo Argentino - Sucursal", "Andreani Express", "Punto de Retiro KIDO", "Retiro en Mano (Showroom)"
 	ShippingCostARS     int              `json:"shipping_cost_ars"`
 	ShippingPostalCode  string           `json:"shipping_postal_code"`
 	ShippingAddress     string           `json:"shipping_address,omitempty"`
 	TrackingNumber      string           `json:"tracking_number"`
 	TrackingCarrier     string           `json:"tracking_carrier"` // "Correo Argentino", "Andreani", "Otro"
+	Notes               string           `json:"notes,omitempty"`
 	Items               []OrderItem      `json:"items"`
 	Payments            []PartialPayment `json:"payments"`
 	CreatedAt           time.Time        `json:"created_at"`
@@ -942,7 +945,12 @@ func initDB() {
 		ADD COLUMN IF NOT EXISTS shipping_postal_code VARCHAR(20),
 		ADD COLUMN IF NOT EXISTS shipping_address TEXT,
 		ADD COLUMN IF NOT EXISTS tracking_number VARCHAR(100),
-		ADD COLUMN IF NOT EXISTS tracking_carrier VARCHAR(50)`)
+		ADD COLUMN IF NOT EXISTS tracking_carrier VARCHAR(50),
+		ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50) DEFAULT 'MERCADOPAGO',
+		ADD COLUMN IF NOT EXISTS customer_name VARCHAR(150),
+		ADD COLUMN IF NOT EXISTS customer_email VARCHAR(150),
+		ADD COLUMN IF NOT EXISTS customer_phone VARCHAR(50),
+		ADD COLUMN IF NOT EXISTS notes TEXT`)
 	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS product_types (
 		id BIGSERIAL PRIMARY KEY,
 		name VARCHAR(100) UNIQUE NOT NULL,
@@ -959,6 +967,7 @@ func initDB() {
 	)`)
 	_, _ = db.Exec("ALTER TABLE brands ADD COLUMN IF NOT EXISTS carrusel BOOLEAN DEFAULT TRUE")
 	_, _ = db.Exec("ALTER TABLE brands ADD COLUMN IF NOT EXISTS imagen TEXT DEFAULT ''")
+	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS internal_code VARCHAR(100)")
 	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS brand_id BIGINT REFERENCES brands(id)")
 	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS product_type_id BIGINT REFERENCES product_types(id)")
 	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS in_slider BOOLEAN DEFAULT FALSE")
@@ -1179,6 +1188,59 @@ func initDB() {
 		log.Printf("🐘 [PostgreSQL] Sembradas %d rifas en tabla 'raffles'", len(store.raffles))
 	}
 
+	// 5. Sincronizar pedidos desde la base de datos
+	var ordCount int
+	if err := db.QueryRow("SELECT COUNT(*) FROM orders").Scan(&ordCount); err == nil && ordCount > 0 {
+		rows, err := db.Query(`
+			SELECT id, order_number, COALESCE(customer_id, 0), total_ars, total_paid_ars, remaining_balance_ars,
+			       is_fully_paid, delivery_status, order_type, COALESCE(shipping_method, ''), COALESCE(shipping_cost_ars, 0),
+			       COALESCE(shipping_postal_code, ''), COALESCE(shipping_address, ''), COALESCE(tracking_number, ''),
+			       COALESCE(tracking_carrier, ''), COALESCE(payment_method, 'MERCADOPAGO'), COALESCE(customer_name, ''),
+			       COALESCE(customer_email, ''), COALESCE(customer_phone, ''), COALESCE(notes, ''), created_at
+			FROM orders ORDER BY id DESC
+		`)
+		if err == nil {
+			var pgOrders []Order
+			for rows.Next() {
+				var o Order
+				var totalARS, paidARS, remARS float64
+				if err := rows.Scan(&o.ID, &o.OrderNumber, &o.CustomerID, &totalARS, &paidARS, &remARS,
+					&o.IsFullyPaid, &o.DeliveryStatus, &o.OrderType, &o.ShippingMethod, &o.ShippingCostARS,
+					&o.ShippingPostalCode, &o.ShippingAddress, &o.TrackingNumber, &o.TrackingCarrier,
+					&o.PaymentMethod, &o.CustomerName, &o.CustomerEmail, &o.CustomerPhone, &o.Notes, &o.CreatedAt); err == nil {
+					o.TotalARS = int(totalARS)
+					o.TotalPaidARS = int(paidARS)
+					o.RemainingBalanceARS = int(remARS)
+					pgOrders = append(pgOrders, o)
+				}
+			}
+			rows.Close()
+
+			for i := range pgOrders {
+				itemRows, err := db.Query("SELECT product_id, product_title, quantity, unit_price_ars, subtotal_ars FROM order_items WHERE order_id = $1", pgOrders[i].ID)
+				if err == nil {
+					for itemRows.Next() {
+						var it OrderItem
+						var unitP, subP float64
+						if err := itemRows.Scan(&it.ProductID, &it.ProductTitle, &it.Quantity, &unitP, &subP); err == nil {
+							it.UnitPriceARS = int(unitP)
+							it.SubtotalARS = int(subP)
+							pgOrders[i].Items = append(pgOrders[i].Items, it)
+						}
+					}
+					itemRows.Close()
+				}
+			}
+
+			if len(pgOrders) > 0 {
+				store.mu.Lock()
+				store.orders = pgOrders
+				store.mu.Unlock()
+				log.Printf("🐘 [PostgreSQL] Cargados %d pedidos desde la base de datos", len(pgOrders))
+			}
+		}
+	}
+
 	// Sincronizar secuencias autonuméricas de PostgreSQL (1 en 1)
 	tableSeqs := []string{"users", "products", "stock_movements", "orders", "order_items", "partial_payments", "raffles", "raffle_tickets", "expenses", "purchase_orders", "brands", "product_types"}
 	for _, tbl := range tableSeqs {
@@ -1279,8 +1341,8 @@ func pgSaveOrder(o Order) {
 			}
 		}
 
-		_, err := db.Exec(`INSERT INTO orders (id, order_number, customer_id, total_ars, total_paid_ars, remaining_balance_ars, is_fully_paid, delivery_status, order_type, shipping_method, shipping_cost_ars, shipping_postal_code, shipping_address, tracking_number, tracking_carrier)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+		_, err := db.Exec(`INSERT INTO orders (id, order_number, customer_id, total_ars, total_paid_ars, remaining_balance_ars, is_fully_paid, delivery_status, order_type, shipping_method, shipping_cost_ars, shipping_postal_code, shipping_address, tracking_number, tracking_carrier, payment_method, customer_name, customer_email, customer_phone, notes)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
 		ON CONFLICT (id) DO UPDATE SET
 			total_paid_ars = EXCLUDED.total_paid_ars,
 			remaining_balance_ars = EXCLUDED.remaining_balance_ars,
@@ -1292,9 +1354,15 @@ func pgSaveOrder(o Order) {
 			shipping_address = EXCLUDED.shipping_address,
 			tracking_number = EXCLUDED.tracking_number,
 			tracking_carrier = EXCLUDED.tracking_carrier,
+			payment_method = EXCLUDED.payment_method,
+			customer_name = EXCLUDED.customer_name,
+			customer_email = EXCLUDED.customer_email,
+			customer_phone = EXCLUDED.customer_phone,
+			notes = EXCLUDED.notes,
 			updated_at = CURRENT_TIMESTAMP`,
 			o.ID, o.OrderNumber, custID, o.TotalARS, o.TotalPaidARS, o.RemainingBalanceARS, o.IsFullyPaid, o.DeliveryStatus, o.OrderType,
-			o.ShippingMethod, o.ShippingCostARS, o.ShippingPostalCode, o.ShippingAddress, o.TrackingNumber, o.TrackingCarrier)
+			o.ShippingMethod, o.ShippingCostARS, o.ShippingPostalCode, o.ShippingAddress, o.TrackingNumber, o.TrackingCarrier,
+			o.PaymentMethod, o.CustomerName, o.CustomerEmail, o.CustomerPhone, o.Notes)
 		if err != nil {
 			log.Printf("⚠️ Error guardando orden en PostgreSQL: %v", err)
 		}
@@ -4166,6 +4234,174 @@ func main() {
 			}
 		}
 		http.Error(w, "Pedido no encontrado", http.StatusNotFound)
+	})
+
+	// Registrar Venta en Persona (Manual POS / Showroom) con descuento inmediato de stock y cobro en cuenta
+	mux.HandleFunc("/api/admin/orders/manual-sale", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method != http.MethodPost {
+			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+			return
+		}
+
+		user, _ := getAuthenticatedUser(r)
+		if user != nil && !strings.EqualFold(user.Role, "ADMIN") {
+			http.Error(w, "Acceso no autorizado. Se requiere rol de administrador.", http.StatusForbidden)
+			return
+		}
+
+		var req struct {
+			CustomerName  string      `json:"customer_name"`
+			CustomerEmail string      `json:"customer_email"`
+			CustomerPhone string      `json:"customer_phone"`
+			PaymentMethod string      `json:"payment_method"` // "EFECTIVO" o "QR_MERCADOPAGO"
+			Notes         string      `json:"notes"`
+			Items         []OrderItem `json:"items"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if len(req.Items) == 0 {
+			http.Error(w, "Debes agregar al menos un artículo para registrar la venta", http.StatusBadRequest)
+			return
+		}
+
+		req.CustomerName = strings.TrimSpace(req.CustomerName)
+		if req.CustomerName == "" {
+			req.CustomerName = "Venta Mostrador (En Persona)"
+		}
+
+		req.PaymentMethod = strings.ToUpper(strings.TrimSpace(req.PaymentMethod))
+		if req.PaymentMethod != "QR_MERCADOPAGO" {
+			req.PaymentMethod = "EFECTIVO"
+		}
+
+		store.mu.Lock()
+		defer store.mu.Unlock()
+
+		totalARS := 0
+		var validatedItems []OrderItem
+
+		for _, itemReq := range req.Items {
+			if itemReq.Quantity <= 0 {
+				http.Error(w, "La cantidad de cada artículo debe ser mayor a 0", http.StatusBadRequest)
+				return
+			}
+
+			var foundProduct *Product
+			for i := range store.products {
+				if store.products[i].ID == itemReq.ProductID {
+					foundProduct = &store.products[i]
+					break
+				}
+			}
+
+			if foundProduct == nil {
+				http.Error(w, fmt.Sprintf("El artículo solicitado (ID #%d) no existe en el catálogo", itemReq.ProductID), http.StatusBadRequest)
+				return
+			}
+
+			if foundProduct.StockQuantity < itemReq.Quantity {
+				http.Error(w, fmt.Sprintf("Stock insuficiente para '%s'. Disponibles en depósito: %d u. (Solicitadas: %d u.)", foundProduct.Title, foundProduct.StockQuantity, itemReq.Quantity), http.StatusBadRequest)
+				return
+			}
+
+			unitPrice := itemReq.UnitPriceARS
+			if unitPrice <= 0 {
+				unitPrice = foundProduct.PriceARS
+			}
+			subtotal := unitPrice * itemReq.Quantity
+			totalARS += subtotal
+
+			validatedItems = append(validatedItems, OrderItem{
+				ProductID:    foundProduct.ID,
+				ProductTitle: foundProduct.Title,
+				Quantity:     itemReq.Quantity,
+				UnitPriceARS: unitPrice,
+				SubtotalARS:  subtotal,
+				ProductType:  foundProduct.ProductType,
+				ScaleOrSize:  foundProduct.Scale,
+			})
+		}
+
+		// Descontar stock y actualizar estado si se agota
+		for _, vItem := range validatedItems {
+			for i := range store.products {
+				if store.products[i].ID == vItem.ProductID {
+					store.products[i].StockQuantity -= vItem.Quantity
+					if store.products[i].StockQuantity == 0 && store.products[i].Status != "PRE_VENTA" {
+						store.products[i].Status = "AGOTADO"
+					}
+					pgSaveProduct(store.products[i])
+					break
+				}
+			}
+		}
+
+		orderID := time.Now().UnixNano() / 1000000
+		orderNumber := fmt.Sprintf("KIDO-POS-%04d", (orderID % 100000))
+
+		displayPaymentName := "Efectivo"
+		if req.PaymentMethod == "QR_MERCADOPAGO" {
+			displayPaymentName = "QR Mercado Pago"
+		}
+
+		initialPayment := PartialPayment{
+			ID:            time.Now().UnixNano(),
+			OrderID:       orderID,
+			AmountARS:     totalARS,
+			PaymentMethod: displayPaymentName,
+			MercadoPagoID: fmt.Sprintf("POS-%s-%d", req.PaymentMethod, time.Now().UnixNano()%1000000),
+			PaymentStatus: "approved",
+			IsDownPayment: false,
+			CreatedAt:     time.Now(),
+		}
+
+		newOrder := Order{
+			ID:                  orderID,
+			OrderNumber:         orderNumber,
+			CustomerEmail:       strings.TrimSpace(req.CustomerEmail),
+			CustomerName:        req.CustomerName,
+			CustomerPhone:       strings.TrimSpace(req.CustomerPhone),
+			TotalARS:            totalARS,
+			TotalPaidARS:        totalARS,
+			RemainingBalanceARS: 0,
+			IsFullyPaid:         true,
+			DeliveryStatus:      "ENTREGADO",
+			OrderType:           "EN_PERSONA",
+			PaymentMethod:       req.PaymentMethod,
+			ShippingMethod:      "Retiro en Mano / Showroom",
+			ShippingCostARS:     0,
+			ShippingAddress:     "Venta Presencial en Mostrador / Showroom",
+			Notes:               strings.TrimSpace(req.Notes),
+			Items:               validatedItems,
+			Payments:            []PartialPayment{initialPayment},
+			CreatedAt:           time.Now(),
+		}
+
+		if req.CustomerEmail != "" {
+			for i := range store.users {
+				if strings.EqualFold(store.users[i].Email, req.CustomerEmail) {
+					store.users[i].TotalPurchasesCount++
+					newOrder.CustomerID = store.users[i].ID
+					pgSaveUser(store.users[i])
+					break
+				}
+			}
+		}
+
+		store.orders = append([]Order{newOrder}, store.orders...)
+		pgSaveOrder(newOrder)
+
+		log.Printf("🛍️ [Venta en Persona] Orden %s registrada: %d artículos, Total: $%d (%s)", newOrder.OrderNumber, len(newOrder.Items), newOrder.TotalARS, newOrder.PaymentMethod)
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"order":   newOrder,
+			"message": fmt.Sprintf("¡Venta en persona %s registrada con éxito! Se descontó el stock y se acreditó el pago de $%d (%s).", newOrder.OrderNumber, newOrder.TotalARS, displayPaymentName),
+		})
 	})
 
 	// Calculador de Envíos y Tarifas por Código Postal
