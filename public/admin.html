@@ -2036,6 +2036,10 @@
     function renderProductsAdminTable() {
       const tbody = document.getElementById('productsAdminTableBody');
       const list = (adminProducts || []).slice().sort((a, b) => b.id - a.id);
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-gray-500 italic">No hay artículos registrados en el catálogo. Usa el formulario de la izquierda o la Carga Masiva vía Excel para registrar productos.</td></tr>`;
+        return;
+      }
       tbody.innerHTML = list.map(p => {
         const inSlider = !!p.in_slider;
         return `
@@ -2332,44 +2336,7 @@
           "descripcion"
         ];
 
-        const sampleRows = [
-          [
-            "KH-510-01",
-            "Kaido House Datsun 510 Pro Street Cherry Red",
-            "Autito",
-            "Kaido House",
-            "1:64",
-            "",
-            28500,
-            "21.00",
-            15,
-            "STOCK",
-            "SI",
-            "SI",
-            "https://images.unsplash.com/photo-1581235720704-06d3acfcb36f",
-            "",
-            "Modelo diecast a escala 1:64 con apertura de capot y motor detallado."
-          ],
-          [
-            "APP-REM-01",
-            "Remera Oversize KIDO Garage JDM Club Negra",
-            "Remera",
-            "KIDO Apparel",
-            "",
-            "L",
-            16500,
-            "12.00",
-            25,
-            "STOCK",
-            "SI",
-            "NO",
-            "https://images.unsplash.com/photo-1521572267360-ee0c2909d518",
-            "",
-            "Remera 100% algodon peinado 24/1 corte boxy fit oversize."
-          ]
-        ];
-
-        const wsData = [headers, ...sampleRows];
+        const wsData = [headers];
         const ws = XLSX.utils.aoa_to_sheet(wsData);
 
         ws['!cols'] = [
@@ -2564,6 +2531,7 @@
         const res = await fetch('/api/admin/products/bulk-import', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ products: parsedExcelProducts })
         });
 
@@ -2631,6 +2599,7 @@
         const res = await fetch('/api/admin/stock/bulk-add', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ product_id: prodId, quantity_add: qty })
         });
         const data = await res.json();
@@ -2655,6 +2624,7 @@
         fetch('/api/admin/stock/bulk-add', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ product_id: id, quantity_add: parseInt(add, 10) })
         }).then(r => r.json()).then(data => {
           kidoToast(`Se sumaron unidades a "${p.title}"`, 'success');
@@ -2723,6 +2693,7 @@
         const res = await fetch('/api/admin/products', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify(payload)
         });
         const data = await res.json();

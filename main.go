@@ -733,13 +733,13 @@ func calculateShippingRates(postalCode string, cartTotal int) (string, []Shippin
 	return zone, options
 }
 
-// Cargar Catálogo (limpio por defecto en producción a menos que SEED_SAMPLE_DATA=true)
+// Cargar Catálogo (carga products_sample.json por defecto; solo queda en blanco si SEED_EMPTY_CATALOG=true)
 func loadCatalog() {
-	if os.Getenv("SEED_SAMPLE_DATA") != "true" {
+	if os.Getenv("SEED_EMPTY_CATALOG") == "true" {
 		store.mu.Lock()
 		store.products = []Product{}
 		store.mu.Unlock()
-		log.Printf("📦 Catálogo inicializado en BLANCO (producción limpia)")
+		log.Printf("📦 Catálogo inicializado en BLANCO (SEED_EMPTY_CATALOG=true)")
 		return
 	}
 
