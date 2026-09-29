@@ -928,6 +928,7 @@ func initDB() {
 	dbActive = true
 	log.Printf("🐘 PostgreSQL CONECTADO EXITOSAMENTE a kido_garage en localhost:5432")
 	_, _ = db.Exec("ALTER TABLE raffles ADD COLUMN IF NOT EXISTS winner_number INTEGER")
+	_, _ = db.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT")
 	_, _ = db.Exec(`ALTER TABLE orders 
 		ADD COLUMN IF NOT EXISTS shipping_method VARCHAR(100),
 		ADD COLUMN IF NOT EXISTS shipping_cost_ars INTEGER DEFAULT 0,
@@ -1951,9 +1952,13 @@ func main() {
 				if req.AvatarURL != "" {
 					store.users[i].AvatarURL = req.AvatarURL
 				}
+				updatedUser := store.users[i]
+				pgSaveUser(updatedUser)
+				userResp := updatedUser
+				userResp.Password = ""
 				json.NewEncoder(w).Encode(map[string]interface{}{
 					"success": true,
-					"user":    store.users[i],
+					"user":    userResp,
 				})
 				return
 			}
@@ -2175,6 +2180,197 @@ func main() {
 	mux.HandleFunc("/api/upload", requireAdmin(uploadHandler))
 	mux.HandleFunc("/api/admin/upload", requireAdmin(uploadHandler))
 
+	// Subida y actualización de avatar de usuario (cliente o admin)
+	userAvatarHandler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("Content-Type", "application/json")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "Método no permitido",
+			})
+			return
+		}
+
+		// 1. Limitar el tamaño de la petición a 2 MB en el servidor para proteger el almacenamiento
+		r.Body = http.MaxBytesReader(w, r.Body, 2<<20)
+		if err := r.ParseMultipartForm(2 << 20); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			errMsg := "Error al procesar el formulario de subida."
+			if strings.Contains(strings.ToLower(err.Error()), "too large") || strings.Contains(strings.ToLower(err.Error()), "request body too large") {
+				errMsg = "La imagen supera el límite máximo permitido de 2 MB."
+			}
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   errMsg,
+			})
+			return
+		}
+
+		// 2. Identificar el usuario
+		authUser, _ := getAuthenticatedUser(r)
+		formEmail := strings.TrimSpace(r.FormValue("email"))
+		formUserID, _ := strconv.ParseInt(r.FormValue("user_id"), 10, 64)
+
+		var targetUserID int64
+		var targetEmail string
+
+		if authUser != nil {
+			targetUserID = authUser.ID
+			targetEmail = authUser.Email
+		} else if formEmail != "" {
+			targetEmail = formEmail
+			targetUserID = formUserID
+		} else {
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "Debes iniciar sesión para actualizar tu foto de perfil.",
+			})
+			return
+		}
+
+		// 3. Obtener el archivo
+		file, handler, err := r.FormFile("avatar")
+		if err != nil {
+			file, handler, err = r.FormFile("file")
+		}
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "No se seleccionó ningún archivo de imagen.",
+			})
+			return
+		}
+		defer file.Close()
+
+		// 4. Validar extensión
+		rawExt := strings.ToLower(filepath.Ext(handler.Filename))
+		allowedExts := map[string]bool{
+			".jpg":  true,
+			".jpeg": true,
+			".png":  true,
+			".webp": true,
+			".gif":  true,
+		}
+		if !allowedExts[rawExt] {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "Formato de imagen no válido. Formatos permitidos: JPG, PNG, WEBP, GIF.",
+			})
+			return
+		}
+
+		// 5. Validar cabecera binaria MIME
+		headBuf := make([]byte, 512)
+		n, _ := file.Read(headBuf)
+		if seeker, ok := file.(io.Seeker); ok {
+			_, _ = seeker.Seek(0, io.SeekStart)
+		}
+		mimeType := http.DetectContentType(headBuf[:n])
+		if !strings.HasPrefix(mimeType, "image/") && !strings.Contains(mimeType, "octet-stream") {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "El archivo no es una imagen válida.",
+			})
+			return
+		}
+
+		// 6. Directorio para avatares
+		avatarsDir := filepath.Join("public", "uploads", "avatars")
+		_ = os.MkdirAll(avatarsDir, 0755)
+
+		// 7. Nombre único sanitizado
+		cleanExt := rawExt
+		if cleanExt == "" {
+			cleanExt = ".webp"
+		}
+		filename := fmt.Sprintf("avatar_%d_%d%s", time.Now().UnixNano(), targetUserID, cleanExt)
+		savePath := filepath.Join(avatarsDir, filename)
+
+		dst, err := os.Create(savePath)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "Error al guardar la imagen en el servidor.",
+			})
+			return
+		}
+		defer dst.Close()
+
+		if _, err := io.Copy(dst, file); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "Error al escribir la imagen.",
+			})
+			return
+		}
+
+		avatarURL := "/uploads/avatars/" + filename
+
+		// 8. Actualizar en memoria y limpiar avatar anterior si existía en uploads locales
+		store.mu.Lock()
+		var updatedUser User
+		var userFound bool
+		var oldAvatarToRemove string
+		for i := range store.users {
+			if (targetUserID != 0 && store.users[i].ID == targetUserID) || (targetEmail != "" && strings.EqualFold(store.users[i].Email, targetEmail)) {
+				if strings.HasPrefix(store.users[i].AvatarURL, "/uploads/avatars/") {
+					oldAvatarToRemove = strings.TrimPrefix(store.users[i].AvatarURL, "/")
+				}
+				store.users[i].AvatarURL = avatarURL
+				updatedUser = store.users[i]
+				userFound = true
+				break
+			}
+		}
+		store.mu.Unlock()
+
+		// Limpiar archivo anterior para ahorrar espacio en disco del servidor
+		if oldAvatarToRemove != "" {
+			_ = os.Remove(filepath.Join("public", strings.TrimPrefix(oldAvatarToRemove, "uploads/avatars/")))
+			_ = os.Remove(filepath.Join("public", oldAvatarToRemove))
+		}
+
+		if !userFound {
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "Usuario no encontrado.",
+			})
+			return
+		}
+
+		// 9. Persistir en PostgreSQL
+		pgSaveUser(updatedUser)
+
+		userResp := updatedUser
+		userResp.Password = ""
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success":    true,
+			"avatar_url": avatarURL,
+			"user":       userResp,
+			"message":    "Foto de perfil actualizada exitosamente.",
+		})
+	}
+	mux.HandleFunc("/api/user/avatar", userAvatarHandler)
+
+
 	// Obtener Tipos de Producto
 	mux.HandleFunc("/api/product-types", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -2232,15 +2428,19 @@ func main() {
 			return
 		}
 
+		if pt.ID == 0 && !pt.IsActive {
+			pt.IsActive = true
+		}
+
 		if dbActive && db != nil {
 			if pt.ID == 0 {
-				err := db.QueryRow("INSERT INTO product_types (name, code) VALUES ($1, $2) RETURNING id", pt.Name, pt.Code).Scan(&pt.ID)
+				err := db.QueryRow("INSERT INTO product_types (name, code, is_active) VALUES ($1, $2, $3) RETURNING id", pt.Name, pt.Code, pt.IsActive).Scan(&pt.ID)
 				if err != nil {
 					http.Error(w, "Error creando tipo de producto: "+err.Error(), http.StatusInternalServerError)
 					return
 				}
 			} else {
-				_, err := db.Exec("UPDATE product_types SET name=$1, code=$2 WHERE id=$3", pt.Name, pt.Code, pt.ID)
+				_, err := db.Exec("UPDATE product_types SET name=$1, code=$2, is_active=$3 WHERE id=$4", pt.Name, pt.Code, pt.IsActive, pt.ID)
 				if err != nil {
 					http.Error(w, "Error actualizando tipo de producto: "+err.Error(), http.StatusInternalServerError)
 					return
@@ -2266,6 +2466,66 @@ func main() {
 		store.mu.Unlock()
 
 		json.NewEncoder(w).Encode(pt)
+	}))
+
+	// Toggle Activo en Tipos de Producto (Admin)
+	mux.HandleFunc("/api/admin/product-types/toggle-active", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method != http.MethodPost {
+			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			TypeID   int64 `json:"type_id"`
+			ID       int64 `json:"id"`
+			IsActive *bool `json:"is_active,omitempty"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		typeID := req.TypeID
+		if typeID == 0 {
+			typeID = req.ID
+		}
+		if typeID == 0 {
+			http.Error(w, "ID de tipo de producto inválido", http.StatusBadRequest)
+			return
+		}
+
+		store.mu.Lock()
+		defer store.mu.Unlock()
+
+		for i := range store.productTypes {
+			if store.productTypes[i].ID == typeID {
+				if req.IsActive != nil {
+					store.productTypes[i].IsActive = *req.IsActive
+				} else {
+					store.productTypes[i].IsActive = !store.productTypes[i].IsActive
+				}
+				newActive := store.productTypes[i].IsActive
+
+				if dbActive && db != nil {
+					_, err := db.Exec("UPDATE product_types SET is_active = $1 WHERE id = $2", newActive, typeID)
+					if err != nil {
+						log.Printf("⚠️ Error actualizando product_types is_active en Postgres: %v", err)
+					}
+				}
+
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"success":   true,
+					"type_id":   typeID,
+					"id":        typeID,
+					"is_active": newActive,
+					"message":   fmt.Sprintf("Tipo '%s' marcado como %s", store.productTypes[i].Name, map[bool]string{true: "ACTIVO", false: "INACTIVO"}[newActive]),
+				})
+				return
+			}
+		}
+
+		http.Error(w, "Tipo de producto no encontrado", http.StatusNotFound)
 	}))
 
 	// Obtener Marcas
@@ -2352,6 +2612,66 @@ func main() {
 		store.mu.Unlock()
 
 		json.NewEncoder(w).Encode(b)
+	}))
+
+	// Toggle Carrusel en Marcas (Admin)
+	mux.HandleFunc("/api/admin/brands/toggle-carrusel", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method != http.MethodPost {
+			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			BrandID  int64 `json:"brand_id"`
+			ID       int64 `json:"id"`
+			Carrusel *bool `json:"carrusel,omitempty"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		brandID := req.BrandID
+		if brandID == 0 {
+			brandID = req.ID
+		}
+		if brandID == 0 {
+			http.Error(w, "ID de marca inválido", http.StatusBadRequest)
+			return
+		}
+
+		store.mu.Lock()
+		defer store.mu.Unlock()
+
+		for i := range store.brands {
+			if store.brands[i].ID == brandID {
+				if req.Carrusel != nil {
+					store.brands[i].Carrusel = *req.Carrusel
+				} else {
+					store.brands[i].Carrusel = !store.brands[i].Carrusel
+				}
+				newStatus := store.brands[i].Carrusel
+
+				if dbActive && db != nil {
+					_, err := db.Exec("UPDATE brands SET carrusel = $1 WHERE id = $2", newStatus, brandID)
+					if err != nil {
+						log.Printf("⚠️ Error actualizando brands carrusel en Postgres: %v", err)
+					}
+				}
+
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"success":  true,
+					"brand_id": brandID,
+					"id":       brandID,
+					"carrusel": newStatus,
+					"message":  fmt.Sprintf("Marca '%s' carrusel: %v", store.brands[i].Name, newStatus),
+				})
+				return
+			}
+		}
+
+		http.Error(w, "Marca no encontrada", http.StatusNotFound)
 	}))
 
 	// Obtener Productos (con filtros)
@@ -2717,6 +3037,7 @@ func main() {
 
 		var req struct {
 			ProductID int64 `json:"product_id"`
+			ID        int64 `json:"id"`
 			IsActive  *bool `json:"is_active,omitempty"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -2724,11 +3045,20 @@ func main() {
 			return
 		}
 
+		prodID := req.ProductID
+		if prodID == 0 {
+			prodID = req.ID
+		}
+		if prodID == 0 {
+			http.Error(w, "ID de producto inválido", http.StatusBadRequest)
+			return
+		}
+
 		store.mu.Lock()
 		defer store.mu.Unlock()
 
 		for i := range store.products {
-			if store.products[i].ID == req.ProductID {
+			if store.products[i].ID == prodID {
 				if req.IsActive != nil {
 					store.products[i].IsActive = *req.IsActive
 				} else {
@@ -2825,10 +3155,20 @@ func main() {
 
 		var req struct {
 			ProductID int64 `json:"product_id"`
+			ID        int64 `json:"id"`
 			InSlider  *bool `json:"in_slider,omitempty"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		prodID := req.ProductID
+		if prodID == 0 {
+			prodID = req.ID
+		}
+		if prodID == 0 {
+			http.Error(w, "ID de producto inválido", http.StatusBadRequest)
 			return
 		}
 
@@ -2837,7 +3177,7 @@ func main() {
 
 		var matched *Product
 		for i := range store.products {
-			if store.products[i].ID == req.ProductID {
+			if store.products[i].ID == prodID {
 				if req.InSlider != nil {
 					store.products[i].InSlider = *req.InSlider
 				} else {
@@ -3089,6 +3429,32 @@ func main() {
 			return
 		}
 
+		req.Title = strings.TrimSpace(req.Title)
+		req.RaffleNumber = strings.TrimSpace(req.RaffleNumber)
+		req.StartDatetime = strings.TrimSpace(req.StartDatetime)
+		req.EndDatetime = strings.TrimSpace(req.EndDatetime)
+		req.DrawDatetime = strings.TrimSpace(req.DrawDatetime)
+
+		if req.Title == "" || req.RaffleNumber == "" {
+			http.Error(w, "Título y número de sorteo son requeridos", http.StatusBadRequest)
+			return
+		}
+
+		if req.StartDatetime == "" || req.EndDatetime == "" || req.DrawDatetime == "" {
+			http.Error(w, "Las fechas de inicio, fin y sorteo oficial son obligatorias", http.StatusBadRequest)
+			return
+		}
+
+		if req.EndDatetime < req.StartDatetime {
+			http.Error(w, "La fecha de fin no puede ser anterior a la fecha de inicio", http.StatusBadRequest)
+			return
+		}
+
+		if req.DrawDatetime < req.EndDatetime {
+			http.Error(w, "La fecha del sorteo oficial no puede ser anterior a la finalización de venta de boletos", http.StatusBadRequest)
+			return
+		}
+
 		var maxID int64 = 0
 		if dbActive && db != nil {
 			_ = db.QueryRow("SELECT COALESCE(MAX(id), 0) FROM raffles WHERE id < 1000000000").Scan(&maxID)
@@ -3329,9 +3695,19 @@ func main() {
 
 		var req struct {
 			RaffleID int64 `json:"raffle_id"`
+			ID       int64 `json:"id"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		raffleID := req.RaffleID
+		if raffleID == 0 {
+			raffleID = req.ID
+		}
+		if raffleID == 0 {
+			http.Error(w, "ID de rifa inválido", http.StatusBadRequest)
 			return
 		}
 
@@ -3339,7 +3715,7 @@ func main() {
 		defer store.mu.Unlock()
 
 		for i := range store.raffles {
-			if store.raffles[i].ID == req.RaffleID {
+			if store.raffles[i].ID == raffleID {
 				if store.raffles[i].Status == "ACTIVA" {
 					store.raffles[i].Status = "PAUSADA"
 				} else {
@@ -3995,6 +4371,7 @@ func main() {
 
 		var req struct {
 			UserID     int64 `json:"user_id"`
+			ID         int64 `json:"id"`
 			IsFrequent bool  `json:"is_frequent"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -4002,11 +4379,20 @@ func main() {
 			return
 		}
 
+		userID := req.UserID
+		if userID == 0 {
+			userID = req.ID
+		}
+		if userID == 0 {
+			http.Error(w, "ID de usuario inválido", http.StatusBadRequest)
+			return
+		}
+
 		store.mu.Lock()
 		defer store.mu.Unlock()
 
 		for i := range store.users {
-			if store.users[i].ID == req.UserID {
+			if store.users[i].ID == userID {
 				store.users[i].IsFrequentCustomer = req.IsFrequent
 				if req.IsFrequent {
 					// Otorgar insignia: asegurar al menos 4 meses consecutivos (>3) y 1 punto

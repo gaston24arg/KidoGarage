@@ -119,26 +119,346 @@
       to { transform: scaleX(0); }
     }
 
+    /* ======================================================== */
+    /* 3. SCROLLBAR ESTILO PISTA DE CARRERAS (ASPHALT & NITRO) */
+    /* ======================================================== */
+    html {
+      scrollbar-color: #ff5500 #09090d;
+      scrollbar-width: thin;
+    }
+
     ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
+      width: 10px;
+      height: 10px;
     }
 
     ::-webkit-scrollbar-track {
-      background: #0a0a0d;
+      background: #09090d;
+      background-image: 
+        linear-gradient(90deg, rgba(255, 60, 0, 0.12) 0px, transparent 1px),
+        repeating-linear-gradient(180deg, #0b0b10 0px, #0b0b10 12px, #07070a 12px, #07070a 24px);
+      border-left: 1px solid rgba(255, 255, 255, 0.04);
     }
 
     ::-webkit-scrollbar-thumb {
-      background: #272733;
-      border-radius: 4px;
+      background: linear-gradient(180deg, #ff2a00 0%, #ff6600 50%, #ffa600 100%);
+      border-radius: 6px;
+      border: 2px solid #09090d;
+      box-shadow: 
+        inset 0 1px 1px rgba(255, 255, 255, 0.6),
+        0 0 12px rgba(255, 85, 0, 0.6);
+      transition: all 0.25s ease;
     }
 
     ::-webkit-scrollbar-thumb:hover {
-      background: #e63946;
+      background: linear-gradient(180deg, #ff0033 0%, #ff4d00 50%, #ffcc00 100%);
+      box-shadow: 
+        inset 0 1px 2px rgba(255, 255, 255, 0.8),
+        0 0 18px rgba(255, 85, 0, 0.95);
+    }
+
+    ::-webkit-scrollbar-corner {
+      background: #09090d;
     }
 
     .glow-accent {
       box-shadow: 0 0 25px -5px rgba(230, 57, 70, 0.35);
+    }
+
+    /* ======================================================== */
+    /* 1. TARJETAS BLISTER CON EFECTO 3D TILT & BRILLO DINÁMICO */
+    /* ======================================================== */
+    .blister-card-wrapper {
+      perspective: 1100px;
+      transform-style: preserve-3d;
+    }
+
+    .blister-card {
+      position: relative;
+      transform-style: preserve-3d;
+      will-change: transform;
+      transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.35s ease, border-color 0.3s ease;
+      background: linear-gradient(180deg, #181824 0%, #101016 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 1.25rem;
+      overflow: hidden;
+      box-shadow: 0 14px 30px -10px rgba(0, 0, 0, 0.75), 0 2px 6px rgba(0, 0, 0, 0.4);
+    }
+
+    .blister-card:hover {
+      border-color: rgba(255, 107, 0, 0.45);
+      box-shadow: 0 24px 50px -10px rgba(0, 0, 0, 0.88), 0 0 25px -5px rgba(255, 85, 0, 0.25);
+    }
+
+    /* Reflejo especular plástico dinámico (Specular Glare) */
+    .blister-glare {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 25;
+      border-radius: inherit;
+      opacity: var(--glare-opacity, 0);
+      background: radial-gradient(
+        circle 300px at var(--mouse-x, 50%) var(--mouse-y, 50%),
+        rgba(255, 255, 255, 0.3) 0%,
+        rgba(255, 130, 0, 0.12) 35%,
+        transparent 70%
+      );
+      mix-blend-mode: screen;
+      transition: opacity 0.35s ease;
+    }
+
+    /* Burbuja plástica del blister con relieve 3D */
+    .blister-bubble {
+      position: relative;
+      background: radial-gradient(circle at 50% 25%, rgba(255, 255, 255, 0.05) 0%, rgba(0, 0, 0, 0.65) 100%);
+      border-radius: 1rem;
+      margin: 0.5rem 0.65rem 0 0.65rem;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 
+        inset 0 2px 6px rgba(255, 255, 255, 0.14),
+        inset 0 -3px 8px rgba(0, 0, 0, 0.75),
+        0 8px 18px -6px rgba(0, 0, 0, 0.7);
+      transform: translateZ(16px);
+      transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .blister-card:hover .blister-bubble {
+      transform: translateZ(28px) scale(1.015);
+    }
+
+    /* ======================================================== */
+    /* 2. RANURA TROQUELADA TIPO J-HOOK / BLISTER EN CABECERA   */
+    /* ======================================================== */
+    .blister-header-tab {
+      position: relative;
+      width: 100%;
+      padding-top: 0.75rem;
+      padding-bottom: 0.35rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 100%);
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+      user-select: none;
+    }
+
+    .blister-peg-hole {
+      position: relative;
+      width: 56px;
+      height: 13px;
+      background: #09090d;
+      border-radius: 7px;
+      box-shadow: 
+        inset 0 3px 5px rgba(0, 0, 0, 0.95),
+        inset 0 -1px 2px rgba(255, 255, 255, 0.18),
+        0 1px 0 rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(0, 0, 0, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .blister-peg-hole::before {
+      content: '';
+      position: absolute;
+      top: -4px;
+      width: 16px;
+      height: 8px;
+      background: #09090d;
+      border-top-left-radius: 8px;
+      border-top-right-radius: 8px;
+      box-shadow: 
+        inset 0 2px 3px rgba(0, 0, 0, 0.95),
+        inset -1px 0 1px rgba(255, 255, 255, 0.1),
+        inset 1px 0 1px rgba(255, 255, 255, 0.1);
+      border-top: 1px solid rgba(0, 0, 0, 0.9);
+    }
+
+    .blister-peg-hole::after {
+      content: '';
+      position: absolute;
+      top: -2px;
+      width: 14px;
+      height: 2px;
+      background: #09090d;
+    }
+
+    .blister-diecut-line {
+      position: absolute;
+      top: 2px;
+      left: 12px;
+      right: 12px;
+      height: 1px;
+      background: repeating-linear-gradient(90deg, rgba(255,255,255,0.1) 0, rgba(255,255,255,0.1) 4px, transparent 4px, transparent 8px);
+    }
+
+    /* ======================================================== */
+    /* 4. SKELETON LOADER DINÁMICO TIPO HAZ DE TACÓMETRO        */
+    /* ======================================================== */
+    .skeleton-blister {
+      position: relative;
+      background: linear-gradient(180deg, #15151e 0%, #0d0d14 100%);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 1.25rem;
+      overflow: hidden;
+      box-shadow: 0 10px 25px -8px rgba(0, 0, 0, 0.6);
+    }
+
+    .skeleton-shimmer {
+      position: relative;
+      overflow: hidden;
+      background-color: rgba(255, 255, 255, 0.04);
+    }
+
+    .skeleton-shimmer::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      transform: translateX(-100%);
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 85, 0, 0.06) 30%,
+        rgba(255, 140, 0, 0.28) 50%,
+        rgba(255, 215, 0, 0.18) 60%,
+        rgba(255, 85, 0, 0.06) 75%,
+        transparent 100%
+      );
+      animation: tachometerSweep 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    @keyframes tachometerSweep {
+      0% { transform: translateX(-100%); }
+      60%, 100% { transform: translateX(100%); }
+    }
+
+    /* ======================================================== */
+    /* 5. BADGES METÁLICOS CEPILLADOS (BRUSHED METAL)           */
+    /* ======================================================== */
+    .badge-brushed-metal {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.22rem 0.55rem;
+      border-radius: 0.375rem;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 900;
+      font-size: 0.625rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      overflow: hidden;
+      user-select: none;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: 
+        0 2px 5px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+    }
+
+    .badge-brushed-metal::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(255, 255, 255, 0.04) 0px,
+        rgba(255, 255, 255, 0.04) 1px,
+        transparent 1px,
+        transparent 2px
+      );
+      pointer-events: none;
+      mix-blend-mode: overlay;
+    }
+
+    .badge-metal-chrome {
+      background: linear-gradient(
+        135deg,
+        #cfd3db 0%,
+        #8f95a0 25%,
+        #f4f6fa 45%,
+        #e1e5ec 55%,
+        #7a808d 75%,
+        #bcc2cd 100%
+      );
+      color: #111318;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+      border-color: #e5e8ef;
+    }
+
+    .badge-metal-gold {
+      background: linear-gradient(
+        135deg,
+        #f3c444 0%,
+        #b38118 22%,
+        #fff2b2 45%,
+        #ffd768 55%,
+        #94650a 78%,
+        #e5b432 100%
+      );
+      color: #271700;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+      border-color: #ffe685;
+      box-shadow: 
+        0 2px 6px rgba(0, 0, 0, 0.55),
+        0 0 12px rgba(245, 158, 11, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.5);
+    }
+
+    .badge-metal-titanium {
+      background: linear-gradient(
+        135deg,
+        #242933 0%,
+        #151921 30%,
+        #3e4757 50%,
+        #191d26 70%,
+        #2f3644 100%
+      );
+      color: #34d399;
+      text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.9), 0 0 6px rgba(16, 185, 129, 0.5);
+      border-color: rgba(52, 211, 153, 0.4);
+      box-shadow: 
+        0 2px 5px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.6);
+    }
+
+    .badge-metal-nitro {
+      background: linear-gradient(
+        135deg,
+        #1e3a8a 0%,
+        #0f172a 30%,
+        #3b82f6 50%,
+        #1d4ed8 70%,
+        #2563eb 100%
+      );
+      color: #ffffff;
+      text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.8), 0 0 8px rgba(59, 130, 246, 0.6);
+      border-color: rgba(96, 165, 250, 0.5);
+      box-shadow: 
+        0 2px 5px rgba(0, 0, 0, 0.5),
+        0 0 10px rgba(37, 99, 235, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.6);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .blister-card {
+        transform: none !important;
+        transition: none !important;
+      }
+      .blister-glare {
+        display: none !important;
+      }
+      .blister-bubble {
+        transform: none !important;
+      }
+      .skeleton-shimmer::after {
+        animation: none !important;
+      }
     }
 
     .badge-chase {
@@ -393,7 +713,7 @@
 
     <!-- Carrusel Horizontal de Marcas -->
     <div class="relative overflow-hidden w-full">
-      <div id="brandCarousel" class="flex gap-3 overflow-x-auto hide-scrollbar py-1 whitespace-nowrap" style="scroll-behavior: auto;">
+      <div id="brandCarousel" class="flex gap-3 overflow-x-auto hide-scrollbar py-2 whitespace-nowrap" style="scroll-behavior: auto;">
         <!-- Botones inyectados por JS -->
       </div>
     </div>
@@ -437,9 +757,26 @@
     <!-- Product Grid Container: 1 col mobile, 2 sm, 3 md, 4 lg (reducido por sidebar) -->
     <div id="productGrid"
       class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-6">
-      <div class="col-span-full py-16 text-center text-gray-400">
-        <div class="inline-block animate-spin text-3xl mb-3">⚙️</div>
-        <p class="text-sm font-semibold">Cargando catálogo oficial...</p>
+      <!-- Skeleton Loaders Iniciales con Barrido de Tacómetro -->
+      <div class="skeleton-blister flex flex-col justify-between">
+        <div class="blister-header-tab"><div class="blister-diecut-line"></div><div class="blister-peg-hole"></div><div class="skeleton-shimmer h-2 w-24 rounded mt-2"></div></div>
+        <div class="blister-bubble p-4 h-48 flex items-center justify-center"><div class="skeleton-shimmer w-40 h-28 rounded-xl"></div></div>
+        <div class="p-4 flex flex-col flex-grow justify-between gap-3"><div class="space-y-2"><div class="skeleton-shimmer h-3 w-20 rounded"></div><div class="skeleton-shimmer h-4 w-5/6 rounded"></div><div class="skeleton-shimmer h-3 w-1/2 rounded"></div></div><div class="pt-3 border-t border-brandBorder/40 flex items-center justify-between"><div class="space-y-1.5"><div class="skeleton-shimmer h-5 w-24 rounded"></div><div class="skeleton-shimmer h-2.5 w-14 rounded"></div></div><div class="skeleton-shimmer h-8 w-24 rounded-xl"></div></div></div>
+      </div>
+      <div class="skeleton-blister flex flex-col justify-between hidden sm:flex">
+        <div class="blister-header-tab"><div class="blister-diecut-line"></div><div class="blister-peg-hole"></div><div class="skeleton-shimmer h-2 w-24 rounded mt-2"></div></div>
+        <div class="blister-bubble p-4 h-48 flex items-center justify-center"><div class="skeleton-shimmer w-40 h-28 rounded-xl"></div></div>
+        <div class="p-4 flex flex-col flex-grow justify-between gap-3"><div class="space-y-2"><div class="skeleton-shimmer h-3 w-20 rounded"></div><div class="skeleton-shimmer h-4 w-5/6 rounded"></div><div class="skeleton-shimmer h-3 w-1/2 rounded"></div></div><div class="pt-3 border-t border-brandBorder/40 flex items-center justify-between"><div class="space-y-1.5"><div class="skeleton-shimmer h-5 w-24 rounded"></div><div class="skeleton-shimmer h-2.5 w-14 rounded"></div></div><div class="skeleton-shimmer h-8 w-24 rounded-xl"></div></div></div>
+      </div>
+      <div class="skeleton-blister flex flex-col justify-between hidden md:flex">
+        <div class="blister-header-tab"><div class="blister-diecut-line"></div><div class="blister-peg-hole"></div><div class="skeleton-shimmer h-2 w-24 rounded mt-2"></div></div>
+        <div class="blister-bubble p-4 h-48 flex items-center justify-center"><div class="skeleton-shimmer w-40 h-28 rounded-xl"></div></div>
+        <div class="p-4 flex flex-col flex-grow justify-between gap-3"><div class="space-y-2"><div class="skeleton-shimmer h-3 w-20 rounded"></div><div class="skeleton-shimmer h-4 w-5/6 rounded"></div><div class="skeleton-shimmer h-3 w-1/2 rounded"></div></div><div class="pt-3 border-t border-brandBorder/40 flex items-center justify-between"><div class="space-y-1.5"><div class="skeleton-shimmer h-5 w-24 rounded"></div><div class="skeleton-shimmer h-2.5 w-14 rounded"></div></div><div class="skeleton-shimmer h-8 w-24 rounded-xl"></div></div></div>
+      </div>
+      <div class="skeleton-blister flex flex-col justify-between hidden xl:flex">
+        <div class="blister-header-tab"><div class="blister-diecut-line"></div><div class="blister-peg-hole"></div><div class="skeleton-shimmer h-2 w-24 rounded mt-2"></div></div>
+        <div class="blister-bubble p-4 h-48 flex items-center justify-center"><div class="skeleton-shimmer w-40 h-28 rounded-xl"></div></div>
+        <div class="p-4 flex flex-col flex-grow justify-between gap-3"><div class="space-y-2"><div class="skeleton-shimmer h-3 w-20 rounded"></div><div class="skeleton-shimmer h-4 w-5/6 rounded"></div><div class="skeleton-shimmer h-3 w-1/2 rounded"></div></div><div class="pt-3 border-t border-brandBorder/40 flex items-center justify-between"><div class="space-y-1.5"><div class="skeleton-shimmer h-5 w-24 rounded"></div><div class="skeleton-shimmer h-2.5 w-14 rounded"></div></div><div class="skeleton-shimmer h-8 w-24 rounded-xl"></div></div></div>
       </div>
     </div>
 
@@ -623,6 +960,8 @@
       class="bg-brandCard border border-brandBorder rounded-3xl max-w-4xl w-full p-4 md:p-8 shadow-2xl max-h-[92vh] overflow-y-auto relative custom-scrollbar">
       <button onclick="closeProfileModal()"
         class="absolute top-4 right-4 w-9 h-9 rounded-full bg-brandSurface hover:bg-brandBorder border border-brandBorder text-gray-400 hover:text-white font-bold flex items-center justify-center transition z-20">✕</button>
+
+      <input type="file" id="userAvatarFileInput" accept="image/png, image/jpeg, image/webp, image/gif" class="hidden" onchange="handleAvatarFileSelected(event)">
 
       <div id="profileContent">
         <!-- Rendered dynamically -->
@@ -1017,6 +1356,19 @@
       return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(val);
     }
 
+    function formatFriendlyDate(dtStr) {
+      if (!dtStr) return '';
+      if (dtStr.includes('T')) {
+        const [d, t] = dtStr.split('T');
+        const parts = d.split('-');
+        if (parts.length === 3) {
+          const [y, m, day] = parts;
+          return `${day}/${m}/${y} ${t ? t.slice(0, 5) + ' hs' : ''}`;
+        }
+      }
+      return dtStr;
+    }
+
     // Inicializar
     async function initApp() {
       await loadBrandsAndCarousel();
@@ -1046,6 +1398,7 @@
 
     // Cargar Productos
     async function loadProducts() {
+      renderProductSkeletons(8);
       try {
         const res = await fetch('/api/products');
         if (res.ok) {
@@ -1203,6 +1556,90 @@
       updateFilterLabels();
     }
 
+    // Skeleton Loader dinámico temático tipo haz de tacómetro
+    function renderProductSkeletons(count = 8) {
+      const container = document.getElementById('productGrid');
+      if (!container) return;
+
+      container.innerHTML = Array.from({ length: count }).map(() => `
+        <div class="skeleton-blister flex flex-col justify-between">
+          <!-- Ranura Troquelada J-Hook del Skeleton -->
+          <div class="blister-header-tab">
+            <div class="blister-diecut-line"></div>
+            <div class="blister-peg-hole"></div>
+            <div class="skeleton-shimmer h-2 w-24 rounded mt-2"></div>
+          </div>
+
+          <!-- Burbuja Plástica del Blister Skeleton -->
+          <div class="blister-bubble p-4 h-48 flex items-center justify-center">
+            <div class="skeleton-shimmer w-40 h-28 rounded-xl"></div>
+          </div>
+
+          <!-- Información del Producto Skeleton -->
+          <div class="p-4 flex flex-col flex-grow justify-between gap-3">
+            <div class="space-y-2">
+              <div class="skeleton-shimmer h-3 w-20 rounded"></div>
+              <div class="skeleton-shimmer h-4 w-5/6 rounded"></div>
+              <div class="skeleton-shimmer h-3 w-1/2 rounded"></div>
+            </div>
+
+            <div class="pt-3 border-t border-brandBorder/40 flex items-center justify-between">
+              <div class="space-y-1.5">
+                <div class="skeleton-shimmer h-5 w-24 rounded"></div>
+                <div class="skeleton-shimmer h-2.5 w-14 rounded"></div>
+              </div>
+              <div class="skeleton-shimmer h-8 w-24 rounded-xl"></div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Efecto 3D Tilt y Reflejo Especular Dinámico para Blister Cards
+    function initBlisterTiltEffects() {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        return;
+      }
+
+      const cards = document.querySelectorAll('.blister-card');
+      cards.forEach(card => {
+        if (card.dataset.tiltActive) return;
+        card.dataset.tiltActive = 'true';
+
+        let isHovered = false;
+
+        card.addEventListener('mouseenter', () => {
+          isHovered = true;
+          card.style.setProperty('--glare-opacity', '1');
+        });
+
+        card.addEventListener('mousemove', (e) => {
+          if (!isHovered) return;
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+
+          // Normalizar entre -1 y 1 respecto al centro
+          const normX = ((x / rect.width) * 2) - 1;
+          const normY = ((y / rect.height) * 2) - 1;
+
+          // Grados de rotación sutiles y balanceados (máx 8.5deg)
+          const rotateX = normY * -8.5;
+          const rotateY = normX * 8.5;
+
+          card.style.setProperty('--mouse-x', `${x}px`);
+          card.style.setProperty('--mouse-y', `${y}px`);
+          card.style.transform = `perspective(1100px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale3d(1.025, 1.025, 1.025)`;
+        });
+
+        card.addEventListener('mouseleave', () => {
+          isHovered = false;
+          card.style.setProperty('--glare-opacity', '0');
+          card.style.transform = 'perspective(1100px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+        });
+      });
+    }
+
     function renderProductGrid() {
       const container = document.getElementById('productGrid');
       const countBadge = document.getElementById('productCountBadge');
@@ -1227,67 +1664,87 @@
 
         let statusBadge = '';
         if (p.stock_quantity === 0 || p.status === 'AGOTADO') {
-          statusBadge = '<span class="bg-gray-700 text-gray-300 text-[10px] font-black px-2 py-0.5 rounded tracking-wider uppercase">AGOTADO</span>';
+          statusBadge = '<span class="badge-brushed-metal badge-metal-chrome !text-gray-400 !border-gray-600">AGOTADO</span>';
         } else if (p.status === 'PRE_VENTA') {
-          statusBadge = '<span class="badge-preventa text-white text-[10px] font-black px-2 py-0.5 rounded tracking-wider uppercase">PRE-VENTA</span>';
+          statusBadge = '<span class="badge-brushed-metal badge-metal-nitro">PRE-VENTA</span>';
         } else {
-          statusBadge = '<span class="badge-stock text-white text-[10px] font-black px-2 py-0.5 rounded tracking-wider uppercase">STOCK</span>';
+          statusBadge = '<span class="badge-brushed-metal badge-metal-titanium">STOCK</span>';
         }
 
         const chaseBadge = p.has_chase_chance
-          ? '<span class="badge-chase text-black text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider uppercase flex items-center gap-1">⭐ CHASE 1/24</span>'
+          ? '<span class="badge-brushed-metal badge-metal-gold">⭐ CHASE 1/24</span>'
           : '';
 
         const typeInfo = p.product_type === 'Autito' ? (p.scale || '1:64') : (p.product_type === 'Remera' ? (p.apparel_size || 'Talles S-XL') : 'Sticker Vinilo');
 
         return `
-          <div class="bg-brandCard border border-brandBorder rounded-2xl overflow-hidden flex flex-col justify-between hover:border-gray-600 transition-all duration-300 group hover:-translate-y-1 shadow-lg">
-            
-            <div class="relative p-4 bg-black/40 overflow-hidden cursor-pointer" onclick="openProductDetail(${p.id})">
-              <div class="absolute top-3 left-3 z-10 flex flex-col gap-1 items-start">
-                ${statusBadge}
-                ${chaseBadge}
-              </div>
+          <div class="blister-card-wrapper">
+            <div class="blister-card flex flex-col justify-between group">
+              
+              <!-- 1. Reflejo Especular Plástico Dinámico (Specular Glare) -->
+              <div class="blister-glare"></div>
 
-              <span class="absolute top-3 right-3 z-10 text-[10px] font-bold bg-brandSurface/90 text-gray-300 border border-brandBorder px-2 py-0.5 rounded">
-                ${typeInfo}
-              </span>
-
-              <img 
-                src="${img}" 
-                alt="${p.title}" 
-                loading="lazy"
-                class="w-full h-48 object-contain group-hover:scale-105 transition-transform duration-500"
-              >
-            </div>
-
-            <div class="p-4 flex flex-col flex-grow justify-between bg-brandCard">
-              <div onclick="openProductDetail(${p.id})" class="cursor-pointer">
-                <p class="text-[11px] text-gray-400 uppercase font-bold tracking-wider">${p.vendor}</p>
-                <h3 class="font-bold text-sm text-white mt-1 line-clamp-2 group-hover:text-brandAccent transition" title="${p.title}">
-                  ${p.title}
-                </h3>
-              </div>
-
-              <div class="mt-4 pt-3 border-t border-brandBorder flex items-center justify-between">
-                <div>
-                  <span class="text-lg font-black text-white font-display block leading-none">${formatARS(p.price_ars)}</span>
-                  <span class="text-[10px] text-gray-400 font-medium">USD $${p.price_usd}</span>
+              <!-- 2. Ranura Troquelada tipo J-Hook / Blister en Cabecera -->
+              <div class="blister-header-tab">
+                <div class="blister-diecut-line"></div>
+                <div class="blister-peg-hole" title="Troquel Blister KIDO Die-Cast"></div>
+                <div class="flex items-center justify-between w-full px-3.5 pt-1.5 text-[9px] font-mono text-gray-400 tracking-wider">
+                  <span class="text-orange-500/90 font-black">KIDO • RACING</span>
+                  <span class="text-gray-400 font-bold">#${String(p.id).padStart(3, '0')}</span>
                 </div>
-                
-                <button 
-                  onclick="addToCart(${p.id})"
-                  class="bg-brandAccent hover:bg-brandAccentHover text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow"
-                  ${p.stock_quantity === 0 && p.status !== 'PRE_VENTA' ? 'disabled' : ''}
-                >
-                  <span>🛒</span> ${p.status === 'PRE_VENTA' ? 'Reservar' : 'Comprar'}
-                </button>
               </div>
-            </div>
 
+              <!-- 3. Burbuja Plástica del Blister con Profundidad 3D -->
+              <div class="blister-bubble p-3.5 overflow-hidden cursor-pointer" onclick="openProductDetail(${p.id})">
+                <div class="absolute top-2.5 left-2.5 z-20 flex flex-col gap-1 items-start">
+                  ${statusBadge}
+                  ${chaseBadge}
+                </div>
+
+                <span class="absolute top-2.5 right-2.5 z-20 badge-brushed-metal badge-metal-chrome">
+                  ${typeInfo}
+                </span>
+
+                <img 
+                  src="${img}" 
+                  alt="${p.title}" 
+                  loading="lazy"
+                  class="w-full h-44 object-contain group-hover:scale-108 transition-transform duration-500 drop-shadow-[0_12px_14px_rgba(0,0,0,0.8)]"
+                >
+              </div>
+
+              <!-- 4. Información del Modelo y Compra -->
+              <div class="p-4 flex flex-col flex-grow justify-between bg-brandCard/90 relative z-10">
+                <div onclick="openProductDetail(${p.id})" class="cursor-pointer">
+                  <p class="text-[11px] text-gray-400 uppercase font-bold tracking-wider">${p.vendor}</p>
+                  <h3 class="font-bold text-sm text-white mt-1 line-clamp-2 group-hover:text-brandAccent transition" title="${p.title}">
+                    ${p.title}
+                  </h3>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-brandBorder flex items-center justify-between">
+                  <div>
+                    <span class="text-lg font-black text-white font-display block leading-none">${formatARS(p.price_ars)}</span>
+                    <span class="text-[10px] text-gray-400 font-medium">USD $${p.price_usd}</span>
+                  </div>
+                  
+                  <button 
+                    onclick="addToCart(${p.id})"
+                    class="bg-brandAccent hover:bg-brandAccentHover text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow"
+                    ${p.stock_quantity === 0 && p.status !== 'PRE_VENTA' ? 'disabled' : ''}
+                  >
+                    <span>🛒</span> ${p.status === 'PRE_VENTA' ? 'Reservar' : 'Comprar'}
+                  </button>
+                </div>
+              </div>
+
+            </div>
           </div>
         `;
       }).join('');
+
+      // Inicializar eventos de 3D Tilt y Glare
+      initBlisterTiltEffects();
     }
 
     function updateFilterLabels() {
@@ -1333,6 +1790,35 @@
           el.scrollLeft = 0;
         }
       }, 30);
+
+      // Pausar auto-scroll al pasar el mouse por encima para facilitar la interacción
+      if (!el.dataset.hoverAttached) {
+        el.dataset.hoverAttached = 'true';
+        el.addEventListener('mouseenter', () => clearInterval(brandScrollInterval));
+        el.addEventListener('mouseleave', () => startAutoScrollBrands());
+      }
+    }
+
+    function getBrandFallbackGraphic(b) {
+      const code = (b.code || b.name || '').toLowerCase();
+      if (code.includes('kaido')) {
+        return `<div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-950/40 border border-red-500/40 text-red-400 font-black text-xs tracking-wider font-display"><span>街道</span><span>KAIDO HOUSE</span></div>`;
+      } else if (code.includes('mini')) {
+        return `<div class="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-red-600 text-white font-black text-xs uppercase tracking-tighter shadow-md"><span>MINI</span><span class="bg-black text-white px-1.5 rounded text-[10px]">GT</span></div>`;
+      } else if (code.includes('pop')) {
+        return `<div class="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-blue-600 text-white font-black text-xs uppercase tracking-tight shadow-md"><span>🏁 POP</span><span class="text-amber-300">RACE</span></div>`;
+      } else if (code.includes('inno')) {
+        return `<div class="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-neutral-900 border border-neutral-600 text-white font-black text-xs uppercase tracking-widest"><span>INNO</span><span class="text-red-500 font-bold">64</span></div>`;
+      } else if (code.includes('tarmac')) {
+        return `<div class="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-black border border-white/20 text-white font-black text-xs uppercase tracking-widest"><span class="text-orange-500">TARMAC</span><span>WORKS</span></div>`;
+      } else if (code.includes('hot')) {
+        return `<div class="flex items-center px-3.5 py-1.5 rounded-full bg-gradient-to-r from-red-600 via-amber-500 to-yellow-400 text-white font-black text-xs italic tracking-tighter shadow-md drop-shadow">🔥 HOT WHEELS</div>`;
+      } else if (code.includes('spark')) {
+        return `<div class="flex items-center px-3 py-1.5 rounded-xl bg-neutral-900 border border-amber-500/50 text-amber-400 font-black text-xs tracking-wider">⚡ SPARK</div>`;
+      } else if (code.includes('ignition')) {
+        return `<div class="flex items-center px-3 py-1.5 rounded-xl bg-neutral-900 border border-red-500/50 text-white font-black text-xs tracking-widest"><span class="text-red-500 mr-1">IG</span>IGNITION</div>`;
+      }
+      return `<div class="flex items-center justify-center w-10 h-10 rounded-xl bg-brandSurface border border-brandBorder text-brandAccent font-black text-base shadow-inner">🏎️</div>`;
     }
 
     async function loadBrandsAndCarousel() {
@@ -1358,13 +1844,22 @@
             let html = '';
             const elementsToRender = [...carruselBrands, ...carruselBrands, ...carruselBrands];
             elementsToRender.forEach(b => {
-              const imgHtml = b.imagen ? `<img src="${b.imagen}" class="h-6 object-contain mb-1 mx-auto" />` : '';
+              const safeName = (b.name || '').replace(/'/g, "\\'");
+              const safeCode = (b.code || '').replace(/'/g, "\\'");
+              const imgHtml = b.imagen 
+                ? `<img src="${b.imagen}" alt="${b.name}" class="h-11 md:h-13 max-w-[130px] object-contain group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_2px_6px_rgba(0,0,0,0.7)]" onerror="this.parentElement.innerHTML=getBrandFallbackGraphic({name:'${safeName}', code:'${safeCode}'})" />`
+                : getBrandFallbackGraphic(b);
+
               html += `
-                <button onclick="filterByBrand('${b.name}')"
-                  class="flex-shrink-0 bg-brandCard border border-brandBorder hover:border-brandAccent px-5 py-3 rounded-2xl text-center font-bold text-xs hover:bg-brandCardHover transition duration-200 group min-w-[150px] inline-block mx-1.5">
-                  ${imgHtml}
-                  <span class="block text-white group-hover:text-brandAccent text-sm font-black font-display">${b.name}</span>
-                  <span class="text-[10px] text-gray-500">${b.code}</span>
+                <button onclick="filterByBrand('${safeName}')"
+                  title="Ver modelos ${b.name}"
+                  class="flex-shrink-0 bg-gradient-to-b from-brandCard to-brandDark border border-brandBorder/80 hover:border-brandAccent px-4 py-2.5 rounded-2xl flex flex-col items-center justify-between hover:bg-brandCardHover transition-all duration-300 group min-w-[150px] md:min-w-[170px] h-[92px] md:h-[102px] mx-1.5 shadow-md hover:shadow-brandAccent/20 hover:-translate-y-0.5">
+                  <div class="h-12 md:h-14 w-full flex items-center justify-center overflow-hidden">
+                    ${imgHtml}
+                  </div>
+                  <span class="block text-gray-400 group-hover:text-white text-[10px] md:text-[11px] font-bold tracking-wider uppercase truncate max-w-[140px] transition-colors leading-tight text-center">
+                    ${b.name}
+                  </span>
                 </button>
               `;
             });
@@ -2172,7 +2667,7 @@
           <span class="bg-amber-500/20 text-amber-400 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md border border-amber-500/30">
             ${raf.raffle_number}
           </span>
-          <span class="text-xs text-gray-400">Sorteo: <b>${raf.draw_datetime}</b></span>
+          <span class="text-xs text-gray-400">Sorteo: <b>${formatFriendlyDate(raf.draw_datetime)}</b></span>
         </div>
 
         <h3 class="text-xl font-bold font-display text-white">${raf.title}</h3>
@@ -2554,9 +3049,16 @@
         <!-- HEADER DEL PORTAL -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-brandBorder pb-5 mb-6">
           <div class="flex items-center gap-4">
-            <div class="relative">
-              <img src="${u.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'}" class="w-16 h-16 rounded-2xl object-cover ring-2 ${isFreq ? 'ring-amber-400 shadow-lg shadow-amber-500/20' : 'ring-brandBorder'}">
-              ${isFreq ? '<span class="absolute -bottom-1 -right-1 bg-amber-500 text-black text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow">⭐</span>' : ''}
+            <div class="relative group cursor-pointer" onclick="triggerAvatarUpload()" title="Haz clic para cambiar tu foto de perfil">
+              <img id="portalUserAvatarImg" src="${u.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'}" class="w-16 h-16 rounded-2xl object-cover ring-2 ${isFreq ? 'ring-amber-400 shadow-lg shadow-amber-500/20' : 'ring-brandBorder'} transition duration-200 group-hover:ring-brandAccent group-hover:scale-105">
+              <div class="absolute inset-0 bg-black/65 rounded-2xl flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition duration-200 backdrop-blur-[1px]">
+                <span class="text-base leading-none">📷</span>
+                <span class="text-[9px] font-black text-white uppercase tracking-wider mt-1">Cambiar</span>
+              </div>
+              <div id="avatarUploadSpinner" class="hidden absolute inset-0 bg-black/80 rounded-2xl flex flex-col items-center justify-center">
+                <div class="w-5 h-5 border-2 border-brandAccent border-t-transparent rounded-full animate-spin"></div>
+              </div>
+              ${isFreq ? '<span class="absolute -bottom-1 -right-1 bg-amber-500 text-black text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow z-10">⭐</span>' : ''}
             </div>
             <div>
               <div class="flex flex-wrap items-center gap-2">
@@ -2567,9 +3069,12 @@
                 }
               </div>
               <p class="text-xs text-gray-400 mt-0.5">${u.email} • 📞 ${u.phone || 'Sin teléfono cargado'}</p>
-              <p class="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1">
-                <span>📍</span> ${u.street || 'Dirección no registrada'} ${u.street_number || ''}, ${u.locality || 'Argentina'}
-              </p>
+              <div class="flex items-center gap-2 mt-1.5">
+                <button type="button" onclick="triggerAvatarUpload()" class="text-[11px] text-brandAccent hover:text-white font-bold flex items-center gap-1 bg-brandAccent/10 hover:bg-brandAccent/20 px-2 py-0.5 rounded-lg border border-brandAccent/30 transition">
+                  <span>📸</span> Cambiar foto
+                </button>
+                <span class="text-[10px] text-gray-500">Toca la foto para personalizar (máx 2MB)</span>
+              </div>
             </div>
           </div>
 
@@ -2943,7 +3448,7 @@
                       <div class="flex-1 space-y-2">
                         <p class="text-xs text-gray-300 leading-relaxed">${raf.prize_description}</p>
                         <div class="text-[11px] text-gray-400">
-                          📅 Fecha de sorteo: <b class="text-white">${raf.draw_datetime}</b>
+                          📅 Fecha de sorteo: <b class="text-white">${formatFriendlyDate(raf.draw_datetime)}</b>
                         </div>
 
                         <!-- Boletos del Usuario -->
@@ -3079,6 +3584,23 @@
         <!-- TAB 4: DATOS DE ENVÍO                          -->
         <!-- ============================================== -->
         ${currentPortalTab === 'shipping' ? `
+          <div class="bg-brandSurface p-4 rounded-3xl border border-brandBorder mb-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3.5">
+              <div class="relative cursor-pointer group" onclick="triggerAvatarUpload()" title="Toca para cambiar foto">
+                <img id="shippingAvatarPreview" src="${u.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'}" class="w-14 h-14 rounded-2xl object-cover ring-2 ring-brandBorder group-hover:ring-brandAccent transition">
+                <div class="absolute inset-0 bg-black/60 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs">📷</div>
+              </div>
+              <div>
+                <h5 class="text-white font-bold text-xs">Foto de Perfil / Avatar</h5>
+                <p class="text-gray-400 text-[11px] mt-0.5">Personaliza tu foto para tu perfil, ranking y compras.</p>
+                <span class="text-[10px] text-amber-400 font-semibold">Máx 2 MB • Redimensionado y optimizado automáticamente</span>
+              </div>
+            </div>
+            <button type="button" onclick="triggerAvatarUpload()" class="bg-brandCard hover:bg-brandCardHover border border-brandBorder hover:border-brandAccent text-gray-200 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap">
+              <span>📷</span> Cambiar Foto
+            </button>
+          </div>
+
           <form onsubmit="handleSavePortalShipping(event)" class="space-y-4 text-xs">
             <div class="bg-brandSurface p-5 rounded-3xl border border-brandBorder space-y-4">
               <h4 class="font-bold text-white text-sm font-display flex items-center gap-2">
@@ -3172,6 +3694,136 @@
     function closeProfileModal() {
       document.getElementById('profileModal').classList.add('hidden');
     }
+
+    function triggerAvatarUpload() {
+      const input = document.getElementById('userAvatarFileInput');
+      if (input) input.click();
+    }
+
+    async function handleAvatarFileSelected(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      // 1. Validar tipo de archivo
+      if (!file.type || !file.type.startsWith('image/')) {
+        kidoAlert('Archivo no válido', 'Por favor selecciona un archivo de imagen compatible (JPG, PNG, WEBP o GIF).', 'warning');
+        event.target.value = '';
+        return;
+      }
+
+      // 2. Límite de peso original antes de optimizar (máx 6 MB para evitar sobrecargar memoria del navegador)
+      if (file.size > 6 * 1024 * 1024) {
+        kidoAlert('Imagen demasiado pesada', 'La imagen seleccionada supera los 6 MB. Por favor elige una imagen más ligera.', 'warning');
+        event.target.value = '';
+        return;
+      }
+
+      // Indicador de carga visual
+      const spinner = document.getElementById('avatarUploadSpinner');
+      if (spinner) spinner.classList.remove('hidden');
+
+      try {
+        // 3. Redimensionar y comprimir a máx 400x400 px con calidad 85% para ahorrar espacio en servidor
+        const optimizedBlob = await resizeAndCompressImage(file, 400, 400, 0.85);
+
+        if (optimizedBlob.size > 2 * 1024 * 1024) {
+          kidoAlert('Límite excedido', 'La imagen procesada supera los 2 MB. Por favor elige una imagen más pequeña.', 'warning');
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('avatar', optimizedBlob, 'avatar.webp');
+        if (currentUser) {
+          if (currentUser.email) formData.append('email', currentUser.email);
+          if (currentUser.id) formData.append('user_id', currentUser.id);
+        }
+
+        const res = await fetch('/api/user/avatar', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success && data.avatar_url) {
+          const newAvatarUrl = data.avatar_url;
+          if (currentUser) {
+            currentUser.avatar_url = newAvatarUrl;
+            localStorage.setItem('kido_user', JSON.stringify(currentUser));
+          }
+
+          // Actualizar imagen en el modal si está abierto
+          const portalImg = document.getElementById('portalUserAvatarImg');
+          if (portalImg) portalImg.src = newAvatarUrl + '?t=' + Date.now();
+
+          const shippingImg = document.getElementById('shippingAvatarPreview');
+          if (shippingImg) shippingImg.src = newAvatarUrl + '?t=' + Date.now();
+
+          // Actualizar UI del header
+          updateAuthUI();
+
+          kidoToast('¡Tu foto de perfil ha sido personalizada con éxito!', 'success', 'Avatar Actualizado');
+        } else {
+          kidoAlert('Error al subir', data.error || data.message || 'No se pudo guardar la imagen de perfil.', 'error');
+        }
+      } catch (err) {
+        console.error('Error al procesar el avatar:', err);
+        kidoToast('Hubo un error al procesar la imagen.', 'error', 'Error');
+      } finally {
+        if (spinner) spinner.classList.add('hidden');
+        event.target.value = '';
+      }
+    }
+
+    function resizeAndCompressImage(file, maxWidth, maxHeight, quality) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const width = img.width;
+            const height = img.height;
+
+            // Recorte cuadrado centrado perfecto para avatar
+            const minDim = Math.min(width, height);
+            const sx = (width - minDim) / 2;
+            const sy = (height - minDim) / 2;
+
+            const targetSize = Math.min(maxWidth, minDim);
+
+            const canvas = document.createElement('canvas');
+            canvas.width = targetSize;
+            canvas.height = targetSize;
+            const ctx = canvas.getContext('2d');
+
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+
+            // Dibujar recorte cuadrado
+            ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, targetSize, targetSize);
+
+            // Intentar WebP para máxima compresión, fallback a JPEG
+            if (canvas.toBlob) {
+              canvas.toBlob((blob) => {
+                if (blob) {
+                  resolve(blob);
+                } else {
+                  canvas.toBlob((blobJpg) => {
+                    resolve(blobJpg || file);
+                  }, 'image/jpeg', quality);
+                }
+              }, 'image/webp', quality);
+            } else {
+              resolve(file);
+            }
+          };
+          img.onerror = () => reject(new Error('No se pudo cargar la imagen para procesarla'));
+          img.src = e.target.result;
+        };
+        reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+        reader.readAsDataURL(file);
+      });
+    }
+
 
     async function payRemainingBalance(orderId, remaining) {
       const confirmed = await kidoConfirm('Abonar Saldo Pendiente', `¿Deseas abonar el saldo pendiente de <b>${formatARS(remaining)}</b> a través de Mercado Pago para liberar la orden para despacho inmediato?`, 'info', 'Abonar con Mercado Pago', 'Volver');

@@ -144,9 +144,11 @@
       </a>
       <!-- Admin User Badge & Logout -->
       <div id="adminUserHeader" class="flex items-center gap-2 pl-2 border-l border-brandBorder">
-        <div id="adminUserAvatar" class="w-8 h-8 rounded-full bg-brandAccent flex items-center justify-center text-white font-bold text-xs ring-2 ring-brandAccent/40 overflow-hidden">
+        <div id="adminUserAvatar" onclick="triggerAdminAvatarUpload()" title="Toca para cambiar foto de perfil" class="w-8 h-8 rounded-full bg-brandAccent flex items-center justify-center text-white font-bold text-xs ring-2 ring-brandAccent/40 overflow-hidden cursor-pointer hover:ring-amber-400 hover:scale-105 transition group relative">
           KG
         </div>
+        <input type="file" id="adminAvatarFileInput" accept="image/png, image/jpeg, image/webp, image/gif" class="hidden" onchange="handleAdminAvatarSelected(event)">
+
         <div class="hidden lg:block text-left">
           <div id="adminUserEmail" class="text-xs font-bold text-white leading-tight">Admin</div>
           <span class="text-[9px] text-emerald-400 font-semibold tracking-wider uppercase">Sesión Segura</span>
@@ -537,18 +539,30 @@
 
             <!-- Galería de Fotos (Múltiples) -->
             <div>
-              <label class="block text-gray-400 font-semibold mb-1">Subir Foto (Local)</label>
-              <input type="file" id="pImageUpload" accept="image/*" onchange="handleFileUpload(this, 'pGalleryImages')" class="w-full text-white bg-brandCard border border-brandBorder rounded-xl p-2.5 mb-2 cursor-pointer">
-              <label class="block text-gray-400 font-semibold mb-1 text-xs mt-2">Galería de Imágenes (URLs separadas por coma, se autocompleta)</label>
-              <textarea id="pGalleryImages" rows="2" placeholder="https://..." class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white text-[11px]"></textarea>
+              <label class="block text-gray-400 font-semibold mb-1">Fotos del Artículo</label>
+              <div class="flex items-center gap-2 mb-2">
+                <input type="file" id="pImageUpload" accept="image/*" multiple onchange="handleProductMultipleUpload(this)" class="hidden">
+                <button type="button" onclick="document.getElementById('pImageUpload').click()" class="bg-brandAccent/20 hover:bg-brandAccent/30 text-brandAccent border border-brandAccent/50 px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-2 transition hover:scale-[1.02]">
+                  <span>📁</span> Buscar foto(s) en mi equipo y subir
+                </button>
+                <span id="productUploadStatus" class="text-[11px] text-gray-400 italic hidden"></span>
+              </div>
+              <label class="block text-gray-400 font-semibold mb-1 text-xs">Galería de Imágenes (URLs separadas por coma)</label>
+              <textarea id="pGalleryImages" rows="2" placeholder="https://... o seleccioná fotos de tu equipo arriba" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white text-[11px]" oninput="renderProductGalleryPreviews()"></textarea>
+              <div id="productGalleryPreviews" class="flex flex-wrap gap-2 mt-2"></div>
             </div>
 
             <!-- Video muy corto del artículo -->
             <div>
-              <label class="block text-gray-400 font-semibold mb-1">Subir Video MP4 (Local)</label>
-              <input type="file" id="pVideoUpload" accept="video/mp4,video/webm" onchange="handleFileUpload(this, 'pShortVideo')" class="w-full text-white bg-brandCard border border-brandBorder rounded-xl p-2.5 mb-2 cursor-pointer">
-              <label class="block text-gray-400 font-semibold mb-1 text-xs mt-2">Video (URL, se autocompleta)</label>
-              <input id="pShortVideo" type="text" placeholder="https://.../video.mp4" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white text-[11px]">
+              <label class="block text-gray-400 font-semibold mb-1">Video del Artículo (Opcional)</label>
+              <div class="flex items-center gap-2 mb-2">
+                <input type="file" id="pVideoUpload" accept="video/mp4,video/webm" onchange="handleProductVideoUpload(this)" class="hidden">
+                <button type="button" onclick="document.getElementById('pVideoUpload').click()" class="bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/50 px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-2 transition hover:scale-[1.02]">
+                  <span>🎬</span> Buscar video MP4 en mi equipo y subir
+                </button>
+                <span id="videoUploadStatus" class="text-[11px] text-gray-400 italic hidden"></span>
+              </div>
+              <input id="pShortVideo" type="text" placeholder="https://.../video.mp4 (o seleccioná el archivo arriba)" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white text-[11px]">
             </div>
 
             <div class="flex items-center justify-between pt-1">
@@ -614,10 +628,17 @@
             </div>
             <div>
               <label class="block text-xs text-gray-400 mb-1">Imagen / Logo para Carrusel</label>
-              <input id="brandImageFile" type="file" accept="image/*" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2 text-white text-xs mb-2">
+              <div class="flex items-center gap-2 mb-2">
+                <input id="brandImageFile" type="file" accept="image/*" class="hidden" onchange="handleBrandImageUpload(this)">
+                <button type="button" onclick="document.getElementById('brandImageFile').click()" class="bg-brandAccent/20 hover:bg-brandAccent/30 text-brandAccent border border-brandAccent/50 px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-2 transition hover:scale-[1.02]">
+                  <span>📁</span> Buscar logo en mi equipo y subir
+                </button>
+                <span id="brandUploadStatus" class="text-[11px] text-gray-400 italic hidden"></span>
+              </div>
               <input type="hidden" id="brandImageUrl" value="">
-              <div id="brandImagePreview" class="hidden">
-                <img id="brandPreviewImg" class="h-12 object-contain bg-brandDark p-1 border border-brandBorder rounded-lg">
+              <div id="brandImagePreview" class="hidden mt-1 p-2 bg-brandDark border border-brandBorder rounded-xl flex items-center justify-between gap-2">
+                <img id="brandPreviewImg" class="h-10 object-contain bg-black p-1 border border-brandBorder rounded-lg">
+                <button type="button" onclick="removeBrandImage()" class="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded border border-red-500/30 bg-red-500/10">✕ Quitar</button>
               </div>
             </div>
             <button type="submit" class="w-full bg-brandAccent hover:bg-brandAccentHover text-white py-2.5 rounded-xl font-bold uppercase tracking-wider text-xs transition">
@@ -856,8 +877,33 @@
             </div>
 
             <div>
-              <label class="block text-gray-400 font-semibold mb-1">Fotos del Premio (URLs)</label>
-              <input required id="rafImages" type="text" placeholder="https://.../foto-premio.jpg" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white">
+              <label class="block text-gray-400 font-semibold mb-1">Foto / Imagen del Premio</label>
+              
+              <!-- Botón para buscar en el equipo y subir -->
+              <div class="flex items-center gap-2 mb-2">
+                <input type="file" id="rafImageFileInput" accept="image/*" class="hidden" onchange="handleRaffleImageSelect(this)">
+                <button type="button" onclick="document.getElementById('rafImageFileInput').click()" class="bg-brandAccent/20 hover:bg-brandAccent/30 text-brandAccent border border-brandAccent/50 px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-2 transition hover:scale-[1.02]">
+                  <span>📁</span> Buscar foto en mi equipo y subir
+                </button>
+                <span id="rafUploadStatus" class="text-[11px] text-gray-400 italic hidden"></span>
+              </div>
+
+              <!-- Input de URL por si desea escribir o ver la URL generada -->
+              <input required id="rafImages" type="text" placeholder="https://... o seleccioná una foto arriba" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white text-xs" oninput="updateRafflePreviewFromUrl(this.value)">
+
+              <!-- Previsualización de la foto seleccionada/cargada -->
+              <div id="rafImagePreviewBox" class="hidden mt-2 p-2.5 bg-brandDark border border-brandBorder rounded-xl flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <img id="rafPreviewImg" src="" alt="Premio" class="w-14 h-14 object-cover rounded-lg border border-brandBorder bg-black">
+                  <div>
+                    <span class="text-xs font-bold text-white block">Foto del premio cargada</span>
+                    <span id="rafPreviewFilename" class="text-[10px] text-emerald-400 font-mono block">Lista para publicar</span>
+                  </div>
+                </div>
+                <button type="button" onclick="removeRaffleImage()" class="text-red-400 hover:text-red-300 text-xs px-2.5 py-1.5 rounded-lg border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 transition">
+                  ✕ Quitar
+                </button>
+              </div>
             </div>
 
             <div>
@@ -869,16 +915,19 @@
               <div>
                 <label class="block text-gray-400 font-semibold mb-1">Fecha & Hora Inicio Venta</label>
                 <input required id="rafStart" type="datetime-local" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2 text-white">
+                <p class="text-[10px] text-gray-500 mt-0.5">Desde hoy en adelante.</p>
               </div>
               <div>
                 <label class="block text-gray-400 font-semibold mb-1">Fecha & Hora Fin Venta</label>
                 <input required id="rafEnd" type="datetime-local" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2 text-white">
+                <p class="text-[10px] text-gray-500 mt-0.5">Posterior a inicio.</p>
               </div>
             </div>
 
             <div>
-              <label class="block text-gray-400 font-semibold mb-1">Fecha del Sorteo Oficial</label>
-              <input required id="rafDraw" type="text" placeholder="Ej: 30 de Octubre 21:00hs (Lotería Nacional)" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white">
+              <label class="block text-gray-400 font-semibold mb-1">Fecha & Hora del Sorteo Oficial</label>
+              <input required id="rafDraw" type="datetime-local" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white">
+              <p class="text-[10px] text-gray-400 mt-1">Horario oficial del sorteo (igual o posterior al cierre de ventas).</p>
             </div>
 
             <div class="grid grid-cols-3 gap-2">
@@ -1370,6 +1419,100 @@
       }
     }
 
+    function triggerAdminAvatarUpload() {
+      const input = document.getElementById('adminAvatarFileInput');
+      if (input) input.click();
+    }
+
+    async function handleAdminAvatarSelected(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      if (!file.type || !file.type.startsWith('image/')) {
+        showToast('Por favor selecciona una imagen válida (JPG, PNG, WEBP, GIF).', 'error');
+        event.target.value = '';
+        return;
+      }
+
+      if (file.size > 6 * 1024 * 1024) {
+        showToast('La imagen original supera los 6 MB. Elige una imagen más liviana.', 'error');
+        event.target.value = '';
+        return;
+      }
+
+      try {
+        showToast('Optimizando y subiendo avatar...', 'info');
+        const optimizedBlob = await resizeAndCompressImage(file, 400, 400, 0.85);
+
+        const formData = new FormData();
+        formData.append('avatar', optimizedBlob, 'avatar.webp');
+
+        const res = await fetch('/api/user/avatar', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success && data.avatar_url) {
+          showToast('¡Avatar de administrador actualizado con éxito!', 'success');
+          const avatarEl = document.getElementById('adminUserAvatar');
+          if (avatarEl) {
+            avatarEl.innerHTML = `<img src="${data.avatar_url}?t=${Date.now()}" class="w-full h-full object-cover" />`;
+          }
+        } else {
+          showToast(data.error || 'Error al actualizar el avatar.', 'error');
+        }
+      } catch (err) {
+        console.error('Error al procesar avatar de admin:', err);
+        showToast('Error al procesar la imagen.', 'error');
+      } finally {
+        event.target.value = '';
+      }
+    }
+
+    function resizeAndCompressImage(file, maxWidth, maxHeight, quality) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const width = img.width;
+            const height = img.height;
+            const minDim = Math.min(width, height);
+            const sx = (width - minDim) / 2;
+            const sy = (height - minDim) / 2;
+            const targetSize = Math.min(maxWidth, minDim);
+
+            const canvas = document.createElement('canvas');
+            canvas.width = targetSize;
+            canvas.height = targetSize;
+            const ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, targetSize, targetSize);
+
+            if (canvas.toBlob) {
+              canvas.toBlob((blob) => {
+                if (blob) {
+                  resolve(blob);
+                } else {
+                  canvas.toBlob((blobJpg) => {
+                    resolve(blobJpg || file);
+                  }, 'image/jpeg', quality);
+                }
+              }, 'image/webp', quality);
+            } else {
+              resolve(file);
+            }
+          };
+          img.onerror = () => reject(new Error('No se pudo cargar la imagen'));
+          img.src = e.target.result;
+        };
+        reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+        reader.readAsDataURL(file);
+      });
+    }
+
     function openAdminAuthModal(msg) {
       const modal = document.getElementById('adminAuthModal');
       const errBox = document.getElementById('adminLoginErr');
@@ -1452,6 +1595,7 @@
       await loadExpenses();
       await loadUsers();
       await loadMPConfig();
+      initRaffleDateConstraints();
     }
 
     async function loadMetrics() {
@@ -1506,7 +1650,8 @@
     }
 
     async function toggleBrandCarrusel(id) {
-      const b = adminBrands.find(x => x.id === id);
+      const numId = Number(id);
+      const b = adminBrands.find(x => x.id == id);
       if (!b) return;
       const newStatus = !b.carrusel;
       b.carrusel = newStatus;
@@ -1516,7 +1661,8 @@
         const res = await fetch('/api/admin/brands/toggle-carrusel', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ brand_id: id, carrusel: newStatus })
+          credentials: 'include',
+          body: JSON.stringify({ brand_id: numId, id: numId, carrusel: newStatus })
         });
         if (res.ok) {
           kidoToast(`Marca "${b.name}" carrusel: ${newStatus ? 'SÍ (Visible)' : 'NO (Oculto)'}`, 'success', 'Directorio de Marcas');
@@ -1549,8 +1695,49 @@
       } else {
         previewDiv.classList.add('hidden');
       }
-      
       switchTab('brands');
+    }
+
+    async function handleBrandImageUpload(input) {
+      if (!input.files || input.files.length === 0) return;
+      const statusEl = document.getElementById('brandUploadStatus');
+      if (statusEl) {
+        statusEl.textContent = '⏳ Subiendo logo...';
+        statusEl.classList.remove('hidden');
+      }
+
+      const file = input.files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+      try {
+        const res = await fetch('/api/admin/upload', {
+          method: 'POST',
+          credentials: 'include',
+          body: formData
+        });
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('brandImageUrl').value = data.url;
+          document.getElementById('brandPreviewImg').src = data.url;
+          document.getElementById('brandImagePreview').classList.remove('hidden');
+          kidoToast('Logo de la marca subido con éxito', 'success', 'Directorio de Marcas');
+        } else {
+          kidoToast('Error al subir imagen de marca', 'error');
+        }
+      } catch (err) {
+        kidoToast('Error de conexión al subir imagen', 'error');
+      } finally {
+        if (statusEl) statusEl.classList.add('hidden');
+        input.value = '';
+      }
+    }
+
+    function removeBrandImage() {
+      document.getElementById('brandImageUrl').value = '';
+      document.getElementById('brandPreviewImg').src = '';
+      document.getElementById('brandImagePreview').classList.add('hidden');
+      const fileInput = document.getElementById('brandImageFile');
+      if (fileInput) fileInput.value = '';
     }
 
     function resetBrandForm() {
@@ -1603,6 +1790,7 @@
         const res = await fetch('/api/admin/brands', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify(b)
         });
         
@@ -1679,7 +1867,8 @@
     }
 
     async function toggleProductTypeActive(id) {
-      const t = adminProductTypes.find(x => x.id === id);
+      const numId = Number(id);
+      const t = adminProductTypes.find(x => x.id == id);
       if (!t) return;
       const newStatus = t.is_active === false ? true : false;
       t.is_active = newStatus;
@@ -1689,7 +1878,8 @@
         const res = await fetch('/api/admin/product-types/toggle-active', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type_id: id, is_active: newStatus })
+          credentials: 'include',
+          body: JSON.stringify({ type_id: numId, id: numId, is_active: newStatus })
         });
         if (res.ok) {
           kidoToast(`Tipo "${t.name}" activo: ${newStatus ? 'SÍ (Habilitado)' : 'NO (Deshabilitado)'}`, 'success', 'Tipos de Artículos');
@@ -1733,11 +1923,14 @@
         return;
       }
 
-      const payload = { id, name, code };
+      const existing = adminProductTypes ? adminProductTypes.find(x => x.id == id) : null;
+      const isActive = existing ? existing.is_active !== false : true;
+      const payload = { id, name, code, is_active: isActive };
       try {
         const res = await fetch('/api/admin/product-types', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify(payload)
         });
         if (res.ok) {
@@ -1871,7 +2064,8 @@
     }
 
     async function toggleProductActive(id) {
-      const p = adminProducts.find(x => x.id === id);
+      const numId = Number(id);
+      const p = adminProducts.find(x => x.id == id);
       if (!p) return;
       const newStatus = !p.is_active;
       p.is_active = newStatus;
@@ -1883,7 +2077,8 @@
         const res = await fetch('/api/admin/products/toggle-active', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ product_id: id, is_active: newStatus })
+          credentials: 'include',
+          body: JSON.stringify({ product_id: numId, id: numId, is_active: newStatus })
         });
         if (res.ok) {
           kidoToast(`Artículo "${p.title}" marcado como ${newStatus ? 'ACTIVO (Visible)' : 'INACTIVO (Oculto)'}`, 'success', 'Catálogo & Stock');
@@ -2042,7 +2237,8 @@
     }
 
     async function toggleProductSlider(id) {
-      const p = adminProducts.find(x => x.id === id);
+      const numId = Number(id);
+      const p = adminProducts.find(x => x.id == id);
       if (!p) return;
       const newStatus = !p.in_slider;
       p.in_slider = newStatus;
@@ -2054,7 +2250,8 @@
         const res = await fetch('/api/admin/products/toggle-slider', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ product_id: id, in_slider: newStatus })
+          credentials: 'include',
+          body: JSON.stringify({ product_id: numId, id: numId, in_slider: newStatus })
         });
         const data = await res.json();
         if (res.ok && data.success) {
@@ -2547,17 +2744,16 @@
 
     async function handleFileUpload(input, targetId) {
       if (!input.files || input.files.length === 0) return;
-      
       const file = input.files[0];
       const formData = new FormData();
       formData.append('file', file);
 
       try {
-        const res = await fetch('/api/upload', {
+        const res = await fetch('/api/admin/upload', {
           method: 'POST',
+          credentials: 'include',
           body: formData
         });
-        
         if (res.ok) {
           const data = await res.json();
           const target = document.getElementById(targetId);
@@ -2571,10 +2767,264 @@
             target.value = data.url;
           }
         } else {
-          alert("Error al subir el archivo al servidor.");
+          kidoToast("Error al subir el archivo al servidor.", "error");
         }
       } catch (e) {
-        alert("Error de red al intentar subir el archivo.");
+        kidoToast("Error de red al intentar subir el archivo.", "error");
+      }
+    }
+
+    // Subida múltiple de fotos para Artículos / Catálogo
+    async function handleProductMultipleUpload(input) {
+      if (!input.files || input.files.length === 0) return;
+      const statusEl = document.getElementById('productUploadStatus');
+      if (statusEl) {
+        statusEl.textContent = `⏳ Subiendo ${input.files.length} foto(s)...`;
+        statusEl.classList.remove('hidden');
+      }
+
+      const txt = document.getElementById('pGalleryImages');
+      let currentUrls = txt.value.split(',').map(s => s.trim()).filter(Boolean);
+
+      for (let i = 0; i < input.files.length; i++) {
+        const file = input.files[i];
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+          const res = await fetch('/api/admin/upload', {
+            method: 'POST',
+            credentials: 'include',
+            body: formData
+          });
+          if (res.ok) {
+            const data = await res.json();
+            currentUrls.push(data.url);
+          }
+        } catch (e) {
+          console.error('Error subiendo imagen de producto:', e);
+        }
+      }
+
+      txt.value = currentUrls.join(', ');
+      renderProductGalleryPreviews();
+      if (statusEl) statusEl.classList.add('hidden');
+      input.value = '';
+      kidoToast('Foto(s) agregadas a la galería del artículo', 'success', 'Catálogo');
+    }
+
+    function renderProductGalleryPreviews() {
+      const txt = document.getElementById('pGalleryImages');
+      const container = document.getElementById('productGalleryPreviews');
+      if (!txt || !container) return;
+
+      const urls = txt.value.split(',').map(s => s.trim()).filter(Boolean);
+      if (urls.length === 0) {
+        container.innerHTML = '';
+        return;
+      }
+
+      container.innerHTML = urls.map((url, idx) => `
+        <div class="relative group w-14 h-14 rounded-lg overflow-hidden border border-brandBorder bg-black flex-shrink-0">
+          <img src="${url}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/60'">
+          <button type="button" onclick="removeProductGalleryImage(${idx})" title="Eliminar foto" class="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-red-600/90 hover:bg-red-500 text-white text-[9px] font-bold flex items-center justify-center transition">✕</button>
+        </div>
+      `).join('');
+    }
+
+    function removeProductGalleryImage(index) {
+      const txt = document.getElementById('pGalleryImages');
+      if (!txt) return;
+      let urls = txt.value.split(',').map(s => s.trim()).filter(Boolean);
+      urls.splice(index, 1);
+      txt.value = urls.join(', ');
+      renderProductGalleryPreviews();
+    }
+
+    async function handleProductVideoUpload(input) {
+      if (!input.files || input.files.length === 0) return;
+      const statusEl = document.getElementById('videoUploadStatus');
+      if (statusEl) {
+        statusEl.textContent = '⏳ Subiendo video...';
+        statusEl.classList.remove('hidden');
+      }
+
+      const file = input.files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+      try {
+        const res = await fetch('/api/admin/upload', {
+          method: 'POST',
+          credentials: 'include',
+          body: formData
+        });
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('pShortVideo').value = data.url;
+          kidoToast('Video MP4 subido correctamente', 'success', 'Video');
+        } else {
+          kidoToast('Error al subir video', 'error');
+        }
+      } catch (err) {
+        kidoToast('Error de conexión al subir video', 'error');
+      } finally {
+        if (statusEl) statusEl.classList.add('hidden');
+        input.value = '';
+      }
+    }
+
+    // Subida y control de foto de Rifa
+    async function handleRaffleImageSelect(input) {
+      if (!input.files || input.files.length === 0) return;
+      const file = input.files[0];
+      const statusEl = document.getElementById('rafUploadStatus');
+      if (statusEl) {
+        statusEl.textContent = '⏳ Subiendo foto...';
+        statusEl.classList.remove('hidden');
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const res = await fetch('/api/admin/upload', {
+          method: 'POST',
+          credentials: 'include',
+          body: formData
+        });
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('rafImages').value = data.url;
+          document.getElementById('rafPreviewImg').src = data.url;
+          document.getElementById('rafPreviewFilename').textContent = file.name;
+          document.getElementById('rafImagePreviewBox').classList.remove('hidden');
+          kidoToast('Foto del premio subida con éxito', 'success', 'Rifa');
+        } else {
+          kidoToast('Error al subir la imagen al servidor', 'error', 'Error');
+        }
+      } catch (err) {
+        kidoToast('Error de conexión al subir la imagen', 'error', 'Error');
+      } finally {
+        if (statusEl) statusEl.classList.add('hidden');
+        input.value = '';
+      }
+    }
+
+    function updateRafflePreviewFromUrl(val) {
+      const url = (val || '').trim();
+      const previewBox = document.getElementById('rafImagePreviewBox');
+      const previewImg = document.getElementById('rafPreviewImg');
+      const filename = document.getElementById('rafPreviewFilename');
+      if (!previewBox || !previewImg) return;
+      if (url && (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/uploads/'))) {
+        previewImg.src = url;
+        if (filename) filename.textContent = 'Enlace directo';
+        previewBox.classList.remove('hidden');
+      } else {
+        previewBox.classList.add('hidden');
+      }
+    }
+
+    function removeRaffleImage() {
+      document.getElementById('rafImages').value = '';
+      const previewBox = document.getElementById('rafImagePreviewBox');
+      if (previewBox) previewBox.classList.add('hidden');
+      const previewImg = document.getElementById('rafPreviewImg');
+      if (previewImg) previewImg.src = '';
+      const input = document.getElementById('rafImageFileInput');
+      if (input) input.value = '';
+    }
+
+    // Formateo y control de fechas para Rifas
+    function getLocalDateTimeString(dateObj = new Date()) {
+      const pad = n => String(n).padStart(2, '0');
+      const y = dateObj.getFullYear();
+      const m = pad(dateObj.getMonth() + 1);
+      const d = dateObj.getDate();
+      const h = pad(dateObj.getHours());
+      const mi = pad(dateObj.getMinutes());
+      return `${y}-${m}-${d}T${h}:${mi}`;
+    }
+
+    function formatFriendlyDate(dtStr) {
+      if (!dtStr) return '';
+      if (dtStr.includes('T')) {
+        const [d, t] = dtStr.split('T');
+        const parts = d.split('-');
+        if (parts.length === 3) {
+          const [y, m, day] = parts;
+          return `${day}/${m}/${y} ${t ? t.slice(0, 5) + ' hs' : ''}`;
+        }
+      }
+      return dtStr;
+    }
+
+    let raffleDateListenersAttached = false;
+    function initRaffleDateConstraints() {
+      const now = new Date();
+      const nowStr = getLocalDateTimeString(now);
+      const rafStart = document.getElementById('rafStart');
+      const rafEnd = document.getElementById('rafEnd');
+      const rafDraw = document.getElementById('rafDraw');
+      if (!rafStart || !rafEnd || !rafDraw) return;
+
+      // 1. La fecha desde no puede ser anterior al día de hoy / hora actual
+      rafStart.min = nowStr;
+      if (!rafStart.value || rafStart.value < nowStr) {
+        rafStart.value = nowStr;
+      }
+
+      // 2. La fecha fin no puede ser inferior a la fecha desde
+      rafEnd.min = rafStart.value;
+      if (!rafEnd.value || rafEnd.value < rafStart.value) {
+        const inOneWeek = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
+        rafEnd.value = getLocalDateTimeString(inOneWeek);
+      }
+
+      // 3. Fecha del sorteo oficial debe ser igual o posterior al fin de la venta
+      rafDraw.min = rafEnd.value;
+      if (!rafDraw.value || rafDraw.value < rafEnd.value) {
+        const drawDate = new Date(new Date(rafEnd.value).getTime() + 3600 * 1000);
+        rafDraw.value = getLocalDateTimeString(drawDate);
+      }
+
+      // Conectar listeners una sola vez
+      if (!raffleDateListenersAttached) {
+        raffleDateListenersAttached = true;
+
+        rafStart.addEventListener('change', () => {
+          const currentNow = getLocalDateTimeString();
+          if (rafStart.value < currentNow.slice(0, 10)) {
+            rafStart.value = currentNow;
+            kidoToast('La fecha y hora de inicio no puede ser anterior a la actual.', 'warning', 'Fechas de Rifa');
+          }
+          rafEnd.min = rafStart.value;
+          if (rafEnd.value && rafEnd.value < rafStart.value) {
+            rafEnd.value = rafStart.value;
+          }
+          rafDraw.min = rafEnd.value || rafStart.value;
+          if (rafDraw.value && rafDraw.value < rafDraw.min) {
+            rafDraw.value = rafDraw.min;
+          }
+        });
+
+        rafEnd.addEventListener('change', () => {
+          if (rafEnd.value < rafStart.value) {
+            rafEnd.value = rafStart.value;
+            kidoToast('La fecha de fin no puede ser inferior a la fecha de inicio.', 'warning', 'Fechas de Rifa');
+          }
+          rafDraw.min = rafEnd.value;
+          if (rafDraw.value && rafDraw.value < rafEnd.value) {
+            rafDraw.value = rafEnd.value;
+          }
+        });
+
+        rafDraw.addEventListener('change', () => {
+          const minAllowed = rafEnd.value || rafStart.value;
+          if (rafDraw.value < minAllowed) {
+            rafDraw.value = minAllowed;
+            kidoToast('La fecha del sorteo oficial debe ser igual o posterior a la finalización de venta.', 'warning', 'Fechas de Rifa');
+          }
+        });
       }
     }
 
@@ -2619,7 +3069,7 @@
               </div>
               <div class="flex justify-between text-[11px] text-gray-400 pt-1">
                 <span>Recaudación: <b>${formatARS(raf.sold_numbers * raf.ticket_price_ars)}</b></span>
-                <span>Fecha: <b>${raf.draw_datetime}</b></span>
+                <span>Sorteo Oficial: <b class="text-white">${formatFriendlyDate(raf.draw_datetime)}</b></span>
               </div>
             </div>
 
@@ -2645,7 +3095,8 @@
     }
 
     async function toggleRaffleStatus(id) {
-      const raf = adminRaffles.find(x => x.id === id);
+      const numId = Number(id);
+      const raf = adminRaffles.find(x => x.id == id);
       if (!raf) return;
       if (raf.status === 'SORTEADA') {
         if (!confirm('Esta rifa ya fue sorteada. ¿Deseas restablecerla a estado ACTIVA?')) return;
@@ -2655,7 +3106,8 @@
         const res = await fetch('/api/admin/raffles/toggle-status', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ raffle_id: id })
+          credentials: 'include',
+          body: JSON.stringify({ raffle_id: numId, id: numId })
         });
         if (res.ok) {
           const data = await res.json();
@@ -2672,14 +3124,37 @@
 
     async function handleCreateRaffle(e) {
       e.preventDefault();
+      const startVal = document.getElementById('rafStart').value;
+      const endVal = document.getElementById('rafEnd').value;
+      const drawVal = document.getElementById('rafDraw').value;
+      const imgVal = document.getElementById('rafImages').value.trim();
+
+      const nowStr = getLocalDateTimeString();
+      if (!startVal || startVal < nowStr.slice(0, 10)) {
+        kidoToast('La fecha y hora de inicio no puede ser anterior a la actual.', 'warning', 'Fechas Inválidas');
+        return;
+      }
+      if (!endVal || endVal < startVal) {
+        kidoToast('La fecha de fin no puede ser inferior a la fecha de inicio.', 'warning', 'Fechas Inválidas');
+        return;
+      }
+      if (!drawVal || drawVal < endVal) {
+        kidoToast('La fecha del sorteo oficial debe ser igual o posterior al cierre de la venta.', 'warning', 'Fechas Inválidas');
+        return;
+      }
+      if (!imgVal) {
+        kidoToast('Por favor seleccioná o ingresá una foto para el premio de la rifa.', 'warning', 'Foto Requerida');
+        return;
+      }
+
       const payload = {
-        title: document.getElementById('rafTitle').value,
-        raffle_number: document.getElementById('rafNumber').value,
-        prize_description: document.getElementById('rafDesc').value,
-        prize_images: [document.getElementById('rafImages').value],
-        start_datetime: document.getElementById('rafStart').value,
-        end_datetime: document.getElementById('rafEnd').value,
-        draw_datetime: document.getElementById('rafDraw').value,
+        title: document.getElementById('rafTitle').value.trim(),
+        raffle_number: document.getElementById('rafNumber').value.trim(),
+        prize_description: document.getElementById('rafDesc').value.trim(),
+        prize_images: [imgVal],
+        start_datetime: startVal,
+        end_datetime: endVal,
+        draw_datetime: drawVal,
         min_number: parseInt(document.getElementById('rafMin').value, 10),
         max_number: parseInt(document.getElementById('rafMax').value, 10),
         ticket_price_ars: parseInt(document.getElementById('rafPrice').value, 10)
@@ -2689,14 +3164,24 @@
         const res = await fetch('/api/admin/raffles', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify(payload)
         });
         const data = await res.json();
         if (data.success) {
-          alert('¡Rifa emitida y publicada en la tienda!');
+          kidoToast(`¡Rifa "${payload.title}" emitida y publicada con éxito!`, 'success', 'Rifas & Sorteos');
+          document.getElementById('rafTitle').value = '';
+          document.getElementById('rafNumber').value = '';
+          document.getElementById('rafDesc').value = '';
+          removeRaffleImage();
+          initRaffleDateConstraints();
           loadRaffles();
+        } else {
+          kidoToast(data.error || 'No se pudo crear la rifa.', 'error');
         }
-      } catch (e) { alert('Error creando rifa'); }
+      } catch (e) {
+        kidoToast('Error de red al intentar crear la rifa.', 'error');
+      }
     }
 
     // Pedidos & Pagos
@@ -3001,29 +3486,31 @@
     }
 
     async function toggleFrequentBadge(userId, makeFrequent) {
-      const u = adminUsers.find(x => x.id === userId);
+      const numId = Number(userId);
+      const u = adminUsers.find(x => x.id == userId);
       const name = u ? u.name : 'este cliente';
       
-      u.is_frequent_customer = makeFrequent;
+      if (u) u.is_frequent_customer = makeFrequent;
       renderUsersTable();
 
       try {
         const res = await fetch('/api/admin/users/toggle-frequent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: userId, is_frequent: makeFrequent })
+          credentials: 'include',
+          body: JSON.stringify({ user_id: numId, id: numId, is_frequent: makeFrequent })
         });
         const data = await res.json();
         if (data.success) {
           kidoToast(`Cliente "${name}" marcado como: ${makeFrequent ? 'Cliente Frecuente (SÍ ⭐)' : 'Estándar (NO)'}`, 'success', 'Clientes');
           await loadUsers();
         } else {
-          u.is_frequent_customer = !makeFrequent;
+          if (u) u.is_frequent_customer = !makeFrequent;
           renderUsersTable();
           kidoToast(data.error || 'Error actualizando insignia.', 'error');
         }
       } catch (err) {
-        u.is_frequent_customer = !makeFrequent;
+        if (u) u.is_frequent_customer = !makeFrequent;
         renderUsersTable();
         kidoToast('Error al conectar con el servidor.', 'error');
       }
@@ -3157,6 +3644,8 @@
         renderProductTypesAdminTable();
       } else if (tabId === 'slider') {
         renderSliderProductsTable();
+      } else if (tabId === 'raffles') {
+        initRaffleDateConstraints();
       }
     }
 
