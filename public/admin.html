@@ -48,6 +48,72 @@
       font-family: 'Fuji Quake Zone', 'Outfit', sans-serif;
       letter-spacing: 0.04em;
     }
+
+    /* KIDO TOAST & NOTIFICATION SYSTEM */
+    #kidoToastContainer {
+      position: fixed;
+      top: 1.25rem;
+      right: 1.25rem;
+      z-index: 9999999;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      pointer-events: none;
+      max-width: 440px;
+      width: calc(100vw - 2.5rem);
+    }
+
+    .kido-toast {
+      pointer-events: auto;
+      position: relative;
+      overflow: hidden;
+      border-radius: 1rem;
+      padding: 1rem 1.25rem;
+      background: rgba(18, 18, 23, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.8), 0 0 20px 0 rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: flex-start;
+      gap: 0.875rem;
+      animation: toastSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      transition: all 0.25s ease;
+    }
+
+    .kido-toast.toast-exit {
+      animation: toastSlideOut 0.25s ease forwards;
+    }
+
+    @keyframes toastSlideIn {
+      from { opacity: 0; transform: translateX(100%) scale(0.92); }
+      to { opacity: 1; transform: translateX(0) scale(1); }
+    }
+
+    @keyframes toastSlideOut {
+      from { opacity: 1; transform: translateX(0) scale(1); }
+      to { opacity: 0; transform: translateX(100%) scale(0.9); }
+    }
+
+    .kido-toast.toast-success { border-color: rgba(16, 185, 129, 0.45); box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.25); }
+    .kido-toast.toast-error { border-color: rgba(239, 68, 68, 0.55); box-shadow: 0 10px 25px -5px rgba(239, 68, 68, 0.3); }
+    .kido-toast.toast-warning { border-color: rgba(245, 158, 11, 0.5); box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.25); }
+    .kido-toast.toast-info { border-color: rgba(59, 130, 246, 0.45); box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.25); }
+
+    .kido-toast-progress {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      width: 100%;
+      transform-origin: left;
+      animation: toastProgress linear forwards;
+    }
+
+    @keyframes toastProgress {
+      from { transform: scaleX(1); }
+      to { transform: scaleX(0); }
+    }
   </style>
 </head>
 <body class="bg-brandDark text-gray-100 font-sans antialiased min-h-screen flex flex-col selection:bg-brandAccent selection:text-white">
@@ -819,6 +885,153 @@
 
   <!-- JAVASCRIPT DEL ADMIN -->
   <script>
+    // ==========================================
+    // SISTEMA UNIVERSAL DE ALERTAS & NOTIFICACIONES (KIDO TOAST & MODAL)
+    // ==========================================
+    function getOrCreateToastContainer() {
+      let c = document.getElementById('kidoToastContainer');
+      if (!c) {
+        c = document.createElement('div');
+        c.id = 'kidoToastContainer';
+        document.body.appendChild(c);
+      }
+      return c;
+    }
+
+    function kidoToast(message, type = 'info', title = '', duration = 4000) {
+      const container = getOrCreateToastContainer();
+      const toast = document.createElement('div');
+      toast.className = `kido-toast toast-${type}`;
+
+      const icons = {
+        success: { icon: '✅', bg: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40', bar: 'bg-emerald-500' },
+        error: { icon: '⛔', bg: 'bg-red-500/20 text-red-400 border-red-500/40', bar: 'bg-red-500' },
+        warning: { icon: '⚠️', bg: 'bg-amber-500/20 text-amber-400 border-amber-500/40', bar: 'bg-amber-500' },
+        info: { icon: 'ℹ️', bg: 'bg-blue-500/20 text-blue-400 border-blue-500/40', bar: 'bg-blue-500' }
+      };
+      const cfg = icons[type] || icons.info;
+      const defTitle = title || (type === 'success' ? 'Operación Exitosa' : type === 'error' ? 'Error' : type === 'warning' ? 'Atención' : 'Notificación');
+
+      toast.innerHTML = `
+        <div class="w-8 h-8 rounded-xl ${cfg.bg} border flex items-center justify-center text-sm font-black shrink-0">
+          ${cfg.icon}
+        </div>
+        <div class="flex-1 min-w-0 pr-2">
+          <div class="text-xs font-bold text-white leading-tight font-display">${defTitle}</div>
+          <div class="text-[11px] text-gray-300 mt-0.5 leading-normal break-words">${message}</div>
+        </div>
+        <button type="button" class="text-gray-400 hover:text-white text-xs font-bold p-1 rounded shrink-0 transition" onclick="this.closest('.kido-toast').classList.add('toast-exit'); setTimeout(() => this.closest('.kido-toast')?.remove(), 250);">✕</button>
+        <div class="kido-toast-progress ${cfg.bar}" style="animation-duration: ${duration}ms;"></div>
+      `;
+
+      container.appendChild(toast);
+
+      const timer = setTimeout(() => {
+        toast.classList.add('toast-exit');
+        setTimeout(() => toast.remove(), 250);
+      }, duration);
+
+      toast.addEventListener('mouseenter', () => {
+        const bar = toast.querySelector('.kido-toast-progress');
+        if (bar) bar.style.animationPlayState = 'paused';
+        clearTimeout(timer);
+      });
+    }
+
+    // Modal de Alerta Interactivo (Reemplaza alert nativo con estilo premium)
+    function kidoAlert(title, message, type = 'info', buttonText = 'Entendido') {
+      return new Promise((resolve) => {
+        const modal = document.getElementById('kidoDynamicModal');
+        if (!modal) {
+          kidoToast(message, type, title);
+          resolve(true);
+          return;
+        }
+        
+        const icons = {
+          success: { icon: '✅', color: 'text-emerald-400', border: 'border-emerald-500/30', bg: 'bg-emerald-500/10' },
+          error: { icon: '⛔', color: 'text-red-400', border: 'border-red-500/30', bg: 'bg-red-500/10' },
+          warning: { icon: '⚠️', color: 'text-amber-400', border: 'border-amber-500/30', bg: 'bg-amber-500/10' },
+          info: { icon: '💡', color: 'text-blue-400', border: 'border-blue-500/30', bg: 'bg-blue-500/10' }
+        };
+        const cfg = icons[type] || icons.info;
+
+        document.getElementById('kidoModalIcon').innerHTML = cfg.icon;
+        document.getElementById('kidoModalIconBox').className = `w-14 h-14 rounded-2xl ${cfg.bg} border ${cfg.border} flex items-center justify-center text-3xl mx-auto shadow-lg`;
+        document.getElementById('kidoModalTitle').innerText = title || 'Información';
+        document.getElementById('kidoModalMessage').innerHTML = message;
+        
+        const confirmBtn = document.getElementById('kidoModalConfirmBtn');
+        confirmBtn.innerText = buttonText;
+        confirmBtn.className = `w-full ${type === 'error' ? 'bg-red-600 hover:bg-red-500 shadow-red-600/30' : type === 'warning' ? 'bg-amber-600 hover:bg-amber-500 shadow-amber-600/30' : 'bg-brandAccent hover:bg-brandAccentHover shadow-brandAccent/30'} text-white py-3 rounded-xl font-bold uppercase tracking-wider text-xs transition shadow-lg`;
+
+        document.getElementById('kidoModalCancelBtn').classList.add('hidden');
+
+        modal.classList.remove('hidden');
+
+        confirmBtn.onclick = () => {
+          modal.classList.add('hidden');
+          resolve(true);
+        };
+      });
+    }
+
+    // Modal de Confirmación Interactivo
+    function kidoConfirm(title, message, type = 'warning', confirmText = 'Confirmar', cancelText = 'Cancelar') {
+      return new Promise((resolve) => {
+        const modal = document.getElementById('kidoDynamicModal');
+        if (!modal) {
+          const ok = confirm(message);
+          resolve(ok);
+          return;
+        }
+        
+        const icons = {
+          warning: { icon: '⚠️', color: 'text-amber-400', border: 'border-amber-500/30', bg: 'bg-amber-500/10' },
+          error: { icon: '🗑️', color: 'text-red-400', border: 'border-red-500/30', bg: 'bg-red-500/10' },
+          info: { icon: '❓', color: 'text-blue-400', border: 'border-blue-500/30', bg: 'bg-blue-500/10' }
+        };
+        const cfg = icons[type] || icons.warning;
+
+        document.getElementById('kidoModalIcon').innerHTML = cfg.icon;
+        document.getElementById('kidoModalIconBox').className = `w-14 h-14 rounded-2xl ${cfg.bg} border ${cfg.border} flex items-center justify-center text-3xl mx-auto shadow-lg`;
+        document.getElementById('kidoModalTitle').innerText = title || 'Confirmación';
+        document.getElementById('kidoModalMessage').innerHTML = message;
+        
+        const confirmBtn = document.getElementById('kidoModalConfirmBtn');
+        confirmBtn.innerText = confirmText;
+        confirmBtn.className = `w-1/2 ${type === 'error' ? 'bg-red-600 hover:bg-red-500 shadow-red-600/30' : 'bg-brandAccent hover:bg-brandAccentHover shadow-brandAccent/30'} text-white py-3 rounded-xl font-bold uppercase tracking-wider text-xs transition shadow-lg`;
+
+        const cancelBtn = document.getElementById('kidoModalCancelBtn');
+        cancelBtn.innerText = cancelText;
+        cancelBtn.classList.remove('hidden');
+
+        modal.classList.remove('hidden');
+
+        confirmBtn.onclick = () => {
+          modal.classList.add('hidden');
+          resolve(true);
+        };
+        cancelBtn.onclick = () => {
+          modal.classList.add('hidden');
+          resolve(false);
+        };
+      });
+    }
+
+    // Sobrescribir window.alert nativo
+    window.alert = function(msg) {
+      if (typeof msg === 'string' && (msg.includes('❌') || msg.toLowerCase().includes('error') || msg.toLowerCase().includes('incorrect'))) {
+        kidoToast(msg.replace('❌', '').trim(), 'error');
+      } else if (typeof msg === 'string' && (msg.includes('✅') || msg.toLowerCase().includes('éxito') || msg.toLowerCase().includes('correct') || msg.toLowerCase().includes('guardad'))) {
+        kidoToast(msg.replace('✅', '').trim(), 'success');
+      } else if (typeof msg === 'string' && (msg.includes('⚠️') || msg.toLowerCase().includes('atención') || msg.toLowerCase().includes('cuidado') || msg.toLowerCase().includes('falta'))) {
+        kidoToast(msg.replace('⚠️', '').trim(), 'warning');
+      } else {
+        kidoToast(msg, 'info');
+      }
+    };
+
     let currentAdminUser = null;
     let adminProducts = [];
     let adminOrders = [];
@@ -2099,6 +2312,26 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+  <!-- MODAL DE ALERTAS Y CONFIRMACIONES DINÁMICAS -->
+  <div id="kidoDynamicModal" class="fixed inset-0 z-[10000] bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="bg-brandCard border border-brandBorder rounded-3xl max-w-sm w-full p-6 shadow-2xl relative space-y-4 animate-in fade-in zoom-in duration-200 text-center">
+      <div id="kidoModalIconBox" class="w-14 h-14 rounded-2xl bg-brandAccent/10 border border-brandAccent/30 flex items-center justify-center text-3xl mx-auto shadow-lg">
+        <span id="kidoModalIcon">ℹ️</span>
+      </div>
+      <div class="space-y-1">
+        <h3 id="kidoModalTitle" class="font-display font-black text-lg text-white">Atención</h3>
+        <p id="kidoModalMessage" class="text-xs text-gray-300 leading-relaxed"></p>
+      </div>
+      <div class="flex gap-2.5 pt-2">
+        <button type="button" id="kidoModalCancelBtn" class="w-1/2 bg-brandSurface hover:bg-brandBorder text-gray-300 py-3 rounded-xl font-bold uppercase tracking-wider text-xs transition border border-brandBorder hidden">
+          Cancelar
+        </button>
+        <button type="button" id="kidoModalConfirmBtn" class="w-full bg-brandAccent hover:bg-brandAccentHover text-white py-3 rounded-xl font-bold uppercase tracking-wider text-xs transition shadow-lg shadow-brandAccent/30">
+          Entendido
+        </button>
+      </div>
     </div>
   </div>
 </body>

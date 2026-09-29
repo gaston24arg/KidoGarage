@@ -53,6 +53,72 @@
       letter-spacing: 0.04em;
     }
 
+    /* KIDO TOAST & NOTIFICATION SYSTEM */
+    #kidoToastContainer {
+      position: fixed;
+      top: 1.25rem;
+      right: 1.25rem;
+      z-index: 9999999;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      pointer-events: none;
+      max-width: 440px;
+      width: calc(100vw - 2.5rem);
+    }
+
+    .kido-toast {
+      pointer-events: auto;
+      position: relative;
+      overflow: hidden;
+      border-radius: 1rem;
+      padding: 1rem 1.25rem;
+      background: rgba(18, 18, 23, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.8), 0 0 20px 0 rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: flex-start;
+      gap: 0.875rem;
+      animation: toastSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      transition: all 0.25s ease;
+    }
+
+    .kido-toast.toast-exit {
+      animation: toastSlideOut 0.25s ease forwards;
+    }
+
+    @keyframes toastSlideIn {
+      from { opacity: 0; transform: translateX(100%) scale(0.92); }
+      to { opacity: 1; transform: translateX(0) scale(1); }
+    }
+
+    @keyframes toastSlideOut {
+      from { opacity: 1; transform: translateX(0) scale(1); }
+      to { opacity: 0; transform: translateX(100%) scale(0.9); }
+    }
+
+    .kido-toast.toast-success { border-color: rgba(16, 185, 129, 0.45); box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.25); }
+    .kido-toast.toast-error { border-color: rgba(239, 68, 68, 0.55); box-shadow: 0 10px 25px -5px rgba(239, 68, 68, 0.3); }
+    .kido-toast.toast-warning { border-color: rgba(245, 158, 11, 0.5); box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.25); }
+    .kido-toast.toast-info { border-color: rgba(59, 130, 246, 0.45); box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.25); }
+
+    .kido-toast-progress {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      width: 100%;
+      transform-origin: left;
+      animation: toastProgress linear forwards;
+    }
+
+    @keyframes toastProgress {
+      from { transform: scaleX(1); }
+      to { transform: scaleX(0); }
+    }
+
     ::-webkit-scrollbar {
       width: 8px;
       height: 8px;
@@ -770,6 +836,164 @@
   <!-- JAVASCRIPT PRINCIPAL DEL FRONTEND                        -->
   <!-- ======================================================== -->
   <script>
+    // ==========================================
+    // SISTEMA UNIVERSAL DE ALERTAS & NOTIFICACIONES (KIDO TOAST & MODAL)
+    // ==========================================
+    function getOrCreateToastContainer() {
+      let c = document.getElementById('kidoToastContainer');
+      if (!c) {
+        c = document.createElement('div');
+        c.id = 'kidoToastContainer';
+        document.body.appendChild(c);
+      }
+      return c;
+    }
+
+    function kidoToast(message, type = 'info', title = '', duration = 4000) {
+      const container = getOrCreateToastContainer();
+      const toast = document.createElement('div');
+      toast.className = `kido-toast toast-${type}`;
+
+      const icons = {
+        success: { icon: '✅', bg: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40', bar: 'bg-emerald-500' },
+        error: { icon: '⛔', bg: 'bg-red-500/20 text-red-400 border-red-500/40', bar: 'bg-red-500' },
+        warning: { icon: '⚠️', bg: 'bg-amber-500/20 text-amber-400 border-amber-500/40', bar: 'bg-amber-500' },
+        info: { icon: 'ℹ️', bg: 'bg-blue-500/20 text-blue-400 border-blue-500/40', bar: 'bg-blue-500' }
+      };
+      const cfg = icons[type] || icons.info;
+      const defTitle = title || (type === 'success' ? 'Operación Exitosa' : type === 'error' ? 'Atención / Error' : type === 'warning' ? 'Aviso' : 'Notificación KIDO');
+
+      toast.innerHTML = `
+        <div class="w-8 h-8 rounded-xl ${cfg.bg} border flex items-center justify-center text-sm font-black shrink-0">
+          ${cfg.icon}
+        </div>
+        <div class="flex-1 min-w-0 pr-2">
+          <div class="text-xs font-bold text-white leading-tight font-display">${defTitle}</div>
+          <div class="text-[11px] text-gray-300 mt-0.5 leading-normal break-words">${message}</div>
+        </div>
+        <button type="button" class="text-gray-400 hover:text-white text-xs font-bold p-1 rounded shrink-0 transition" onclick="this.closest('.kido-toast').classList.add('toast-exit'); setTimeout(() => this.closest('.kido-toast')?.remove(), 250);">✕</button>
+        <div class="kido-toast-progress ${cfg.bar}" style="animation-duration: ${duration}ms;"></div>
+      `;
+
+      container.appendChild(toast);
+
+      const timer = setTimeout(() => {
+        toast.classList.add('toast-exit');
+        setTimeout(() => toast.remove(), 250);
+      }, duration);
+
+      toast.addEventListener('mouseenter', () => {
+        const bar = toast.querySelector('.kido-toast-progress');
+        if (bar) bar.style.animationPlayState = 'paused';
+        clearTimeout(timer);
+      });
+    }
+
+    // Compatibilidad showToast
+    function showToast(msg, type = 'success') {
+      if (typeof msg === 'string' && (msg.includes('❌') || msg.toLowerCase().includes('error') || msg.toLowerCase().includes('rechazado') || msg.toLowerCase().includes('falló'))) {
+        kidoToast(msg.replace('❌', '').trim(), 'error');
+      } else if (typeof msg === 'string' && (msg.includes('⚠️') || msg.toLowerCase().includes('atención') || msg.toLowerCase().includes('pendiente') || msg.toLowerCase().includes('falta'))) {
+        kidoToast(msg.replace('⚠️', '').trim(), 'warning');
+      } else {
+        kidoToast(msg.replace('✅', '').replace('🎉', '').trim(), type === 'success' ? 'success' : 'info');
+      }
+    }
+
+    // Modal de Alerta Interactivo
+    function kidoAlert(title, message, type = 'info', buttonText = 'Entendido') {
+      return new Promise((resolve) => {
+        const modal = document.getElementById('kidoDynamicModal');
+        if (!modal) {
+          kidoToast(message, type, title);
+          resolve(true);
+          return;
+        }
+        
+        const icons = {
+          success: { icon: '✅', color: 'text-emerald-400', border: 'border-emerald-500/30', bg: 'bg-emerald-500/10' },
+          error: { icon: '⛔', color: 'text-red-400', border: 'border-red-500/30', bg: 'bg-red-500/10' },
+          warning: { icon: '⚠️', color: 'text-amber-400', border: 'border-amber-500/30', bg: 'bg-amber-500/10' },
+          info: { icon: '💡', color: 'text-blue-400', border: 'border-blue-500/30', bg: 'bg-blue-500/10' }
+        };
+        const cfg = icons[type] || icons.info;
+
+        document.getElementById('kidoModalIcon').innerHTML = cfg.icon;
+        document.getElementById('kidoModalIconBox').className = `w-14 h-14 rounded-2xl ${cfg.bg} border ${cfg.border} flex items-center justify-center text-3xl mx-auto shadow-lg`;
+        document.getElementById('kidoModalTitle').innerText = title || 'Información';
+        document.getElementById('kidoModalMessage').innerHTML = message;
+        
+        const confirmBtn = document.getElementById('kidoModalConfirmBtn');
+        confirmBtn.innerText = buttonText;
+        confirmBtn.className = `w-full ${type === 'error' ? 'bg-red-600 hover:bg-red-500 shadow-red-600/30' : type === 'warning' ? 'bg-amber-600 hover:bg-amber-500 shadow-amber-600/30' : 'bg-brandAccent hover:bg-brandAccentHover shadow-brandAccent/30'} text-white py-3 rounded-xl font-bold uppercase tracking-wider text-xs transition shadow-lg`;
+
+        document.getElementById('kidoModalCancelBtn').classList.add('hidden');
+
+        modal.classList.remove('hidden');
+
+        confirmBtn.onclick = () => {
+          modal.classList.add('hidden');
+          resolve(true);
+        };
+      });
+    }
+
+    // Modal de Confirmación Interactivo
+    function kidoConfirm(title, message, type = 'warning', confirmText = 'Confirmar', cancelText = 'Cancelar') {
+      return new Promise((resolve) => {
+        const modal = document.getElementById('kidoDynamicModal');
+        if (!modal) {
+          const ok = confirm(message);
+          resolve(ok);
+          return;
+        }
+        
+        const icons = {
+          warning: { icon: '⚠️', color: 'text-amber-400', border: 'border-amber-500/30', bg: 'bg-amber-500/10' },
+          error: { icon: '🗑️', color: 'text-red-400', border: 'border-red-500/30', bg: 'bg-red-500/10' },
+          info: { icon: '❓', color: 'text-blue-400', border: 'border-blue-500/30', bg: 'bg-blue-500/10' }
+        };
+        const cfg = icons[type] || icons.warning;
+
+        document.getElementById('kidoModalIcon').innerHTML = cfg.icon;
+        document.getElementById('kidoModalIconBox').className = `w-14 h-14 rounded-2xl ${cfg.bg} border ${cfg.border} flex items-center justify-center text-3xl mx-auto shadow-lg`;
+        document.getElementById('kidoModalTitle').innerText = title || 'Confirmación';
+        document.getElementById('kidoModalMessage').innerHTML = message;
+        
+        const confirmBtn = document.getElementById('kidoModalConfirmBtn');
+        confirmBtn.innerText = confirmText;
+        confirmBtn.className = `w-1/2 ${type === 'error' ? 'bg-red-600 hover:bg-red-500 shadow-red-600/30' : 'bg-brandAccent hover:bg-brandAccentHover shadow-brandAccent/30'} text-white py-3 rounded-xl font-bold uppercase tracking-wider text-xs transition shadow-lg`;
+
+        const cancelBtn = document.getElementById('kidoModalCancelBtn');
+        cancelBtn.innerText = cancelText;
+        cancelBtn.classList.remove('hidden');
+
+        modal.classList.remove('hidden');
+
+        confirmBtn.onclick = () => {
+          modal.classList.add('hidden');
+          resolve(true);
+        };
+        cancelBtn.onclick = () => {
+          modal.classList.add('hidden');
+          resolve(false);
+        };
+      });
+    }
+
+    // Sobrescribir window.alert nativo
+    window.alert = function(msg) {
+      if (typeof msg === 'string' && (msg.includes('❌') || msg.toLowerCase().includes('error') || msg.toLowerCase().includes('incorrect'))) {
+        kidoToast(msg.replace('❌', '').trim(), 'error');
+      } else if (typeof msg === 'string' && (msg.includes('✅') || msg.toLowerCase().includes('éxito') || msg.toLowerCase().includes('correct') || msg.toLowerCase().includes('guardad'))) {
+        kidoToast(msg.replace('✅', '').trim(), 'success');
+      } else if (typeof msg === 'string' && (msg.includes('⚠️') || msg.toLowerCase().includes('atención') || msg.toLowerCase().includes('cuidado') || msg.toLowerCase().includes('falta'))) {
+        kidoToast(msg.replace('⚠️', '').trim(), 'warning');
+      } else {
+        kidoToast(msg, 'info');
+      }
+    };
+
     // Estado de la aplicación
     let allProducts = [];
     let displayedProducts = [];
@@ -1267,10 +1491,22 @@
     // Carrito y Pagos Parciales
     function addToCart(id) {
       const p = allProducts.find(x => x.id == id);
-      if (!p) return;
+      if (!p) {
+        kidoToast('No se encontró el artículo seleccionado.', 'error', 'Error de Catálogo');
+        return;
+      }
+
+      if (p.is_sold_out || (typeof p.stock_quantity === 'number' && p.stock_quantity <= 0)) {
+        kidoToast(`El modelo "${p.title}" se encuentra agotado por el momento.`, 'warning', 'Sin Stock Disponible');
+        return;
+      }
 
       const existing = cart.find(x => x.id == id);
       if (existing) {
+        if (typeof p.stock_quantity === 'number' && existing.quantity >= p.stock_quantity) {
+          kidoToast(`Solo disponemos de ${p.stock_quantity} unidad(es) de "${p.title}".`, 'warning', 'Límite de Stock');
+          return;
+        }
         existing.quantity += 1;
       } else {
         const img = (p.images && p.images[0] && p.images[0].src) ? p.images[0].src : (p.gallery_images && p.gallery_images[0] ? p.gallery_images[0] : '');
@@ -1287,20 +1523,32 @@
       }
 
       saveCart();
-      showToast(`"${p.title.slice(0, 25)}..." agregado al carrito`);
+      kidoToast(`¡"${p.title.length > 30 ? p.title.slice(0, 30) + '...' : p.title}" se agregó al carrito!`, 'success', 'Carrito Actualizado');
     }
 
     function updateCartQty(id, delta) {
       const it = cart.find(x => x.id == id);
       if (!it) return;
+      const p = allProducts.find(x => x.id == id);
+      if (delta > 0 && p && typeof p.stock_quantity === 'number' && it.quantity >= p.stock_quantity) {
+        kidoToast(`Has alcanzado el stock máximo disponible (${p.stock_quantity} un.)`, 'warning', 'Límite de Unidades');
+        return;
+      }
       it.quantity += delta;
-      if (it.quantity <= 0) cart = cart.filter(x => x.id != id);
+      if (it.quantity <= 0) {
+        cart = cart.filter(x => x.id != id);
+        kidoToast(`"${it.title}" eliminado del carrito.`, 'info', 'Carrito');
+      }
       saveCart();
     }
 
     function removeCartItem(id) {
+      const it = cart.find(x => x.id == id);
       cart = cart.filter(x => x.id != id);
       saveCart();
+      if (it) {
+        kidoToast(`"${it.title}" eliminado del carrito.`, 'info', 'Carrito');
+      }
     }
 
     function saveCart() {
@@ -1700,8 +1948,18 @@
 
     async function handleExecuteOrder(e, isPartial) {
       e.preventDefault();
-      const name = document.getElementById('chkName').value.trim();
-      const email = document.getElementById('chkEmail').value.trim();
+      if (!cart || cart.length === 0) {
+        kidoToast('Tu carrito está vacío. Agregá algún modelo antes de continuar.', 'warning', 'Carrito Vacío');
+        return;
+      }
+
+      const name = document.getElementById('chkName') ? document.getElementById('chkName').value.trim() : '';
+      const email = document.getElementById('chkEmail') ? document.getElementById('chkEmail').value.trim() : '';
+
+      if (!name || !email) {
+        kidoToast('Por favor completá tu nombre y correo electrónico para la orden.', 'warning', 'Datos Requeridos');
+        return;
+      }
 
       let itemsTotal = 0;
       cart.forEach(i => itemsTotal += i.price_ars * i.quantity);
@@ -1721,6 +1979,12 @@
         const st = document.getElementById('chkAddressStreet') ? document.getElementById('chkAddressStreet').value.trim() : '';
         const ex = document.getElementById('chkAddressExtra') ? document.getElementById('chkAddressExtra').value.trim() : '';
         const loc = document.getElementById('chkAddressLocality') ? document.getElementById('chkAddressLocality').value.trim() : '';
+
+        if (!st) {
+          kidoToast('Por favor completá la calle y altura de tu domicilio para el envío.', 'warning', 'Dirección Incompleta');
+          return;
+        }
+
         shippingAddress = `${st}${ex ? ' (' + ex + ')' : ''}${loc ? ', ' + loc : ''}`;
       }
 
@@ -1815,7 +2079,7 @@
                 <a href="${mpUrl}" target="_blank" rel="noopener noreferrer" class="w-full bg-[#009ee3] hover:bg-[#0081ba] text-white py-3.5 px-6 rounded-xl font-black text-xs uppercase tracking-wider transition shadow-lg shadow-[#009ee3]/30 flex items-center justify-center gap-2 hover:scale-[1.01]">
                   <span>Pagar con Mercado Pago ➔</span>
                 </a>
-                <button onclick="cart = []; saveCart(); closeCheckoutModal(); showToast('¡Pedido registrado! Aguardando confirmación de pago.');" class="w-full bg-brandSurface hover:bg-brandBorder text-gray-300 border border-brandBorder py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition">
+                <button onclick="cart = []; saveCart(); closeCheckoutModal(); kidoToast('¡Orden registrada! Aguardando confirmación de Mercado Pago.', 'info', 'Pago Iniciado');" class="w-full bg-brandSurface hover:bg-brandBorder text-gray-300 border border-brandBorder py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition">
                   Volver a la tienda
                 </button>
               </div>
@@ -1864,10 +2128,7 @@
         }
 
       } catch (err) {
-        alert('Orden registrada localmente.');
-        cart = [];
-        saveCart();
-        closeCheckoutModal();
+        kidoToast('Hubo un error de conexión al procesar la orden. Intente nuevamente.', 'error', 'Error de Red');
       }
     }
 
@@ -1876,7 +2137,7 @@
     // ==========================================
     function openRafflesModal() {
       if (activeRaffles.length === 0) {
-        alert('No hay rifas activas en este momento.');
+        kidoAlert('Rifas KIDO Garage', 'No hay sorteos activos en este momento. ¡Seguinos en Instagram para enterarte del próximo lanzamiento!', 'info');
         return;
       }
       const raf = activeRaffles[0];
@@ -1947,13 +2208,14 @@
 
     async function confirmBuyRaffleTicket(raffleId, number, claimFree) {
       if (!currentUser) {
-        alert('Por favor iniciá sesión o registrate para comprar o reclamar tu número de rifa.');
+        kidoAlert('Acceso Requerido', 'Por favor iniciá sesión o registrate para comprar o reclamar tu número de rifa.', 'warning');
         openAuthModal('login');
         return;
       }
 
-      const costText = claimFree ? 'GRATIS (Beneficio de Cliente Frecuente)' : '$2.500 ARS vía Mercado Pago';
-      if (!confirm(`¿Confirmás la selección del número #${number} (${costText})?`)) return;
+      const costText = claimFree ? 'GRATIS (Beneficio exclusivo Cliente Frecuente)' : '$2.500 ARS vía Mercado Pago';
+      const confirmed = await kidoConfirm('Confirmar Número de Rifa', `¿Deseas confirmar la selección del número <b>#${number < 10 ? '0' + number : number}</b>?<br><span class="text-xs text-brandAccent">${costText}</span>`, 'info', 'Confirmar Número', 'Elegir otro');
+      if (!confirmed) return;
 
       try {
         const res = await fetch('/api/raffles/buy', {
@@ -1971,7 +2233,7 @@
 
         const data = await res.json();
         if (data.success) {
-          showToast(`¡Número #${number} asignado correctamente!`);
+          kidoToast(`¡Número #${number < 10 ? '0' + number : number} asignado a tu nombre!`, 'success', 'Rifa Confirmada');
           if (claimFree) {
             currentUser.has_claimed_free_raffle = true;
             localStorage.setItem('kido_user', JSON.stringify(currentUser));
@@ -1979,10 +2241,10 @@
           await loadRaffles();
           openRafflesModal();
         } else {
-          alert(data.message || 'No se pudo asignar el número.');
+          kidoAlert('Atención', data.message || 'No se pudo asignar el número seleccionado.', 'warning');
         }
       } catch (err) {
-        alert('Error conectando con el servidor de rifas.');
+        kidoToast('Error conectando con el servidor de rifas.', 'error', 'Error de Red');
       }
     }
 
@@ -2114,9 +2376,9 @@
           localStorage.setItem('kido_user', JSON.stringify(currentUser));
           closeAuthModal();
           updateAuthUI();
-          showToast(`¡Bienvenido a KIDO, ${currentUser.first_name}!`);
+          kidoToast(`¡Bienvenido a KIDO Garage, ${currentUser.first_name}!`, 'success', 'Cuenta Creada');
         } else {
-          alert(data.message || 'Error en el registro');
+          kidoAlert('Error de Registro', data.message || 'No se pudo completar el registro. Verificá si el correo ya está en uso.', 'error');
         }
       } else {
         const res = await fetch('/api/auth/login', {
@@ -2130,9 +2392,9 @@
           localStorage.setItem('kido_user', JSON.stringify(currentUser));
           closeAuthModal();
           updateAuthUI();
-          showToast(`¡Hola de nuevo, ${currentUser.first_name}!`);
+          kidoToast(`¡Hola de nuevo, ${currentUser.first_name}!`, 'success', 'Sesión Iniciada');
         } else {
-          alert('Correo o contraseña incorrectos.');
+          kidoToast('Correo o contraseña incorrectos. Por favor verificá tus datos.', 'error', 'Acceso Denegado');
         }
       }
     }
@@ -2879,14 +3141,14 @@
           currentUser = { ...currentUser, ...data.user };
           localStorage.setItem('kido_user', JSON.stringify(currentUser));
           updateAuthUI();
-          showToast('✅ ¡Datos de envío actualizados con éxito!');
+          kidoToast('¡Tus datos de envío fueron actualizados con éxito!', 'success', 'Perfil Guardado');
           await openProfileModal('shipping');
         } else {
-          alert('Error actualizando perfil.');
+          kidoAlert('Atención', 'No se pudieron actualizar los datos del perfil.', 'warning');
         }
       } catch (err) {
         console.error(err);
-        alert('Error conectando con el servidor.');
+        kidoToast('Error de comunicación con el servidor.', 'error', 'Error de Red');
       } finally {
         btn.innerHTML = originalText;
         btn.disabled = false;
@@ -2898,7 +3160,8 @@
     }
 
     async function payRemainingBalance(orderId, remaining) {
-      if (!confirm(`¿Deseas abonar el saldo pendiente de ${formatARS(remaining)} a través de Mercado Pago para liberar la entrega inmediata?`)) return;
+      const confirmed = await kidoConfirm('Abonar Saldo Pendiente', `¿Deseas abonar el saldo pendiente de <b>${formatARS(remaining)}</b> a través de Mercado Pago para liberar la orden para despacho inmediato?`, 'info', 'Abonar con Mercado Pago', 'Volver');
+      if (!confirmed) return;
 
       try {
         const res = await fetch('/api/orders/pay-partial', {
@@ -2911,33 +3174,42 @@
           if (data.is_real_mp && (data.init_point || data.sandbox_init_point)) {
             const mpUrl = data.init_point || data.sandbox_init_point;
             window.open(mpUrl, '_blank');
-            showToast('Redirigiendo a Mercado Pago para abonar el saldo...');
+            kidoToast('Redirigiendo a Mercado Pago para abonar el saldo...', 'info', 'Pasarela de Pago');
           } else {
-            showToast('🎉 ¡Saldo cancelado con éxito! Pedido liberado para despacho.');
+            kidoToast('¡Saldo cancelado con éxito! Pedido liberado para despacho.', 'success', 'Pago Confirmado');
           }
           await openProfileModal('orders');
         } else {
-          alert(data.error || 'Error registrando pago parcial.');
+          kidoAlert('Aviso de Pago', data.error || 'No se pudo registrar el pago parcial.', 'error');
         }
       } catch (err) {
-        alert('Error al conectar con el servidor.');
+        kidoToast('Error al conectar con el servidor.', 'error', 'Error de Red');
       }
-    }
-
-    // Toast
-    function showToast(msg) {
-      const toast = document.getElementById('toast');
-      document.getElementById('toastMsg').textContent = msg;
-      toast.classList.remove('translate-y-24', 'opacity-0');
-      toast.classList.add('translate-y-0', 'opacity-100');
-      setTimeout(() => {
-        toast.classList.remove('translate-y-0', 'opacity-100');
-        toast.classList.add('translate-y-24', 'opacity-0');
-      }, 2800);
     }
 
     document.addEventListener('DOMContentLoaded', initApp);
   </script>
+
+  <!-- MODAL DE ALERTAS Y CONFIRMACIONES DINÁMICAS -->
+  <div id="kidoDynamicModal" class="fixed inset-0 z-[10000] bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="bg-brandCard border border-brandBorder rounded-3xl max-w-sm w-full p-6 shadow-2xl relative space-y-4 animate-in fade-in zoom-in duration-200 text-center">
+      <div id="kidoModalIconBox" class="w-14 h-14 rounded-2xl bg-brandAccent/10 border border-brandAccent/30 flex items-center justify-center text-3xl mx-auto shadow-lg">
+        <span id="kidoModalIcon">ℹ️</span>
+      </div>
+      <div class="space-y-1">
+        <h3 id="kidoModalTitle" class="font-display font-black text-lg text-white">Atención</h3>
+        <p id="kidoModalMessage" class="text-xs text-gray-300 leading-relaxed"></p>
+      </div>
+      <div class="flex gap-2.5 pt-2">
+        <button type="button" id="kidoModalCancelBtn" class="w-1/2 bg-brandSurface hover:bg-brandBorder text-gray-300 py-3 rounded-xl font-bold uppercase tracking-wider text-xs transition border border-brandBorder hidden">
+          Cancelar
+        </button>
+        <button type="button" id="kidoModalConfirmBtn" class="w-full bg-brandAccent hover:bg-brandAccentHover text-white py-3 rounded-xl font-bold uppercase tracking-wider text-xs transition shadow-lg shadow-brandAccent/30">
+          Entendido
+        </button>
+      </div>
+    </div>
+  </div>
 </body>
 
 </html>

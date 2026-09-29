@@ -57,6 +57,66 @@
     ::-webkit-scrollbar-track { background: #0a0c10; }
     ::-webkit-scrollbar-thumb { background: #232b3b; border-radius: 9999px; }
     ::-webkit-scrollbar-thumb:hover { background: #3b475d; }
+
+    /* KIDO TOAST NOTIFICATION STYLES */
+    #kidoToastContainer {
+      position: fixed;
+      top: 1.25rem;
+      right: 1.25rem;
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      pointer-events: none;
+      max-width: 90vw;
+      width: 380px;
+    }
+    .kido-toast {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.85rem 1rem;
+      border-radius: 1rem;
+      background: rgba(18, 22, 31, 0.95);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.7), 0 0 15px rgba(229, 9, 20, 0.15);
+      color: #f3f4f6;
+      transform-origin: top right;
+      animation: toastIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      position: relative;
+      overflow: hidden;
+    }
+    .kido-toast.toast-error { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 10px 30px -5px rgba(239, 68, 68, 0.25); }
+    .kido-toast.toast-success { border-color: rgba(16, 185, 129, 0.4); box-shadow: 0 10px 30px -5px rgba(16, 185, 129, 0.25); }
+    .kido-toast.toast-warning { border-color: rgba(245, 158, 11, 0.4); box-shadow: 0 10px 30px -5px rgba(245, 158, 11, 0.25); }
+    .kido-toast.toast-info { border-color: rgba(59, 130, 246, 0.4); box-shadow: 0 10px 30px -5px rgba(59, 130, 246, 0.25); }
+    .kido-toast-progress {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.2);
+      transform-origin: left;
+      animation: toastProgress linear forwards;
+    }
+    @keyframes toastIn {
+      0% { opacity: 0; transform: translateY(-20px) scale(0.9); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes toastOut {
+      0% { opacity: 1; transform: translateY(0) scale(1); max-height: 120px; margin-bottom: 0; }
+      100% { opacity: 0; transform: translateY(-15px) scale(0.9); max-height: 0; margin-bottom: -0.6rem; }
+    }
+    @keyframes toastProgress {
+      from { transform: scaleX(1); }
+      to { transform: scaleX(0); }
+    }
+    .kido-toast.toast-exit {
+      animation: toastOut 0.25s ease-in forwards !important;
+    }
   </style>
 </head>
 
@@ -297,6 +357,72 @@
   <!-- JAVASCRIPT DEL MOTOR DE RULETA, AUDIO Y EFECTOS          -->
   <!-- ======================================================== -->
   <script>
+    // ==========================================
+    // SISTEMA UNIVERSAL DE ALERTAS & NOTIFICACIONES (KIDO TOAST & MODAL)
+    // ==========================================
+    function getOrCreateToastContainer() {
+      let c = document.getElementById('kidoToastContainer');
+      if (!c) {
+        c = document.createElement('div');
+        c.id = 'kidoToastContainer';
+        document.body.appendChild(c);
+      }
+      return c;
+    }
+
+    function kidoToast(message, type = 'info', title = '', duration = 4000) {
+      const container = getOrCreateToastContainer();
+      const toast = document.createElement('div');
+      toast.className = `kido-toast toast-${type}`;
+
+      const icons = {
+        success: { icon: '✅', bg: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40', bar: 'bg-emerald-500' },
+        error: { icon: '⛔', bg: 'bg-red-500/20 text-red-400 border-red-500/40', bar: 'bg-red-500' },
+        warning: { icon: '⚠️', bg: 'bg-amber-500/20 text-amber-400 border-amber-500/40', bar: 'bg-amber-500' },
+        info: { icon: 'ℹ️', bg: 'bg-blue-500/20 text-blue-400 border-blue-500/40', bar: 'bg-blue-500' }
+      };
+      const cfg = icons[type] || icons.info;
+      const defTitle = title || (type === 'success' ? 'Operación Exitosa' : type === 'error' ? 'Atención / Error' : type === 'warning' ? 'Aviso' : 'Notificación KIDO');
+
+      toast.innerHTML = `
+        <div class="w-8 h-8 rounded-xl ${cfg.bg} border flex items-center justify-center text-sm font-black shrink-0">
+          ${cfg.icon}
+        </div>
+        <div class="flex-1 min-w-0 pr-2">
+          <div class="text-xs font-bold text-white leading-tight font-display">${defTitle}</div>
+          <div class="text-[11px] text-gray-300 mt-0.5 leading-normal break-words">${message}</div>
+        </div>
+        <button type="button" class="text-gray-400 hover:text-white text-xs font-bold p-1 rounded shrink-0 transition" onclick="this.closest('.kido-toast').classList.add('toast-exit'); setTimeout(() => this.closest('.kido-toast')?.remove(), 250);">✕</button>
+        <div class="kido-toast-progress ${cfg.bar}" style="animation-duration: ${duration}ms;"></div>
+      `;
+
+      container.appendChild(toast);
+
+      const timer = setTimeout(() => {
+        toast.classList.add('toast-exit');
+        setTimeout(() => toast.remove(), 250);
+      }, duration);
+
+      toast.addEventListener('mouseenter', () => {
+        const bar = toast.querySelector('.kido-toast-progress');
+        if (bar) bar.style.animationPlayState = 'paused';
+        clearTimeout(timer);
+      });
+    }
+
+    // Sobrescribir window.alert nativo
+    window.alert = function(msg) {
+      if (typeof msg === 'string' && (msg.includes('❌') || msg.toLowerCase().includes('error') || msg.toLowerCase().includes('incorrect') || msg.toLowerCase().includes('falló'))) {
+        kidoToast(msg.replace('❌', '').trim(), 'error');
+      } else if (typeof msg === 'string' && (msg.includes('✅') || msg.toLowerCase().includes('éxito') || msg.toLowerCase().includes('correct') || msg.toLowerCase().includes('guardad') || msg.toLowerCase().includes('copiado'))) {
+        kidoToast(msg.replace('✅', '').trim(), 'success');
+      } else if (typeof msg === 'string' && (msg.includes('⚠️') || msg.toLowerCase().includes('atención') || msg.toLowerCase().includes('cuidado') || msg.toLowerCase().includes('no hay'))) {
+        kidoToast(msg.replace('⚠️', '').trim(), 'warning');
+      } else {
+        kidoToast(msg, 'info');
+      }
+    };
+
     let currentRaffle = null;
     let participants = [];
     let isSpinning = false;
