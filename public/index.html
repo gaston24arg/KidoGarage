@@ -1061,9 +1061,23 @@
       }
 
       // Preparar productos destacados para el carrusel
-      featuredProducts = allProducts.filter(p =>
-        p.has_chase_chance || p.status === 'PRE_VENTA' || p.price_ars > 20000 || p.product_type === 'Remera'
-      ).slice(0, 5);
+      try {
+        const sliderRes = await fetch('/api/slider-products');
+        if (sliderRes.ok) {
+          const sliderData = await sliderRes.json();
+          if (sliderData.products && sliderData.products.length > 0) {
+            featuredProducts = sliderData.products;
+          }
+        }
+      } catch (e) {
+        console.error('Error cargando slider:', e);
+      }
+
+      if (!featuredProducts || featuredProducts.length === 0) {
+        featuredProducts = allProducts.filter(p =>
+          p.in_slider || p.has_chase_chance || p.status === 'PRE_VENTA' || p.price_ars > 20000 || p.product_type === 'Remera'
+        ).slice(0, 5);
+      }
 
       initFeaturedCarousel();
       applyFilters();

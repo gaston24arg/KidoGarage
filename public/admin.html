@@ -12,6 +12,8 @@
 
   <!-- Tailwind CSS por CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- SheetJS para importación y descarga de Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -181,6 +183,9 @@
       <button onclick="switchTab('types')" id="tabBtn-types" class="tab-btn px-4 py-3 md:w-full rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-3 whitespace-nowrap border border-transparent hover:border-brandBorder text-xs font-semibold text-left">
         <span class="text-lg">🧩</span> Tipos de Artículos
       </button>
+      <button onclick="switchTab('slider')" id="tabBtn-slider" class="tab-btn px-4 py-3 md:w-full rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-3 whitespace-nowrap border border-transparent hover:border-brandBorder text-xs font-semibold text-left">
+        <span class="text-lg">🎡</span> Slider de Artículos
+      </button>
       <button onclick="switchTab('raffles')" id="tabBtn-raffles" class="tab-btn px-4 py-3 md:w-full rounded-xl bg-brandSurface text-gray-400 hover:text-white transition flex items-center gap-3 whitespace-nowrap border border-transparent hover:border-brandBorder text-xs font-semibold text-left">
         <span class="text-lg">🎟️</span> Rifas y Sorteos
       </button>
@@ -297,6 +302,7 @@
                 <th class="p-3">Stock Disponible</th>
                 <th class="p-3">Estado</th>
                 <th class="p-3 text-center">Activo</th>
+                <th class="p-3 text-center">Slider</th>
                 <th class="p-3 text-right">Ajuste</th>
               </tr>
             </thead>
@@ -310,39 +316,140 @@
     </section>
 
     <!-- ======================================================== -->
-    <!-- TAB 2: CARGA MASIVA DE STOCK                             -->
+    <!-- TAB 2: CARGA MASIVA DE ARTÍCULOS & STOCK (EXCEL)        -->
     <!-- ======================================================== -->
     <section id="tab-bulk-stock" class="tab-pane hidden">
-      <div class="max-w-xl mx-auto bg-brandSurface border border-brandBorder rounded-3xl p-6 shadow-xl">
-        <div class="flex items-center gap-3 mb-4">
-          <span class="text-3xl">📦</span>
-          <div>
-            <h3 class="font-bold text-white text-lg font-display">Carga Masiva de Stock</h3>
-            <p class="text-xs text-gray-400">Seleccioná el artículo e ingresá la cantidad a sumar al stock actual.</p>
+      <div class="max-w-4xl mx-auto space-y-6">
+        
+        <!-- Tarjeta Principal de Carga Masiva por Excel -->
+        <div class="bg-brandSurface border border-brandBorder rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-64 h-64 bg-brandAccent/5 rounded-full blur-3xl pointer-events-none"></div>
+
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-brandBorder pb-6 mb-6">
+            <div class="flex items-center gap-4">
+              <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-3xl shadow-lg shadow-emerald-500/10">
+                📊
+              </div>
+              <div>
+                <h3 class="font-bold text-white text-xl font-display">Carga Masiva de Artículos vía Excel</h3>
+                <p class="text-xs text-gray-400 mt-0.5">Descargá la plantilla pre-configurada, completala con tus artículos y subila para importar todo junto con control automático.</p>
+              </div>
+            </div>
+
+            <!-- Botones de Acción Rápida -->
+            <div class="flex flex-wrap items-center gap-2.5">
+              <button onclick="downloadExcelTemplate()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition shadow-lg shadow-emerald-600/20 flex items-center gap-2 hover:scale-[1.02]">
+                <span>📥</span> Descargar Plantilla Excel
+              </button>
+              <button onclick="document.getElementById('excelFileInput').click()" class="bg-brandAccent hover:bg-brandAccentHover text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition shadow-lg shadow-brandAccent/20 flex items-center gap-2 hover:scale-[1.02]">
+                <span>📤</span> Subir Excel
+              </button>
+              <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" onchange="handleExcelFileSelect(event)" class="hidden">
+            </div>
+          </div>
+
+          <!-- Zona de Drag & Drop y Subida -->
+          <div 
+            id="excelDropZone"
+            ondragover="handleDragOver(event)"
+            ondragleave="handleDragLeave(event)"
+            ondrop="handleExcelDrop(event)"
+            onclick="document.getElementById('excelFileInput').click()"
+            class="border-2 border-dashed border-brandBorder hover:border-emerald-500/60 bg-brandCard/60 hover:bg-brandCard transition rounded-2xl p-8 text-center cursor-pointer group"
+          >
+            <div class="w-16 h-16 mx-auto mb-3 rounded-2xl bg-brandDark/80 border border-brandBorder flex items-center justify-center text-3xl group-hover:scale-110 transition">
+              📂
+            </div>
+            <div class="font-bold text-white text-sm group-hover:text-emerald-400 transition">Hacé clic aquí o arrastrá tu archivo Excel (.xlsx / .csv)</div>
+            <p class="text-xs text-gray-400 mt-1">El sistema verificará automáticamente títulos, marcas, tipos, escalas/talles, precios y stock antes de guardarlos.</p>
+            <div class="inline-flex items-center gap-2 mt-4 px-3 py-1 rounded-full bg-brandDark border border-brandBorder text-[11px] text-gray-300 font-mono">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              Estructura Oficial KIDO GARAGE
+            </div>
+          </div>
+
+          <!-- Panel de Previsualización y Control del Archivo Subido -->
+          <div id="excelPreviewSection" class="hidden mt-6 space-y-4">
+            <div class="flex items-center justify-between p-4 bg-brandDark/80 border border-brandBorder rounded-2xl">
+              <div class="flex items-center gap-3">
+                <span class="text-2xl">📑</span>
+                <div>
+                  <div id="excelFileName" class="text-xs font-bold text-white">archivo.xlsx</div>
+                  <div id="excelFileStats" class="text-[11px] text-gray-400">0 filas leídas</div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <button onclick="clearExcelPreview()" class="px-3 py-1.5 rounded-xl border border-brandBorder hover:bg-brandBorder text-gray-300 text-xs font-semibold transition">
+                  ✕ Cancelar
+                </button>
+                <button id="excelProcessBtn" onclick="processBulkExcelImport()" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition shadow-lg shadow-emerald-600/30 flex items-center gap-1.5 hover:scale-105">
+                  <span>🚀</span> Importar a la Base de Datos
+                </button>
+              </div>
+            </div>
+
+            <!-- Tabla de Previsualización de los primeros artículos -->
+            <div class="overflow-x-auto max-h-72 rounded-2xl border border-brandBorder bg-brandDark/40">
+              <table class="w-full text-left text-xs text-gray-300">
+                <thead class="bg-brandCard text-gray-400 uppercase font-semibold text-[10px] tracking-wider border-b border-brandBorder sticky top-0">
+                  <tr>
+                    <th class="p-2.5">#</th>
+                    <th class="p-2.5">Código</th>
+                    <th class="p-2.5">Título / Nombre</th>
+                    <th class="p-2.5">Tipo</th>
+                    <th class="p-2.5">Marca</th>
+                    <th class="p-2.5">Escala / Talle</th>
+                    <th class="p-2.5">Precio ARS</th>
+                    <th class="p-2.5">Stock</th>
+                    <th class="p-2.5 text-center">Estado</th>
+                  </tr>
+                </thead>
+                <tbody id="excelPreviewTableBody" class="divide-y divide-brandBorder">
+                  <!-- Rendered dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Mensaje de Resultado de Importación -->
+          <div id="excelImportResult" class="hidden mt-4 p-4 rounded-2xl text-xs font-bold text-center">
+          </div>
+
+        </div>
+
+        <!-- Tarjeta Secundaria: Incremento Rápido de Stock Individual -->
+        <div class="bg-brandSurface border border-brandBorder rounded-3xl p-6 shadow-xl">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="text-2xl">📦</span>
+            <div>
+              <h3 class="font-bold text-white text-base font-display">Ajuste Rápido de Unidades Existentes</h3>
+              <p class="text-xs text-gray-400">Sumá unidades directamente a un artículo ya registrado en el catálogo.</p>
+            </div>
+          </div>
+
+          <form onsubmit="handleBulkStockAdd(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs items-end">
+            <div class="sm:col-span-2">
+              <label class="block text-gray-400 font-semibold mb-1">Seleccionar Artículo</label>
+              <select id="bulkProductSelect" required class="w-full bg-brandCard border border-brandBorder rounded-xl p-3 text-white">
+                <!-- Populated by JS -->
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-gray-400 font-semibold mb-1">Cantidad a SUMAR</label>
+              <div class="flex gap-2">
+                <input required type="number" min="1" id="bulkQuantityAdd" value="10" class="w-full bg-brandCard border border-brandBorder rounded-xl p-3 text-white text-sm font-bold">
+                <button type="submit" class="bg-brandAccent hover:bg-brandAccentHover text-white px-4 py-3 rounded-xl font-bold uppercase tracking-wider text-xs transition shrink-0">
+                  + Sumar
+                </button>
+              </div>
+            </div>
+          </form>
+
+          <div id="bulkStockResult" class="mt-3 hidden p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs text-center font-bold">
           </div>
         </div>
 
-        <form onsubmit="handleBulkStockAdd(event)" class="space-y-4 text-xs">
-          <div>
-            <label class="block text-gray-400 font-semibold mb-1">Seleccionar Artículo</label>
-            <select id="bulkProductSelect" required class="w-full bg-brandCard border border-brandBorder rounded-xl p-3 text-white">
-              <!-- Populated by JS -->
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-gray-400 font-semibold mb-1">Cantidad de Unidades a SUMAR</label>
-            <input required type="number" min="1" id="bulkQuantityAdd" value="10" class="w-full bg-brandCard border border-brandBorder rounded-xl p-3 text-white text-base font-bold">
-            <span class="text-[10px] text-gray-500 mt-1 block">Esta cantidad se sumará directamente a la existencia actual del artículo. Si estaba Agotado, pasará automáticamente a En Stock.</span>
-          </div>
-
-          <button type="submit" class="w-full bg-brandAccent hover:bg-brandAccentHover text-white py-3.5 rounded-xl font-bold uppercase tracking-wider text-xs transition shadow-lg flex items-center justify-center gap-2">
-            <span>➕</span> Sumar Unidades al Inventario
-          </button>
-        </form>
-
-        <div id="bulkStockResult" class="mt-4 hidden p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs text-center font-bold">
-        </div>
       </div>
     </section>
 
@@ -469,7 +576,8 @@
                   <th class="p-2.5">Marca</th>
                   <th class="p-2.5">Precio</th>
                   <th class="p-2.5">Stock</th>
-                  <th class="p-2.5">Activo</th>
+                  <th class="p-2.5 text-center">Activo</th>
+                  <th class="p-2.5 text-center">Slider</th>
                 </tr>
               </thead>
               <tbody id="productsAdminTableBody" class="divide-y divide-brandBorder">
@@ -605,6 +713,120 @@
             </table>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- TAB 4D: SLIDER / CARRUSEL DE ARTÍCULOS DESTACADOS        -->
+    <!-- ======================================================== -->
+    <section id="tab-slider" class="tab-pane hidden">
+      <div class="space-y-6">
+        
+        <!-- Tarjeta de Configuración del Slider -->
+        <div class="bg-brandSurface border border-brandBorder rounded-2xl p-5 sm:p-6 shadow-lg">
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-brandBorder">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-2xl bg-brandAccent/20 border border-brandAccent/40 flex items-center justify-center text-2xl">
+                🎡
+              </div>
+              <div>
+                <h3 class="font-black text-white text-lg font-display">Configuración del Slider de Artículos</h3>
+                <p class="text-xs text-gray-400">Controla la cantidad y qué artículos de tu base de datos se muestran en el carrusel principal de la tienda</p>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3">
+              <div class="flex items-center gap-2 bg-brandCard px-3 py-1.5 rounded-xl border border-brandBorder">
+                <span class="text-xs text-gray-300 font-semibold">Cantidad en Slider:</span>
+                <input type="number" id="sliderMaxItemsInput" min="1" max="50" value="5" class="w-16 bg-brandDark border border-brandBorder rounded-lg px-2 py-1 text-center font-bold text-sm text-brandAccent focus:outline-none">
+              </div>
+              <!-- Presets rápidos -->
+              <div class="hidden sm:flex items-center gap-1 bg-brandDark/60 p-1 rounded-xl border border-brandBorder">
+                <button type="button" onclick="setSliderPreset(3)" class="px-2 py-1 rounded-lg text-xs font-bold text-gray-400 hover:text-white hover:bg-brandCard transition">3</button>
+                <button type="button" onclick="setSliderPreset(5)" class="px-2 py-1 rounded-lg text-xs font-bold text-gray-400 hover:text-white hover:bg-brandCard transition">5</button>
+                <button type="button" onclick="setSliderPreset(8)" class="px-2 py-1 rounded-lg text-xs font-bold text-gray-400 hover:text-white hover:bg-brandCard transition">8</button>
+                <button type="button" onclick="setSliderPreset(10)" class="px-2 py-1 rounded-lg text-xs font-bold text-gray-400 hover:text-white hover:bg-brandCard transition">10</button>
+                <button type="button" onclick="setSliderPreset(15)" class="px-2 py-1 rounded-lg text-xs font-bold text-gray-400 hover:text-white hover:bg-brandCard transition">15</button>
+              </div>
+              <button onclick="saveSliderConfig()" class="bg-brandAccent hover:bg-brandAccentHover text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-lg shadow-brandAccent/20 flex items-center gap-1.5">
+                <span>💾</span> Guardar Límite
+              </button>
+            </div>
+          </div>
+
+          <!-- Métricas y Contadores Rápidos -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-5">
+            <div class="bg-brandCard/60 border border-brandBorder/70 rounded-xl p-4 flex items-center justify-between">
+              <div>
+                <div class="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Artículos Seleccionados</div>
+                <div id="sliderSelectedCountBadge" class="text-2xl font-black text-white font-display mt-0.5">0</div>
+              </div>
+              <span class="text-2xl">🏷️</span>
+            </div>
+            <div class="bg-brandCard/60 border border-brandBorder/70 rounded-xl p-4 flex items-center justify-between">
+              <div>
+                <div class="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Límite Configurado</div>
+                <div id="sliderLimitBadge" class="text-2xl font-black text-brandAccent font-display mt-0.5">5</div>
+              </div>
+              <span class="text-2xl">🔢</span>
+            </div>
+            <div class="bg-brandCard/60 border border-brandBorder/70 rounded-xl p-4 flex items-center justify-between">
+              <div>
+                <div class="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Estado del Slider</div>
+                <div id="sliderStatusBadge" class="text-xs font-black text-emerald-400 font-display mt-1.5 flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> ACTIVO Y VISIBLE
+                </div>
+              </div>
+              <span class="text-2xl">⚡</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Selector y Grilla de Artículos -->
+        <div class="bg-brandSurface border border-brandBorder rounded-2xl p-5 sm:p-6 shadow-lg">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <div>
+              <h4 class="font-bold text-white text-base font-display flex items-center gap-2">
+                <span>📋</span> Seleccionar Artículos para el Slider
+              </h4>
+              <p class="text-xs text-gray-400">Activa o desactiva con un click los artículos que deseas mostrar en el carrusel de la tienda (ordenados del ID mayor al menor).</p>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-2">
+              <input type="text" id="sliderSearchInput" oninput="renderSliderProductsTable()" placeholder="Buscar por título, marca o tipo..." class="bg-brandCard border border-brandBorder rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brandAccent w-60">
+              <select id="sliderFilterSelect" onchange="renderSliderProductsTable()" class="bg-brandCard border border-brandBorder rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brandAccent">
+                <option value="all">Todos los artículos</option>
+                <option value="selected">Solo en Slider (SÍ)</option>
+                <option value="unselected">Fuera del Slider (NO)</option>
+              </select>
+              <button onclick="clearAllSliderProducts()" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-2 rounded-xl text-xs font-bold transition">
+                Limpiar Selección
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-gray-300">
+              <thead class="bg-brandDark/50 text-gray-400 uppercase text-[10px] tracking-wider">
+                <tr>
+                  <th class="p-3 rounded-l-xl">ID</th>
+                  <th class="p-3">Foto</th>
+                  <th class="p-3">Artículo / Nombre</th>
+                  <th class="p-3">Marca</th>
+                  <th class="p-3">Tipo</th>
+                  <th class="p-3 text-right">Precio ARS</th>
+                  <th class="p-3 text-center">Stock</th>
+                  <th class="p-3 text-center">Activo</th>
+                  <th class="p-3 text-center rounded-r-xl">Mostrar en Slider</th>
+                </tr>
+              </thead>
+              <tbody id="sliderProductsTableBody" class="divide-y divide-brandBorder">
+                <!-- Renderizado dinámico vía JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -1224,6 +1446,7 @@
       await loadBrands();
       await loadProductTypes();
       await loadProducts();
+      await loadSliderConfig();
       await loadOrders();
       await loadRaffles();
       await loadExpenses();
@@ -1257,7 +1480,8 @@
         tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-gray-500 italic">No hay marcas registradas en la base de datos.</td></tr>';
         return;
       }
-      tbody.innerHTML = adminBrands.map(b => `
+      const list = adminBrands.slice().sort((a, b) => b.id - a.id);
+      tbody.innerHTML = list.map(b => `
         <tr class="hover:bg-brandCard/40 transition">
           <td class="p-3 text-xs font-mono text-gray-400">#${b.id}</td>
           <td class="p-3 font-bold text-white flex items-center gap-3">
@@ -1400,6 +1624,9 @@
         const res = await fetch('/api/brands');
         if (res.ok) {
           adminBrands = await res.json();
+          if (Array.isArray(adminBrands)) {
+            adminBrands.sort((a, b) => b.id - a.id);
+          }
           const sel = document.getElementById('pVendor');
           if (sel) {
             sel.innerHTML = '<option value="">Selecciona una Marca...</option>' + 
@@ -1419,7 +1646,8 @@
         tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-gray-500 italic">No hay tipos de artículos registrados.</td></tr>';
         return;
       }
-      tbody.innerHTML = adminProductTypes.map(t => {
+      const list = adminProductTypes.slice().sort((a, b) => b.id - a.id);
+      tbody.innerHTML = list.map(t => {
         const count = adminProducts ? adminProducts.filter(p => p.product_type_id === t.id || p.product_type === t.name).length : 0;
         const isActive = t.is_active !== false;
         return `
@@ -1530,6 +1758,9 @@
         const res = await fetch('/api/product-types');
         if (res.ok) {
           adminProductTypes = await res.json();
+          if (Array.isArray(adminProductTypes)) {
+            adminProductTypes.sort((a, b) => b.id - a.id);
+          }
           const sel = document.getElementById('pType');
           if (sel) {
             sel.innerHTML = '<option value="">Selecciona un Tipo...</option>' + 
@@ -1546,6 +1777,9 @@
         if (res.ok) {
           const data = await res.json();
           adminProducts = data.products || [];
+          if (Array.isArray(adminProducts)) {
+            adminProducts.sort((a, b) => b.id - a.id);
+          }
         }
       } catch (e) { console.error(e); }
 
@@ -1555,12 +1789,13 @@
     }
 
     function renderStockTable(filtered) {
-      const list = filtered || adminProducts;
+      const list = (filtered || adminProducts || []).slice().sort((a, b) => b.id - a.id);
       const tbody = document.getElementById('stockGridTableBody');
 
       tbody.innerHTML = list.map(p => {
         const img = (p.images && p.images[0] && p.images[0].src) ? p.images[0].src : (p.gallery_images && p.gallery_images[0] ? p.gallery_images[0] : 'https://via.placeholder.com/60');
         const stock = p.stock_quantity;
+        const inSlider = !!p.in_slider;
         
         let statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400">EN STOCK</span>';
         if (stock === 0 || p.status === 'AGOTADO') {
@@ -1571,10 +1806,10 @@
 
         return `
           <tr class="hover:bg-brandCardHover transition">
-            <td class="p-3"><img src="${img}" class="w-12 h-10 object-contain bg-black/40 rounded border border-brandBorder"></td>
+            <td class="p-3"><img src="${img}" class="w-12 h-10 object-contain bg-black/40 rounded border border-brandBorder" onerror="this.src='https://via.placeholder.com/60'"></td>
             <td class="p-3">
               <div class="font-bold text-white">${p.title}</div>
-              <div class="text-[10px] text-gray-500 font-mono">ID: #${p.id}</div>
+              <div class="text-[10px] text-gray-500 font-mono">ID: #${p.id} ${p.has_chase_chance ? '<span class="text-amber-400 font-bold">★ CHASE</span>' : ''}</div>
             </td>
             <td class="p-3 text-gray-300">${p.product_type} ${p.scale ? `(${p.scale})` : ''} ${p.apparel_size ? `(Talle: ${p.apparel_size})` : ''}</td>
             <td class="p-3 font-semibold text-gray-300">${p.vendor}</td>
@@ -1590,6 +1825,11 @@
                 ${p.is_active ? 'SÍ' : 'NO'}
               </button>
             </td>
+            <td class="p-3 text-center">
+              <button onclick="toggleProductSlider(${p.id})" title="Click para agregar o quitar del slider de la tienda" class="px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider transition ${inSlider ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 hover:bg-amber-500/30' : 'bg-gray-500/10 text-gray-400 border border-gray-500/30 hover:bg-gray-500/20'}">
+                ${inSlider ? 'SÍ' : 'NO'}
+              </button>
+            </td>
             <td class="p-3 text-right">
               <button onclick="quickAddStock(${p.id})" class="bg-brandCard hover:bg-brandBorder text-gray-200 border border-brandBorder px-2.5 py-1 rounded-lg text-xs font-bold transition">
                 + Sumar
@@ -1602,23 +1842,32 @@
 
     function renderProductsAdminTable() {
       const tbody = document.getElementById('productsAdminTableBody');
-      tbody.innerHTML = adminProducts.map(p => `
-        <tr class="hover:bg-brandCardHover transition">
-          <td class="p-2.5 font-bold text-white">
-            <div>${p.title}</div>
-            <div class="text-[10px] text-gray-500 font-mono">ID: #${p.id}</div>
-          </td>
-          <td class="p-2.5 text-gray-400">${p.product_type}</td>
-          <td class="p-2.5 text-gray-300">${p.vendor}</td>
-          <td class="p-2.5 font-bold text-white">${formatARS(p.price_ars)}</td>
-          <td class="p-2.5 text-gray-300">${p.stock_quantity} u.</td>
-          <td class="p-2.5 text-center">
-            <button onclick="toggleProductActive(${p.id})" title="Click para activar/desactivar en catálogo" class="px-3 py-1 rounded-full text-[10px] font-black tracking-wider transition ${p.is_active ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-500/30' : 'bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20'}">
-              ${p.is_active ? 'SÍ' : 'NO'}
-            </button>
-          </td>
-        </tr>
-      `).join('');
+      const list = (adminProducts || []).slice().sort((a, b) => b.id - a.id);
+      tbody.innerHTML = list.map(p => {
+        const inSlider = !!p.in_slider;
+        return `
+          <tr class="hover:bg-brandCardHover transition">
+            <td class="p-2.5 font-bold text-white">
+              <div>${p.title}</div>
+              <div class="text-[10px] text-gray-500 font-mono">ID: #${p.id} ${p.has_chase_chance ? '<span class="text-amber-400 font-bold">★ CHASE</span>' : ''}</div>
+            </td>
+            <td class="p-2.5 text-gray-400">${p.product_type}</td>
+            <td class="p-2.5 text-gray-300">${p.vendor}</td>
+            <td class="p-2.5 font-bold text-white">${formatARS(p.price_ars)}</td>
+            <td class="p-2.5 text-gray-300">${p.stock_quantity} u.</td>
+            <td class="p-2.5 text-center">
+              <button onclick="toggleProductActive(${p.id})" title="Click para activar/desactivar en catálogo" class="px-3 py-1 rounded-full text-[10px] font-black tracking-wider transition ${p.is_active ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-500/30' : 'bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20'}">
+                ${p.is_active ? 'SÍ' : 'NO'}
+              </button>
+            </td>
+            <td class="p-2.5 text-center">
+              <button onclick="toggleProductSlider(${p.id})" title="Click para activar/desactivar en slider de la tienda" class="px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider transition ${inSlider ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 hover:bg-amber-500/30' : 'bg-gray-500/10 text-gray-400 border border-gray-500/30 hover:bg-gray-500/20'}">
+                ${inSlider ? 'SÍ' : 'NO'}
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
 
     async function toggleProductActive(id) {
@@ -1628,6 +1877,7 @@
       p.is_active = newStatus;
       renderProductsAdminTable();
       renderStockTable();
+      renderSliderProductsTable();
 
       try {
         const res = await fetch('/api/admin/products/toggle-active', {
@@ -1641,24 +1891,540 @@
           p.is_active = !newStatus;
           renderProductsAdminTable();
           renderStockTable();
+          renderSliderProductsTable();
           kidoToast('No se pudo actualizar el estado del artículo', 'error');
         }
       } catch (err) {
         p.is_active = !newStatus;
         renderProductsAdminTable();
         renderStockTable();
+        renderSliderProductsTable();
         kidoToast('Error de conexión con el servidor', 'error');
       }
     }
 
+    // ==========================================
+    // GESTIÓN Y CONFIGURACIÓN DEL SLIDER
+    // ==========================================
+    let adminSliderConfig = { max_items: 5, active: true };
+
+    async function loadSliderConfig() {
+      try {
+        const res = await fetch('/api/slider-config');
+        if (res.ok) {
+          adminSliderConfig = await res.json();
+          const input = document.getElementById('sliderMaxItemsInput');
+          if (input) input.value = adminSliderConfig.max_items || 5;
+          const limitBadge = document.getElementById('sliderLimitBadge');
+          if (limitBadge) limitBadge.textContent = adminSliderConfig.max_items || 5;
+          updateSliderMetricsUI();
+        }
+      } catch (e) {
+        console.error('Error cargando configuración del slider:', e);
+      }
+      renderSliderProductsTable();
+    }
+
+    function setSliderPreset(n) {
+      const input = document.getElementById('sliderMaxItemsInput');
+      if (input) input.value = n;
+      saveSliderConfig();
+    }
+
+    async function saveSliderConfig() {
+      const input = document.getElementById('sliderMaxItemsInput');
+      const maxVal = parseInt(input ? input.value : 5, 10);
+      if (isNaN(maxVal) || maxVal <= 0) {
+        kidoToast('Ingresa un número válido mayor a 0 para el límite del slider', 'warning', 'Slider');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/admin/slider-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ max_items: maxVal })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          adminSliderConfig.max_items = maxVal;
+          const limitBadge = document.getElementById('sliderLimitBadge');
+          if (limitBadge) limitBadge.textContent = maxVal;
+          updateSliderMetricsUI();
+          kidoToast(`Límite del slider guardado: Máximo ${maxVal} artículos`, 'success', 'Slider / Carrusel');
+        } else {
+          kidoToast(data.error || 'No se pudo guardar la configuración del slider', 'error');
+        }
+      } catch (e) {
+        kidoToast('Error de conexión al guardar configuración', 'error');
+      }
+    }
+
+    function updateSliderMetricsUI() {
+      const selected = (adminProducts || []).filter(p => p.in_slider && p.is_active !== false);
+      const countEl = document.getElementById('sliderSelectedCountBadge');
+      if (countEl) countEl.textContent = `${selected.length}`;
+      
+      const statusEl = document.getElementById('sliderStatusBadge');
+      if (statusEl) {
+        if (selected.length === 0) {
+          statusEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-400"></span> MODO AUTOMÁTICO (DESTACADOS)';
+          statusEl.className = 'text-xs font-black text-amber-400 font-display mt-1.5 flex items-center gap-1.5';
+        } else {
+          statusEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> MOSTRANDO ${Math.min(selected.length, adminSliderConfig.max_items || 5)} ARTÍCULOS`;
+          statusEl.className = 'text-xs font-black text-emerald-400 font-display mt-1.5 flex items-center gap-1.5';
+        }
+      }
+    }
+
+    function renderSliderProductsTable() {
+      const tbody = document.getElementById('sliderProductsTableBody');
+      if (!tbody) return;
+
+      const q = (document.getElementById('sliderSearchInput')?.value || '').toLowerCase().trim();
+      const filter = document.getElementById('sliderFilterSelect')?.value || 'all';
+
+      let list = (adminProducts || []).slice().sort((a, b) => b.id - a.id);
+
+      if (q) {
+        list = list.filter(p => `${p.title} ${p.vendor} ${p.product_type} ${p.internal_code || ''}`.toLowerCase().includes(q));
+      }
+
+      if (filter === 'selected') {
+        list = list.filter(p => p.in_slider);
+      } else if (filter === 'unselected') {
+        list = list.filter(p => !p.in_slider);
+      }
+
+      updateSliderMetricsUI();
+
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="p-8 text-center text-gray-500 italic">No se encontraron artículos con los filtros aplicados.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = list.map(p => {
+        const img = (p.images && p.images[0] && p.images[0].src) ? p.images[0].src : (p.gallery_images && p.gallery_images[0] ? p.gallery_images[0] : 'https://via.placeholder.com/60');
+        const inSlider = !!p.in_slider;
+        const isActive = p.is_active !== false;
+
+        return `
+          <tr class="hover:bg-brandCard/50 transition ${inSlider ? 'bg-brandAccent/5' : ''}">
+            <td class="p-3 text-xs font-mono text-gray-400">#${p.id}</td>
+            <td class="p-3">
+              <img src="${img}" class="w-12 h-10 object-contain bg-black/40 rounded-lg border border-brandBorder" onerror="this.src='https://via.placeholder.com/60'">
+            </td>
+            <td class="p-3">
+              <div class="font-bold text-white">${p.title}</div>
+              <div class="text-[10px] text-gray-500 font-mono">${p.internal_code || ''} ${p.has_chase_chance ? '<span class="text-amber-400 font-bold">★ CHASE</span>' : ''}</div>
+            </td>
+            <td class="p-3 font-semibold text-gray-300">${p.vendor || '-'}</td>
+            <td class="p-3 text-gray-400">${p.product_type || '-'} ${p.scale ? `(${p.scale})` : ''} ${p.apparel_size ? `(Talle: ${p.apparel_size})` : ''}</td>
+            <td class="p-3 text-right font-bold text-white font-display">${formatARS(p.price_ars)}</td>
+            <td class="p-3 text-center">
+              <span class="font-bold text-xs ${p.stock_quantity === 0 ? 'text-red-400' : 'text-emerald-400'}">
+                ${p.stock_quantity} u.
+              </span>
+            </td>
+            <td class="p-3 text-center">
+              <button onclick="toggleProductActive(${p.id})" title="Click para activar/desactivar artículo" class="px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider transition ${isActive ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-red-500/10 text-red-400 border border-red-500/30'}">
+                ${isActive ? 'SÍ' : 'NO'}
+              </button>
+            </td>
+            <td class="p-3 text-center">
+              <button onclick="toggleProductSlider(${p.id})" title="Click para agregar o quitar del slider" class="px-3.5 py-1.5 rounded-full text-[11px] font-black tracking-wider transition shadow flex items-center justify-center gap-1.5 mx-auto ${inSlider ? 'bg-brandAccent text-white border border-brandAccent hover:bg-brandAccentHover' : 'bg-brandCard text-gray-400 border border-brandBorder hover:text-white hover:border-gray-500'}">
+                <span>${inSlider ? '✨' : '⚪'}</span> ${inSlider ? 'EN SLIDER (SÍ)' : 'NO'}
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function toggleProductSlider(id) {
+      const p = adminProducts.find(x => x.id === id);
+      if (!p) return;
+      const newStatus = !p.in_slider;
+      p.in_slider = newStatus;
+      renderSliderProductsTable();
+      renderProductsAdminTable();
+      renderStockTable();
+
+      try {
+        const res = await fetch('/api/admin/products/toggle-slider', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ product_id: id, in_slider: newStatus })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          kidoToast(`Artículo "${p.title}" ${newStatus ? 'agregado al' : 'removido del'} slider`, 'success', 'Slider / Carrusel');
+        } else {
+          p.in_slider = !newStatus;
+          renderSliderProductsTable();
+          renderProductsAdminTable();
+          renderStockTable();
+          kidoToast(data.error || 'No se pudo actualizar el slider', 'error');
+        }
+      } catch (err) {
+        p.in_slider = !newStatus;
+        renderSliderProductsTable();
+        renderProductsAdminTable();
+        renderStockTable();
+        kidoToast('Error de conexión con el servidor', 'error');
+      }
+    }
+
+    async function clearAllSliderProducts() {
+      const selected = (adminProducts || []).filter(p => p.in_slider);
+      if (selected.length === 0) {
+        kidoToast('No hay artículos seleccionados en el slider', 'info', 'Slider');
+        return;
+      }
+
+      kidoConfirm(`¿Deseas deseleccionar todos los (${selected.length}) artículos del slider?`, async () => {
+        try {
+          const res = await fetch('/api/admin/slider-products/bulk-select', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ product_ids: [] })
+          });
+          if (res.ok) {
+            adminProducts.forEach(p => p.in_slider = false);
+            renderSliderProductsTable();
+            renderProductsAdminTable();
+            renderStockTable();
+            kidoToast('Selección del slider limpiada correctamente', 'success', 'Slider');
+          }
+        } catch (e) {
+          kidoToast('Error al limpiar selección', 'error');
+        }
+      });
+    }
+
     function populateBulkSelect() {
       const select = document.getElementById('bulkProductSelect');
-      select.innerHTML = adminProducts.map(p => `
+      const list = (adminProducts || []).slice().sort((a, b) => b.id - a.id);
+      select.innerHTML = list.map(p => `
         <option value="${p.id}">${p.title} (Stock actual: ${p.stock_quantity} u.) - [${p.vendor}]</option>
       `).join('');
     }
 
-    // Carga Masiva
+    // ==========================================
+    // CARGA MASIVA DE ARTÍCULOS POR EXCEL
+    // ==========================================
+    let parsedExcelProducts = [];
+
+    function downloadExcelTemplate() {
+      try {
+        const headers = [
+          "codigo_interno",
+          "titulo",
+          "tipo_articulo",
+          "marca",
+          "escala",
+          "talle",
+          "precio_ars",
+          "precio_usd",
+          "stock_cantidad",
+          "estado",
+          "activo",
+          "chance_chase",
+          "imagenes_galeria",
+          "video_url",
+          "descripcion"
+        ];
+
+        const sampleRows = [
+          [
+            "KH-510-01",
+            "Kaido House Datsun 510 Pro Street Cherry Red",
+            "Autito",
+            "Kaido House",
+            "1:64",
+            "",
+            28500,
+            "21.00",
+            15,
+            "STOCK",
+            "SI",
+            "SI",
+            "https://images.unsplash.com/photo-1581235720704-06d3acfcb36f",
+            "",
+            "Modelo diecast a escala 1:64 con apertura de capot y motor detallado."
+          ],
+          [
+            "APP-REM-01",
+            "Remera Oversize KIDO Garage JDM Club Negra",
+            "Remera",
+            "KIDO Apparel",
+            "",
+            "L",
+            16500,
+            "12.00",
+            25,
+            "STOCK",
+            "SI",
+            "NO",
+            "https://images.unsplash.com/photo-1521572267360-ee0c2909d518",
+            "",
+            "Remera 100% algodon peinado 24/1 corte boxy fit oversize."
+          ]
+        ];
+
+        const wsData = [headers, ...sampleRows];
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+        ws['!cols'] = [
+          { wch: 16 }, // codigo_interno
+          { wch: 45 }, // titulo
+          { wch: 16 }, // tipo_articulo
+          { wch: 20 }, // marca
+          { wch: 12 }, // escala
+          { wch: 12 }, // talle
+          { wch: 14 }, // precio_ars
+          { wch: 14 }, // precio_usd
+          { wch: 16 }, // stock_cantidad
+          { wch: 14 }, // estado
+          { wch: 10 }, // activo
+          { wch: 14 }, // chance_chase
+          { wch: 50 }, // imagenes_galeria
+          { wch: 40 }, // video_url
+          { wch: 60 }  // descripcion
+        ];
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Articulos_Kido");
+        XLSX.writeFile(wb, "Plantilla_Articulos_Kido_Garage.xlsx");
+
+        kidoToast("Plantilla Excel generada y descargada exitosamente.", "success", "Plantilla Excel");
+      } catch (err) {
+        console.error("Error generando Excel:", err);
+        kidoToast("No se pudo generar la plantilla Excel.", "error");
+      }
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      document.getElementById('excelDropZone').classList.add('border-emerald-500', 'bg-emerald-950/20');
+    }
+
+    function handleDragLeave(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      document.getElementById('excelDropZone').classList.remove('border-emerald-500', 'bg-emerald-950/20');
+    }
+
+    function handleExcelDrop(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      document.getElementById('excelDropZone').classList.remove('border-emerald-500', 'bg-emerald-950/20');
+      
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      if (files && files.length > 0) {
+        processExcelFile(files[0]);
+      }
+    }
+
+    function handleExcelFileSelect(e) {
+      const files = e.target.files;
+      if (files && files.length > 0) {
+        processExcelFile(files[0]);
+      }
+    }
+
+    function processExcelFile(file) {
+      if (!file.name.match(/\.(xlsx|xls|csv)$/i)) {
+        kidoToast("Formato de archivo inválido. Debe ser .xlsx, .xls o .csv", "warning", "Archivo no compatible");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = e.target.result;
+          const workbook = XLSX.read(data, { type: 'binary' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const rawJson = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+          if (!rawJson || rawJson.length === 0) {
+            kidoToast("El archivo Excel está vacío o no contiene filas con datos.", "warning", "Archivo Vacío");
+            return;
+          }
+
+          parsedExcelProducts = rawJson.map((row, idx) => {
+            const normalized = {};
+            for (const key of Object.keys(row)) {
+              const cleanKey = key.trim().toLowerCase().replace(/[\s\-_]+/g, '_');
+              normalized[cleanKey] = row[key];
+            }
+            return {
+              codigo_interno: String(normalized.codigo_interno || normalized.codigo || normalized.sku || '').trim(),
+              titulo: String(normalized.titulo || normalized.nombre || normalized.articulo || normalized.title || '').trim(),
+              tipo_articulo: String(normalized.tipo_articulo || normalized.tipo || normalized.product_type || '').trim(),
+              marca: String(normalized.marca || normalized.vendor || normalized.brand || '').trim(),
+              escala: String(normalized.escala || normalized.scale || '').trim(),
+              talle: String(normalized.talle || normalized.size || normalized.apparel_size || '').trim(),
+              precio_ars: parseInt(normalized.precio_ars || normalized.precio || normalized.price_ars || normalized.price || 0, 10) || 0,
+              precio_usd: String(normalized.precio_usd || normalized.usd || normalized.price_usd || '').trim(),
+              stock_cantidad: parseInt(normalized.stock_cantidad || normalized.stock || normalized.cantidad || normalized.quantity || 0, 10) || 0,
+              estado: String(normalized.estado || normalized.status || 'STOCK').trim().toUpperCase(),
+              activo: String(normalized.activo || normalized.is_active || 'SI').trim().toUpperCase(),
+              chance_chase: String(normalized.chance_chase || normalized.chase || normalized.has_chase || 'NO').trim().toUpperCase(),
+              imagenes_galeria: String(normalized.imagenes_galeria || normalized.fotos || normalized.images || normalized.galeria || '').trim(),
+              video_url: String(normalized.video_url || normalized.video || '').trim(),
+              descripcion: String(normalized.descripcion || normalized.detalles || normalized.body_html || '').trim(),
+              _rowNum: idx + 2
+            };
+          });
+
+          // Pre-validación local
+          const localErrors = [];
+          parsedExcelProducts.forEach(item => {
+            if (!item.titulo) localErrors.push(`Fila ${item._rowNum}: Falta el 'Título / Nombre' del artículo.`);
+            if (!item.tipo_articulo) localErrors.push(`Fila ${item._rowNum}: Falta el 'Tipo de Artículo' (ej: Autito, Remera, Sticker).`);
+            if (!item.marca) localErrors.push(`Fila ${item._rowNum}: Falta la 'Marca'.`);
+            
+            const tLow = item.tipo_articulo.toLowerCase();
+            if ((tLow.includes('autito') || tLow.includes('diecast') || tLow.includes('auto')) && !item.escala) {
+              localErrors.push(`Fila ${item._rowNum}: Para tipo '${item.tipo_articulo}' es obligatoria la 'Escala' (ej: 1:64, 1:43).`);
+            }
+            if ((tLow.includes('remera') || tLow.includes('ropa') || tLow.includes('indumentaria') || tLow.includes('apparel') || tLow.includes('buzo')) && !item.talle) {
+              localErrors.push(`Fila ${item._rowNum}: Para tipo '${item.tipo_articulo}' es obligatorio el 'Talle' (ej: S, M, L, XL, XXL).`);
+            }
+            if (item.precio_ars <= 0) {
+              localErrors.push(`Fila ${item._rowNum}: El 'Precio ARS' debe ser mayor a 0 (ingresado: ${item.precio_ars}).`);
+            }
+            if (item.stock_cantidad < 0) {
+              localErrors.push(`Fila ${item._rowNum}: El 'Stock' no puede ser negativo.`);
+            }
+          });
+
+          document.getElementById('excelFileName').textContent = file.name;
+          document.getElementById('excelFileStats').innerHTML = `<b class="text-white">${parsedExcelProducts.length} artículos detectados</b> ${localErrors.length > 0 ? `<span class="text-red-400 font-bold ml-2">(${localErrors.length} advertencias/errores)</span>` : '<span class="text-emerald-400 font-bold ml-2">(Estructura válida ✓)</span>'}`;
+          
+          const tbody = document.getElementById('excelPreviewTableBody');
+          tbody.innerHTML = parsedExcelProducts.map((p, idx) => {
+            const hasErr = localErrors.some(e => e.startsWith(`Fila ${p._rowNum}:`));
+            return `
+              <tr class="${hasErr ? 'bg-red-500/10' : 'hover:bg-brandCard/50'} transition">
+                <td class="p-2.5 font-mono text-gray-400">${idx + 1}</td>
+                <td class="p-2.5 font-mono text-amber-300 font-bold">${p.codigo_interno || '-'}</td>
+                <td class="p-2.5 font-bold text-white">${p.titulo || '<span class="text-red-400 italic">Falta título</span>'}</td>
+                <td class="p-2.5 text-gray-300">${p.tipo_articulo || '<span class="text-red-400 italic">Falta tipo</span>'}</td>
+                <td class="p-2.5 text-gray-300 font-semibold">${p.marca || '<span class="text-red-400 italic">Falta marca</span>'}</td>
+                <td class="p-2.5 text-gray-400">${p.escala || p.talle || '-'}</td>
+                <td class="p-2.5 font-display font-bold ${p.precio_ars > 0 ? 'text-white' : 'text-red-400'}">${formatARS(p.precio_ars)}</td>
+                <td class="p-2.5 font-bold ${p.stock_cantidad > 0 ? 'text-emerald-400' : 'text-amber-400'}">${p.stock_cantidad} u.</td>
+                <td class="p-2.5 text-center">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold ${p.estado === 'STOCK' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-blue-500/20 text-blue-300'}">
+                    ${p.estado}
+                  </span>
+                </td>
+              </tr>
+            `;
+          }).join('');
+
+          document.getElementById('excelPreviewSection').classList.remove('hidden');
+
+          if (localErrors.length > 0) {
+            openExcelErrorsModal(localErrors);
+            kidoToast(`Se detectaron ${localErrors.length} inconsistencias en el Excel. Revisá el detalle en pantalla.`, 'warning', 'Control de Excel');
+          } else {
+            kidoToast(`Excel leído con éxito: ${parsedExcelProducts.length} artículos listos para importar.`, 'success', 'Excel Válido');
+          }
+
+        } catch (err) {
+          console.error("Error procesando Excel:", err);
+          kidoToast("Ocurrió un error al leer el archivo Excel. Asegurate de que tenga formato válido.", "error", "Error de Lectura");
+        }
+      };
+      reader.readAsBinaryString(file);
+    }
+
+    function clearExcelPreview() {
+      parsedExcelProducts = [];
+      document.getElementById('excelFileInput').value = '';
+      document.getElementById('excelPreviewSection').classList.add('hidden');
+      document.getElementById('excelImportResult').classList.add('hidden');
+    }
+
+    async function processBulkExcelImport() {
+      if (!parsedExcelProducts || parsedExcelProducts.length === 0) {
+        kidoToast("No hay artículos cargados para importar.", "warning");
+        return;
+      }
+
+      const btn = document.getElementById('excelProcessBtn');
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<span>⏳</span> Controlando & Guardando...`;
+
+      try {
+        const res = await fetch('/api/admin/products/bulk-import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ products: parsedExcelProducts })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          const resBox = document.getElementById('excelImportResult');
+          resBox.className = 'mt-4 p-4 rounded-2xl text-xs font-bold text-center bg-emerald-500/10 border border-emerald-500/30 text-emerald-300';
+          resBox.innerHTML = `🎉 <b>¡Carga Exitosa!</b> Se importaron <b>${data.imported_count}</b> artículos correctamente a la base de datos PostgreSQL.`;
+          resBox.classList.remove('hidden');
+
+          kidoToast(`¡Carga Exitosa! ${data.imported_count} artículos importados a la base de datos.`, 'success', 'Carga Masiva Exitosa');
+
+          await loadProducts();
+          await loadBrands();
+          await loadProductTypes();
+          await loadMetrics();
+
+          setTimeout(() => {
+            switchTab('stock');
+          }, 1500);
+
+        } else {
+          const errors = data.errors || [data.error || data.message || "Error desconocido al procesar el archivo"];
+          openExcelErrorsModal(errors);
+          kidoToast(`No se pudo realizar la carga. Se encontraron ${errors.length} error(es) en el archivo.`, 'error', 'Error en Archivo Excel');
+        }
+      } catch (err) {
+        console.error("Error importando Excel:", err);
+        kidoToast("Error de conexión al importar el archivo Excel.", "error");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    }
+
+    function openExcelErrorsModal(errors) {
+      const listEl = document.getElementById('adminExcelErrorsList');
+      const countEl = document.getElementById('adminExcelErrorsCount');
+      if (countEl) countEl.textContent = `${errors.length} Error(es) Encontrado(s)`;
+
+      if (listEl) {
+        listEl.innerHTML = errors.map(err => `
+          <div class="p-3 bg-red-950/40 border border-red-500/40 rounded-xl text-xs text-red-200 flex items-start gap-2.5">
+            <span class="text-base leading-none">❌</span>
+            <div class="font-medium leading-relaxed">${err}</div>
+          </div>
+        `).join('');
+      }
+
+      document.getElementById('adminExcelErrorsModal').classList.remove('hidden');
+    }
+
+    function closeExcelErrorsModal() {
+      document.getElementById('adminExcelErrorsModal').classList.add('hidden');
+    }
+
+    // Ajuste Rápido de Stock Individual
     async function handleBulkStockAdd(e) {
       e.preventDefault();
       const prodId = parseInt(document.getElementById('bulkProductSelect').value, 10);
@@ -1675,10 +2441,13 @@
           const resBox = document.getElementById('bulkStockResult');
           resBox.textContent = `✅ ${data.message}`;
           resBox.classList.remove('hidden');
+          kidoToast(data.message, 'success', 'Stock Actualizado');
           await loadProducts();
           await loadMetrics();
         }
-      } catch (err) { alert('Error sumando stock'); }
+      } catch (err) {
+        kidoToast('Error al sumar unidades de stock', 'error');
+      }
     }
 
     function quickAddStock(id) {
@@ -1690,7 +2459,8 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ product_id: id, quantity_add: parseInt(add, 10) })
-        }).then(r => r.json()).then(() => {
+        }).then(r => r.json()).then(data => {
+          kidoToast(`Se sumaron unidades a "${p.title}"`, 'success');
           loadProducts();
           loadMetrics();
         });
@@ -1701,11 +2471,12 @@
     function handleProductTypeChange(val) {
       const scaleGrp = document.getElementById('fieldScaleGroup');
       const sizeGrp = document.getElementById('fieldSizeGroup');
+      const v = (val || '').toLowerCase();
 
-      if (val === 'Autito') {
+      if (v.includes('autito') || v.includes('diecast') || v.includes('auto')) {
         scaleGrp.classList.remove('hidden');
         sizeGrp.classList.add('hidden');
-      } else if (val === 'Remera') {
+      } else if (v.includes('remera') || v.includes('apparel') || v.includes('ropa') || v.includes('indumentaria') || v.includes('buzo')) {
         scaleGrp.classList.add('hidden');
         sizeGrp.classList.remove('hidden');
       } else {
@@ -1716,10 +2487,11 @@
 
     async function handleCreateProduct(e) {
       e.preventDefault();
-      const typeId = parseInt(document.getElementById('pType').value, 10);
-      const typeText = document.getElementById('pType').options[document.getElementById('pType').selectedIndex].text;
-      const title = document.getElementById('pTitle').value;
-      const internalCode = document.getElementById('pInternalCode').value;
+      const typeSelect = document.getElementById('pType');
+      const typeId = parseInt(typeSelect.value, 10);
+      const typeText = typeSelect.options[typeSelect.selectedIndex] ? typeSelect.options[typeSelect.selectedIndex].text.split('(')[0].trim() : '';
+      const title = document.getElementById('pTitle').value.trim();
+      const internalCode = document.getElementById('pInternalCode').value.trim();
       const vendorId = parseInt(document.getElementById('pVendor').value, 10);
       const price = parseInt(document.getElementById('pPriceARS').value, 10);
       const stock = parseInt(document.getElementById('pStock').value, 10);
@@ -1729,6 +2501,10 @@
       const video = document.getElementById('pShortVideo').value;
 
       const gallery = galleryRaw ? galleryRaw.split(',').map(s=>s.trim()).filter(Boolean) : [];
+
+      const typeLower = typeText.toLowerCase();
+      const isAutito = typeLower.includes('autito') || typeLower.includes('diecast') || typeLower.includes('auto');
+      const isRemera = typeLower.includes('remera') || typeLower.includes('apparel') || typeLower.includes('ropa') || typeLower.includes('indumentaria');
 
       const payload = {
         title: title,
@@ -1742,8 +2518,8 @@
         is_active: active,
         gallery_images: gallery.length > 0 ? gallery : ['https://images.unsplash.com/photo-1581235720704-06d3acfcb36f?auto=format&fit=crop&w=600&q=80'],
         short_video_url: video,
-        scale: type === 'Autito' ? document.getElementById('pScale').value : '',
-        apparel_size: type === 'Remera' ? document.getElementById('pSize').value : ''
+        scale: isAutito ? document.getElementById('pScale').value : '',
+        apparel_size: isRemera ? document.getElementById('pSize').value : ''
       };
 
       try {
@@ -1754,13 +2530,19 @@
         });
         const data = await res.json();
         if (data.success) {
-          alert('¡Artículo guardado con éxito en el catálogo!');
+          kidoToast('¡Artículo guardado con éxito en el catálogo!', 'success', 'Artículo Creado');
+          document.getElementById('pTitle').value = '';
+          document.getElementById('pInternalCode').value = '';
+          document.getElementById('pGalleryImages').value = '';
+          document.getElementById('pShortVideo').value = '';
           loadProducts();
           loadMetrics();
         } else {
-          alert(data.message || 'Error guardando');
+          kidoToast(data.message || data.error || 'Error guardando artículo', 'error');
         }
-      } catch (err) { alert('Error creando producto'); }
+      } catch (err) {
+        kidoToast('Error de comunicación con el servidor', 'error');
+      }
     }
 
     async function handleFileUpload(input, targetId) {
@@ -2373,6 +3155,8 @@
         renderBrandsAdminTable();
       } else if (tabId === 'types') {
         renderProductTypesAdminTable();
+      } else if (tabId === 'slider') {
+        renderSliderProductsTable();
       }
     }
 
@@ -2624,5 +3408,36 @@
       </div>
     </div>
   </div>
+  <!-- MODAL DE ERRORES DE VALIDACIÓN DE EXCEL -->
+  <div id="adminExcelErrorsModal" class="fixed inset-0 z-[10001] bg-black/90 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="bg-brandCard border border-red-500/50 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative space-y-5 animate-in fade-in zoom-in duration-200">
+      <button onclick="closeExcelErrorsModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white font-bold p-1">✕</button>
+
+      <div class="flex items-center gap-3.5">
+        <div class="w-12 h-12 rounded-2xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-2xl text-red-400 font-bold shrink-0 shadow-lg shadow-red-500/20">
+          ⚠️
+        </div>
+        <div>
+          <h3 class="font-display font-bold text-lg text-white">Inconsistencias en el Archivo Excel</h3>
+          <p id="adminExcelErrorsCount" class="text-xs text-red-400 font-semibold">0 Errores Encontrados</p>
+        </div>
+      </div>
+
+      <div class="p-3 bg-red-950/20 border border-red-500/30 rounded-2xl text-xs text-gray-300 leading-relaxed">
+        El sistema controló la estructura del archivo y detectó los siguientes errores. Por favor corregilos en tu Excel y volvé a subirlo:
+      </div>
+
+      <div id="adminExcelErrorsList" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <div class="pt-2">
+        <button onclick="closeExcelErrorsModal()" class="w-full bg-red-600 hover:bg-red-500 text-white py-3 rounded-xl font-bold uppercase tracking-wider text-xs transition shadow-lg shadow-red-600/30">
+          Entendido, Corregir Archivo
+        </button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>

@@ -402,6 +402,31 @@ type Product struct {
 	StockQuantity  int              `json:"stock_quantity"`
 	IsActive       bool             `json:"is_active"` // Activo Sí/No
 	HasChaseChance bool             `json:"has_chase_chance"`
+	InSlider       bool             `json:"in_slider"` // Mostrar en Slider / Carrusel
+}
+
+type SliderConfig struct {
+	MaxItems int  `json:"max_items"` // Cantidad máxima de artículos a mostrar en el slider
+	Active   bool `json:"active"`    // Si el slider está activo o no
+}
+
+type BulkImportProductItem struct {
+	InternalCode   string `json:"codigo_interno"`
+	Title          string `json:"titulo"`
+	ProductType    string `json:"tipo_articulo"`
+	Vendor         string `json:"marca"`
+	Scale          string `json:"escala"`
+	ApparelSize    string `json:"talle"`
+	PriceARS       int    `json:"precio_ars"`
+	PriceUSD       string `json:"precio_usd"`
+	StockQuantity  int    `json:"stock_cantidad"`
+	Status         string `json:"estado"`
+	Activo         string `json:"activo"`
+	HasChaseChance string `json:"chance_chase"`
+	InSlider       string `json:"en_slider,omitempty"`
+	GalleryImages  string `json:"imagenes_galeria"`
+	ShortVideoURL  string `json:"video_url"`
+	Description    string `json:"descripcion"`
 }
 
 type ProductCatalog struct {
@@ -529,9 +554,14 @@ type StoreData struct {
 	purchaseOrders []PurchaseOrder
 	brands         []Brand
 	productTypes   []ProductTypeModel
+	sliderConfig   SliderConfig
 }
 
 var store = &StoreData{
+	sliderConfig: SliderConfig{
+		MaxItems: 5,
+		Active:   true,
+	},
 	users: []User{
 		{
 			ID:                  1,
@@ -923,6 +953,21 @@ func initDB() {
 	_, _ = db.Exec("ALTER TABLE brands ADD COLUMN IF NOT EXISTS imagen TEXT DEFAULT ''")
 	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS brand_id BIGINT REFERENCES brands(id)")
 	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS product_type_id BIGINT REFERENCES product_types(id)")
+	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS in_slider BOOLEAN DEFAULT FALSE")
+	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS site_settings (
+		key VARCHAR(100) PRIMARY KEY,
+		value TEXT NOT NULL
+	)`)
+	var sliderMaxVal string
+	if err := db.QueryRow("SELECT value FROM site_settings WHERE key = 'slider_max_items'").Scan(&sliderMaxVal); err == nil {
+		if n, err := strconv.Atoi(sliderMaxVal); err == nil && n > 0 {
+			store.sliderConfig.MaxItems = n
+		}
+	}
+	var sliderActiveVal string
+	if err := db.QueryRow("SELECT value FROM site_settings WHERE key = 'slider_active'").Scan(&sliderActiveVal); err == nil {
+		store.sliderConfig.Active = sliderActiveVal == "true" || sliderActiveVal == "1"
+	}
 
 	// 0. Sincronizar product_types y brands
 	var ptCount int
@@ -934,7 +979,7 @@ func initDB() {
 			}
 			store.mu.RUnlock()
 		} else {
-			rows, err := db.Query("SELECT id, name, code, COALESCE(is_active, true) FROM product_types ORDER BY id ASC")
+			rows, err := db.Query("SELECT id, name, code, COALESCE(is_active, true) FROM product_types ORDER BY id DESC")
 			if err == nil {
 				var pgTypes []ProductTypeModel
 				for rows.Next() {
@@ -963,7 +1008,7 @@ func initDB() {
 			store.mu.RUnlock()
 			log.Printf("🐘 [PostgreSQL] Sembradas %d marcas en tabla 'brands'", len(store.brands))
 		} else {
-			rows, err := db.Query("SELECT id, name, code, COALESCE(carrusel, true), COALESCE(imagen, '') FROM brands ORDER BY name ASC")
+			rows, err := db.Query("SELECT id, name, code, COALESCE(carrusel, true), COALESCE(imagen, '') FROM brands ORDER BY id DESC")
 			if err == nil {
 				var pgBrands []Brand
 				for rows.Next() {
@@ -1003,7 +1048,7 @@ func initDB() {
 			store.mu.RUnlock()
 			log.Printf("🐘 [PostgreSQL] Sembrados %d usuarios en tabla 'users'", len(store.users))
 		} else {
-			rows, err := db.Query("SELECT id, email, COALESCE(password_hash,''), role, COALESCE(first_name,''), COALESCE(last_name,''), COALESCE(phone,''), COALESCE(locality,''), COALESCE(street,''), COALESCE(street_number,''), COALESCE(avatar_url,''), consecutive_months_buying, is_frequent_customer, frequent_points, total_purchases_count FROM users ORDER BY id ASC")
+			rows, err := db.Query("SELECT id, email, COALESCE(password_hash,''), role, COALESCE(first_name,''), COALESCE(last_name,''), COALESCE(phone,''), COALESCE(locality,''), COALESCE(street,''), COALESCE(street_number,''), COALESCE(avatar_url,''), consecutive_months_buying, is_frequent_customer, frequent_points, total_purchases_count FROM users ORDER BY id DESC")
 			if err == nil {
 				var pgUsers []User
 				for rows.Next() {
@@ -1042,22 +1087,22 @@ func initDB() {
 			store.mu.RLock()
 			for _, p := range store.products {
 				imgJSON, _ := json.Marshal(p.GalleryImages)
-				_, _ = db.Exec(`INSERT INTO products (id, internal_code, title, handle, product_type, product_type_id, scale, apparel_size, vendor, brand_id, price_ars, price_usd, stock_quantity, status, is_active, has_chase_chance, gallery_images, short_video_url, description)
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+				_, _ = db.Exec(`INSERT INTO products (id, internal_code, title, handle, product_type, product_type_id, scale, apparel_size, vendor, brand_id, price_ars, price_usd, stock_quantity, status, is_active, has_chase_chance, gallery_images, short_video_url, description, in_slider)
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
 				ON CONFLICT (id) DO NOTHING`,
-					p.ID, p.InternalCode, p.Title, p.Handle, p.ProductType, p.ProductTypeID, p.Scale, p.ApparelSize, p.Vendor, p.BrandID, p.PriceARS, p.PriceUSD, p.StockQuantity, p.Status, p.IsActive, p.HasChaseChance, string(imgJSON), p.ShortVideoURL, p.BodyHTML)
+					p.ID, p.InternalCode, p.Title, p.Handle, p.ProductType, p.ProductTypeID, p.Scale, p.ApparelSize, p.Vendor, p.BrandID, p.PriceARS, p.PriceUSD, p.StockQuantity, p.Status, p.IsActive, p.HasChaseChance, string(imgJSON), p.ShortVideoURL, p.BodyHTML, p.InSlider)
 			}
 			store.mu.RUnlock()
 			log.Printf("🐘 [PostgreSQL] Sembrados %d productos en tabla 'products'", len(store.products))
 		} else {
-			rows, err := db.Query("SELECT id, COALESCE(internal_code,''), title, handle, product_type, product_type_id, COALESCE(scale,''), COALESCE(apparel_size,''), vendor, brand_id, price_ars, price_usd, stock_quantity, status, is_active, has_chase_chance, COALESCE(gallery_images::text,'[]'), COALESCE(short_video_url,''), COALESCE(description,'') FROM products ORDER BY id ASC")
+			rows, err := db.Query("SELECT id, COALESCE(internal_code,''), title, handle, product_type, product_type_id, COALESCE(scale,''), COALESCE(apparel_size,''), vendor, brand_id, price_ars, price_usd, stock_quantity, status, is_active, has_chase_chance, COALESCE(gallery_images::text,'[]'), COALESCE(short_video_url,''), COALESCE(description,''), COALESCE(in_slider, false) FROM products ORDER BY id DESC")
 			if err == nil {
 				var pgProducts []Product
 				for rows.Next() {
 					var p Product
 					var imgRaw string
 					var brandID, typeID sql.NullInt64
-					if err := rows.Scan(&p.ID, &p.InternalCode, &p.Title, &p.Handle, &p.ProductType, &typeID, &p.Scale, &p.ApparelSize, &p.Vendor, &brandID, &p.PriceARS, &p.PriceUSD, &p.StockQuantity, &p.Status, &p.IsActive, &p.HasChaseChance, &imgRaw, &p.ShortVideoURL, &p.BodyHTML); err == nil {
+					if err := rows.Scan(&p.ID, &p.InternalCode, &p.Title, &p.Handle, &p.ProductType, &typeID, &p.Scale, &p.ApparelSize, &p.Vendor, &brandID, &p.PriceARS, &p.PriceUSD, &p.StockQuantity, &p.Status, &p.IsActive, &p.HasChaseChance, &imgRaw, &p.ShortVideoURL, &p.BodyHTML, &p.InSlider); err == nil {
 						if brandID.Valid {
 							b := brandID.Int64
 							p.BrandID = &b
@@ -1175,8 +1220,8 @@ func pgSaveProduct(p Product) {
 	}
 	go func() {
 		imgJSON, _ := json.Marshal(p.GalleryImages)
-		_, err := db.Exec(`INSERT INTO products (id, internal_code, title, handle, product_type, product_type_id, scale, apparel_size, vendor, brand_id, price_ars, price_usd, stock_quantity, status, is_active, has_chase_chance, gallery_images, short_video_url, description)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+		_, err := db.Exec(`INSERT INTO products (id, internal_code, title, handle, product_type, product_type_id, scale, apparel_size, vendor, brand_id, price_ars, price_usd, stock_quantity, status, is_active, has_chase_chance, gallery_images, short_video_url, description, in_slider)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
 		ON CONFLICT (id) DO UPDATE SET
 			internal_code = EXCLUDED.internal_code,
 			title = EXCLUDED.title,
@@ -1196,8 +1241,9 @@ func pgSaveProduct(p Product) {
 			gallery_images = EXCLUDED.gallery_images,
 			short_video_url = EXCLUDED.short_video_url,
 			description = EXCLUDED.description,
+			in_slider = EXCLUDED.in_slider,
 			updated_at = CURRENT_TIMESTAMP`,
-			p.ID, p.InternalCode, p.Title, p.Handle, p.ProductType, p.ProductTypeID, p.Scale, p.ApparelSize, p.Vendor, p.BrandID, p.PriceARS, p.PriceUSD, p.StockQuantity, p.Status, p.IsActive, p.HasChaseChance, string(imgJSON), p.ShortVideoURL, p.BodyHTML)
+			p.ID, p.InternalCode, p.Title, p.Handle, p.ProductType, p.ProductTypeID, p.Scale, p.ApparelSize, p.Vendor, p.BrandID, p.PriceARS, p.PriceUSD, p.StockQuantity, p.Status, p.IsActive, p.HasChaseChance, string(imgJSON), p.ShortVideoURL, p.BodyHTML, p.InSlider)
 		if err != nil {
 			log.Printf("⚠️ Error guardando producto en PostgreSQL: %v", err)
 		}
@@ -2135,17 +2181,20 @@ func main() {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 
 		if dbActive && db != nil {
-			rows, err := db.Query("SELECT id, name, code FROM product_types ORDER BY name ASC")
+			rows, err := db.Query("SELECT id, name, code, COALESCE(is_active, true) FROM product_types ORDER BY id DESC")
 			if err == nil {
 				var types []ProductTypeModel
 				for rows.Next() {
 					var t ProductTypeModel
-					if err := rows.Scan(&t.ID, &t.Name, &t.Code); err == nil {
+					if err := rows.Scan(&t.ID, &t.Name, &t.Code, &t.IsActive); err == nil {
 						types = append(types, t)
 					}
 				}
 				rows.Close()
 				if len(types) > 0 {
+					sort.Slice(types, func(i, j int) bool {
+						return types[i].ID > types[j].ID
+					})
 					json.NewEncoder(w).Encode(types)
 					return
 				}
@@ -2154,7 +2203,12 @@ func main() {
 
 		store.mu.RLock()
 		defer store.mu.RUnlock()
-		json.NewEncoder(w).Encode(store.productTypes)
+		typesCopy := make([]ProductTypeModel, len(store.productTypes))
+		copy(typesCopy, store.productTypes)
+		sort.Slice(typesCopy, func(i, j int) bool {
+			return typesCopy[i].ID > typesCopy[j].ID
+		})
+		json.NewEncoder(w).Encode(typesCopy)
 	})
 
 	// Crear o Actualizar Tipo de Producto (Admin)
@@ -2207,7 +2261,7 @@ func main() {
 			if pt.ID == 0 {
 				pt.ID = int64(len(store.productTypes) + 1)
 			}
-			store.productTypes = append(store.productTypes, pt)
+			store.productTypes = append([]ProductTypeModel{pt}, store.productTypes...)
 		}
 		store.mu.Unlock()
 
@@ -2220,7 +2274,7 @@ func main() {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 
 		if dbActive && db != nil {
-			rows, err := db.Query("SELECT id, name, code, COALESCE(carrusel, true), COALESCE(imagen, '') FROM brands ORDER BY name ASC")
+			rows, err := db.Query("SELECT id, name, code, COALESCE(carrusel, true), COALESCE(imagen, '') FROM brands ORDER BY id DESC")
 			if err == nil {
 				var brands []Brand
 				for rows.Next() {
@@ -2231,6 +2285,9 @@ func main() {
 				}
 				rows.Close()
 				if len(brands) > 0 {
+					sort.Slice(brands, func(i, j int) bool {
+						return brands[i].ID > brands[j].ID
+					})
 					json.NewEncoder(w).Encode(brands)
 					return
 				}
@@ -2239,7 +2296,12 @@ func main() {
 
 		store.mu.RLock()
 		defer store.mu.RUnlock()
-		json.NewEncoder(w).Encode(store.brands)
+		brandsCopy := make([]Brand, len(store.brands))
+		copy(brandsCopy, store.brands)
+		sort.Slice(brandsCopy, func(i, j int) bool {
+			return brandsCopy[i].ID > brandsCopy[j].ID
+		})
+		json.NewEncoder(w).Encode(brandsCopy)
 	})
 
 	// Crear o Actualizar Marca (Admin)
@@ -2333,11 +2395,241 @@ func main() {
 			filtered = append(filtered, p)
 		}
 
+		sort.Slice(filtered, func(i, j int) bool {
+			return filtered[i].ID > filtered[j].ID
+		})
+
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"count":    len(filtered),
 			"products": filtered,
 		})
 	})
+
+	// Carga Masiva de Artículos por Excel (Batch Import con Validaciones)
+	mux.HandleFunc("/api/admin/products/bulk-import", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method != http.MethodPost {
+			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			Products []BulkImportProductItem `json:"products"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Error decodificando datos: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if len(req.Products) == 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "El archivo Excel no contiene artículos válidos para importar.",
+				"message": "El archivo Excel no contiene artículos válidos para importar.",
+			})
+			return
+		}
+
+		// 1. Control & Validación exhaustiva fila por fila
+		var validationErrors []string
+		for i, item := range req.Products {
+			rowNum := i + 2 // En Excel la fila 1 son los encabezados
+			title := strings.TrimSpace(item.Title)
+			prodType := strings.TrimSpace(item.ProductType)
+			vendor := strings.TrimSpace(item.Vendor)
+			scale := strings.TrimSpace(item.Scale)
+			size := strings.TrimSpace(item.ApparelSize)
+
+			if title == "" {
+				validationErrors = append(validationErrors, fmt.Sprintf("Fila %d: El campo 'Título / Nombre' es obligatorio.", rowNum))
+			}
+			if prodType == "" {
+				validationErrors = append(validationErrors, fmt.Sprintf("Fila %d: El campo 'Tipo de Artículo' es obligatorio (ej: Autito, Remera, Sticker).", rowNum))
+			}
+			if vendor == "" {
+				validationErrors = append(validationErrors, fmt.Sprintf("Fila %d: El campo 'Marca' es obligatorio.", rowNum))
+			}
+
+			// Validaciones condicionales según tipo
+			typeLower := strings.ToLower(prodType)
+			if (strings.Contains(typeLower, "autito") || strings.Contains(typeLower, "diecast") || strings.Contains(typeLower, "auto")) && scale == "" {
+				validationErrors = append(validationErrors, fmt.Sprintf("Fila %d: Para artículos de tipo '%s' es obligatoria la 'Escala' (ej: 1:64, 1:43, 1:18).", rowNum, prodType))
+			}
+			if (strings.Contains(typeLower, "remera") || strings.Contains(typeLower, "apparel") || strings.Contains(typeLower, "ropa") || strings.Contains(typeLower, "indumentaria") || strings.Contains(typeLower, "buzo")) && size == "" {
+				validationErrors = append(validationErrors, fmt.Sprintf("Fila %d: Para artículos de tipo '%s' es obligatorio el 'Talle' (ej: S, M, L, XL, XXL).", rowNum, prodType))
+			}
+
+			if item.PriceARS <= 0 {
+				validationErrors = append(validationErrors, fmt.Sprintf("Fila %d: El 'Precio ARS' debe ser un número entero mayor a 0 (recibido: %d).", rowNum, item.PriceARS))
+			}
+			if item.StockQuantity < 0 {
+				validationErrors = append(validationErrors, fmt.Sprintf("Fila %d: La cantidad de 'Stock' no puede ser negativa (recibido: %d).", rowNum, item.StockQuantity))
+			}
+		}
+
+		// Si se encontraron errores, reportarlos todos juntos
+		if len(validationErrors) > 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success":      false,
+				"total_errors": len(validationErrors),
+				"errors":       validationErrors,
+				"message":      fmt.Sprintf("Se encontraron %d error(es) de validación en el archivo Excel. Ningún artículo fue ingresado a la base de datos.", len(validationErrors)),
+			})
+			return
+		}
+
+		// 2. Si no hay errores, proceder con la inserción por lotes con IDs autonuméricos
+		var maxID int64 = 0
+		if dbActive && db != nil {
+			_ = db.QueryRow("SELECT COALESCE(MAX(id), 0) FROM products WHERE id < 1000000000").Scan(&maxID)
+		}
+		store.mu.Lock()
+		for _, ep := range store.products {
+			if ep.ID > maxID && ep.ID < 1000000000 {
+				maxID = ep.ID
+			}
+		}
+
+		var importedProducts []Product
+		for _, item := range req.Products {
+			maxID++
+			prodID := maxID
+
+			vendorName := strings.TrimSpace(item.Vendor)
+			typeName := strings.TrimSpace(item.ProductType)
+
+			// Buscar o crear marca
+			var brandID *int64
+			for _, b := range store.brands {
+				if strings.EqualFold(b.Name, vendorName) {
+					bID := b.ID
+					brandID = &bID
+					vendorName = b.Name
+					break
+				}
+			}
+			if brandID == nil {
+				newBID := int64(len(store.brands) + 1)
+				code := strings.ToUpper(strings.ReplaceAll(vendorName, " ", "_"))
+				newBrand := Brand{ID: newBID, Name: vendorName, Code: code, Carrusel: true}
+				store.brands = append([]Brand{newBrand}, store.brands...)
+				brandID = &newBID
+				if dbActive && db != nil {
+					_, _ = db.Exec("INSERT INTO brands (id, name, code, carrusel) VALUES ($1, $2, $3, true) ON CONFLICT (name) DO NOTHING", newBID, vendorName, code)
+				}
+			}
+
+			// Buscar o crear tipo de artículo
+			var typeID *int64
+			for _, t := range store.productTypes {
+				if strings.EqualFold(t.Name, typeName) {
+					tID := t.ID
+					typeID = &tID
+					typeName = t.Name
+					break
+				}
+			}
+			if typeID == nil {
+				newTID := int64(len(store.productTypes) + 1)
+				code := strings.ToUpper(strings.ReplaceAll(typeName, " ", "_"))
+				newType := ProductTypeModel{ID: newTID, Name: typeName, Code: code, IsActive: true}
+				store.productTypes = append([]ProductTypeModel{newType}, store.productTypes...)
+				typeID = &newTID
+				if dbActive && db != nil {
+					_, _ = db.Exec("INSERT INTO product_types (id, name, code, is_active) VALUES ($1, $2, $3, true) ON CONFLICT (name) DO NOTHING", newTID, typeName, code)
+				}
+			}
+
+			// Galería de imágenes
+			var gallery []string
+			if strings.TrimSpace(item.GalleryImages) != "" {
+				parts := strings.Split(item.GalleryImages, ",")
+				for _, p := range parts {
+					if trimmed := strings.TrimSpace(p); trimmed != "" {
+						gallery = append(gallery, trimmed)
+					}
+				}
+			}
+			if len(gallery) == 0 {
+				gallery = []string{"https://images.unsplash.com/photo-1581235720704-06d3acfcb36f?auto=format&fit=crop&w=600&q=80"}
+			}
+
+			title := strings.TrimSpace(item.Title)
+			handle := strings.ToLower(strings.ReplaceAll(title, " ", "-"))
+			priceUSD := strings.TrimSpace(item.PriceUSD)
+			if priceUSD == "" {
+				priceUSD = fmt.Sprintf("%.2f", float64(item.PriceARS)/1350.0)
+			}
+
+			status := strings.ToUpper(strings.TrimSpace(item.Status))
+			if item.StockQuantity == 0 {
+				status = "AGOTADO"
+			} else if status == "" {
+				status = "STOCK"
+			}
+
+			isActive := true
+			actStr := strings.ToUpper(strings.TrimSpace(item.Activo))
+			if actStr == "NO" || actStr == "FALSE" || actStr == "0" {
+				isActive = false
+			}
+
+			hasChase := false
+			chaseStr := strings.ToUpper(strings.TrimSpace(item.HasChaseChance))
+			if chaseStr == "SI" || chaseStr == "SÍ" || chaseStr == "TRUE" || chaseStr == "1" {
+				hasChase = true
+			}
+
+			inSlider := false
+			inSlStr := strings.ToUpper(strings.TrimSpace(item.InSlider))
+			if inSlStr == "SI" || inSlStr == "SÍ" || inSlStr == "TRUE" || inSlStr == "1" {
+				inSlider = true
+			}
+
+			internalCode := strings.TrimSpace(item.InternalCode)
+			if internalCode == "" {
+				internalCode = fmt.Sprintf("SKU-%04d", prodID)
+			}
+
+			prod := Product{
+				ID:             prodID,
+				InternalCode:   internalCode,
+				Title:          title,
+				Handle:         handle,
+				BodyHTML:       strings.TrimSpace(item.Description),
+				Vendor:         vendorName,
+				BrandID:        brandID,
+				ProductType:    typeName,
+				ProductTypeID:  typeID,
+				Scale:          strings.TrimSpace(item.Scale),
+				ApparelSize:    strings.TrimSpace(item.ApparelSize),
+				PriceARS:       item.PriceARS,
+				PriceUSD:       priceUSD,
+				StockQuantity:  item.StockQuantity,
+				Status:         status,
+				IsActive:       isActive,
+				HasChaseChance: hasChase,
+				InSlider:       inSlider,
+				GalleryImages:  gallery,
+				Images:         []ProductImage{{ID: 1, Position: 1, Src: gallery[0]}},
+				ShortVideoURL:  strings.TrimSpace(item.ShortVideoURL),
+			}
+
+			store.products = append([]Product{prod}, store.products...)
+			pgSaveProduct(prod)
+			importedProducts = append(importedProducts, prod)
+		}
+		store.mu.Unlock()
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success":        true,
+			"imported_count": len(importedProducts),
+			"products":       importedProducts,
+			"message":        fmt.Sprintf("¡Carga exitosa! Se importaron %d artículos correctamente.", len(importedProducts)),
+		})
+	}))
 
 	// Crear Nuevo Artículo (Admin)
 	mux.HandleFunc("/api/admin/products", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
@@ -2457,6 +2749,220 @@ func main() {
 		http.Error(w, "Artículo no encontrado", http.StatusNotFound)
 	}))
 
+	// ==========================================
+	// CONFIGURACIÓN Y GESTIÓN DE SLIDER / CARRUSEL
+	// ==========================================
+
+	// Obtener Configuración del Slider (Público y Admin)
+	mux.HandleFunc("/api/slider-config", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		store.mu.RLock()
+		defer store.mu.RUnlock()
+
+		var selectedCount int
+		for _, p := range store.products {
+			if p.InSlider && p.IsActive {
+				selectedCount++
+			}
+		}
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"max_items":      store.sliderConfig.MaxItems,
+			"active":         store.sliderConfig.Active,
+			"selected_count": selectedCount,
+		})
+	})
+
+	// Guardar Configuración del Slider (Admin)
+	mux.HandleFunc("/api/admin/slider-config", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method != http.MethodPost {
+			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			MaxItems int   `json:"max_items"`
+			Active   *bool `json:"active,omitempty"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if req.MaxItems <= 0 {
+			req.MaxItems = 5
+		}
+
+		store.mu.Lock()
+		store.sliderConfig.MaxItems = req.MaxItems
+		if req.Active != nil {
+			store.sliderConfig.Active = *req.Active
+		}
+		store.mu.Unlock()
+
+		if dbActive && db != nil {
+			_, _ = db.Exec("INSERT INTO site_settings (key, value) VALUES ('slider_max_items', $1) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value", strconv.Itoa(req.MaxItems))
+			_, _ = db.Exec("INSERT INTO site_settings (key, value) VALUES ('slider_active', $1) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value", fmt.Sprintf("%t", store.sliderConfig.Active))
+		}
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success":   true,
+			"max_items": store.sliderConfig.MaxItems,
+			"active":    store.sliderConfig.Active,
+			"message":   fmt.Sprintf("Configuración guardada: Máximo %d artículos en el slider.", store.sliderConfig.MaxItems),
+		})
+	}))
+
+	// Toggle Producto en Slider (Admin)
+	mux.HandleFunc("/api/admin/products/toggle-slider", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method != http.MethodPost {
+			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			ProductID int64 `json:"product_id"`
+			InSlider  *bool `json:"in_slider,omitempty"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		store.mu.Lock()
+		defer store.mu.Unlock()
+
+		var matched *Product
+		for i := range store.products {
+			if store.products[i].ID == req.ProductID {
+				if req.InSlider != nil {
+					store.products[i].InSlider = *req.InSlider
+				} else {
+					store.products[i].InSlider = !store.products[i].InSlider
+				}
+				matched = &store.products[i]
+				pgSaveProduct(store.products[i])
+				break
+			}
+		}
+
+		if matched == nil {
+			http.Error(w, "Artículo no encontrado", http.StatusNotFound)
+			return
+		}
+
+		var totalInSlider int
+		for _, p := range store.products {
+			if p.InSlider && p.IsActive {
+				totalInSlider++
+			}
+		}
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success":         true,
+			"product_id":      req.ProductID,
+			"in_slider":       matched.InSlider,
+			"total_in_slider": totalInSlider,
+			"max_items":       store.sliderConfig.MaxItems,
+			"message":         fmt.Sprintf("Artículo '%s' %s del slider", matched.Title, map[bool]string{true: "agregado al", false: "removido del"}[matched.InSlider]),
+		})
+	}))
+
+	// Selección masiva de artículos para el slider (Admin)
+	mux.HandleFunc("/api/admin/slider-products/bulk-select", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method != http.MethodPost {
+			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			ProductIDs []int64 `json:"product_ids"`
+			MaxItems   int     `json:"max_items,omitempty"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		idMap := make(map[int64]bool)
+		for _, id := range req.ProductIDs {
+			idMap[id] = true
+		}
+
+		store.mu.Lock()
+		if req.MaxItems > 0 {
+			store.sliderConfig.MaxItems = req.MaxItems
+			if dbActive && db != nil {
+				_, _ = db.Exec("INSERT INTO site_settings (key, value) VALUES ('slider_max_items', $1) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value", strconv.Itoa(req.MaxItems))
+			}
+		}
+
+		var updatedCount int
+		for i := range store.products {
+			shouldBeInSlider := idMap[store.products[i].ID]
+			if store.products[i].InSlider != shouldBeInSlider {
+				store.products[i].InSlider = shouldBeInSlider
+				pgSaveProduct(store.products[i])
+			}
+			if shouldBeInSlider && store.products[i].IsActive {
+				updatedCount++
+			}
+		}
+		store.mu.Unlock()
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success":        true,
+			"selected_count": updatedCount,
+			"max_items":      store.sliderConfig.MaxItems,
+			"message":        fmt.Sprintf("Slider actualizado: %d artículo(s) seleccionados. Límite: %d.", updatedCount, store.sliderConfig.MaxItems),
+		})
+	}))
+
+	// Obtener Artículos para el Slider de la Tienda (Público)
+	mux.HandleFunc("/api/slider-products", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		store.mu.RLock()
+		defer store.mu.RUnlock()
+
+		maxItems := store.sliderConfig.MaxItems
+		if maxItems <= 0 {
+			maxItems = 5
+		}
+
+		var sliderProducts []Product
+		for _, p := range store.products {
+			if p.InSlider && p.IsActive {
+				sliderProducts = append(sliderProducts, p)
+				if len(sliderProducts) >= maxItems {
+					break
+				}
+			}
+		}
+
+		// Fallback si todavía no se seleccionó ninguno manualmente
+		if len(sliderProducts) == 0 {
+			for _, p := range store.products {
+				if p.IsActive && (p.HasChaseChance || p.Status == "PRE_VENTA" || p.PriceARS > 20000 || p.ProductType == "Remera") {
+					sliderProducts = append(sliderProducts, p)
+					if len(sliderProducts) >= maxItems {
+						break
+					}
+				}
+			}
+		}
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"max_items": store.sliderConfig.MaxItems,
+			"active":    store.sliderConfig.Active,
+			"products":  sliderProducts,
+		})
+	})
+
 	// Carga Masiva de Stock
 	mux.HandleFunc("/api/admin/stock/bulk-add", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -2548,6 +3054,10 @@ func main() {
 				TakenNumbers:   taken,
 			})
 		}
+
+		sort.Slice(response, func(i, j int) bool {
+			return response[i].ID > response[j].ID
+		})
 
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"raffles": response,
@@ -2959,10 +3469,18 @@ func main() {
 						userOrders = append(userOrders, o)
 					}
 				}
+				sort.Slice(userOrders, func(i, j int) bool {
+					return userOrders[i].ID > userOrders[j].ID
+				})
 				json.NewEncoder(w).Encode(userOrders)
 				return
 			}
-			json.NewEncoder(w).Encode(store.orders)
+			ordersCopy := make([]Order, len(store.orders))
+			copy(ordersCopy, store.orders)
+			sort.Slice(ordersCopy, func(i, j int) bool {
+				return ordersCopy[i].ID > ordersCopy[j].ID
+			})
+			json.NewEncoder(w).Encode(ordersCopy)
 			return
 		}
 
@@ -3460,6 +3978,10 @@ func main() {
 			})
 		}
 
+		sort.Slice(safeUsers, func(i, j int) bool {
+			return safeUsers[i]["id"].(int64) > safeUsers[j]["id"].(int64)
+		})
+
 		json.NewEncoder(w).Encode(safeUsers)
 	}))
 
@@ -3590,7 +4112,12 @@ func main() {
 
 		store.mu.RLock()
 		defer store.mu.RUnlock()
-		json.NewEncoder(w).Encode(store.expenses)
+		expensesCopy := make([]Expense, len(store.expenses))
+		copy(expensesCopy, store.expenses)
+		sort.Slice(expensesCopy, func(i, j int) bool {
+			return expensesCopy[i].ID > expensesCopy[j].ID
+		})
+		json.NewEncoder(w).Encode(expensesCopy)
 	}))
 
 	// Webhook de Mercado Pago
@@ -3706,7 +4233,12 @@ func main() {
 
 		store.mu.RLock()
 		defer store.mu.RUnlock()
-		json.NewEncoder(w).Encode(store.purchaseOrders)
+		posCopy := make([]PurchaseOrder, len(store.purchaseOrders))
+		copy(posCopy, store.purchaseOrders)
+		sort.Slice(posCopy, func(i, j int) bool {
+			return posCopy[i].ID > posCopy[j].ID
+		})
+		json.NewEncoder(w).Encode(posCopy)
 	}))
 
 	port := 8080

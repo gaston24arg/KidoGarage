@@ -15,4 +15,6 @@ Desktop.ini
 *.log
 cookies.txt
 .env
+public/uploads/*
+!public/uploads/.gitkeep
 
