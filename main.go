@@ -373,9 +373,10 @@ type Brand struct {
 }
 
 type ProductTypeModel struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
-	Code string `json:"code"`
+	ID       int64  `json:"id"`
+	Name     string `json:"name"`
+	Code     string `json:"code"`
+	IsActive bool   `json:"is_active"`
 }
 
 type Product struct {
@@ -565,9 +566,9 @@ var store = &StoreData{
 		{ID: 10, Name: "KIDO Accessories", Code: "KIDO_ACC", Carrusel: false, Imagen: ""},
 	},
 	productTypes: []ProductTypeModel{
-		{ID: 1, Name: "Autito", Code: "DIECAST"},
-		{ID: 2, Name: "Remera", Code: "APPAREL"},
-		{ID: 3, Name: "Sticker", Code: "STICKER"},
+		{ID: 1, Name: "Autito", Code: "DIECAST", IsActive: true},
+		{ID: 2, Name: "Remera", Code: "APPAREL", IsActive: true},
+		{ID: 3, Name: "Sticker", Code: "STICKER", IsActive: true},
 	},
 }
 
@@ -856,6 +857,9 @@ func loadCatalog() {
 	}
 
 	catalog.Products = append(apparelAndStickers, catalog.Products...)
+	for idx := range catalog.Products {
+		catalog.Products[idx].ID = int64(idx + 1)
+	}
 
 	store.mu.Lock()
 	store.products = catalog.Products
@@ -904,8 +908,10 @@ func initDB() {
 	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS product_types (
 		id BIGSERIAL PRIMARY KEY,
 		name VARCHAR(100) UNIQUE NOT NULL,
-		code VARCHAR(50) UNIQUE NOT NULL
+		code VARCHAR(50) UNIQUE NOT NULL,
+		is_active BOOLEAN DEFAULT TRUE
 	)`)
+	_, _ = db.Exec("ALTER TABLE product_types ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE")
 	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS brands (
 		id BIGSERIAL PRIMARY KEY,
 		name VARCHAR(150) UNIQUE NOT NULL,
@@ -924,16 +930,16 @@ func initDB() {
 		if ptCount == 0 {
 			store.mu.RLock()
 			for _, pt := range store.productTypes {
-				_, _ = db.Exec(`INSERT INTO product_types (id, name, code) VALUES ($1, $2, $3) ON CONFLICT (name) DO NOTHING`, pt.ID, pt.Name, pt.Code)
+				_, _ = db.Exec(`INSERT INTO product_types (id, name, code, is_active) VALUES ($1, $2, $3, $4) ON CONFLICT (name) DO NOTHING`, pt.ID, pt.Name, pt.Code, pt.IsActive)
 			}
 			store.mu.RUnlock()
 		} else {
-			rows, err := db.Query("SELECT id, name, code FROM product_types ORDER BY id ASC")
+			rows, err := db.Query("SELECT id, name, code, COALESCE(is_active, true) FROM product_types ORDER BY id ASC")
 			if err == nil {
 				var pgTypes []ProductTypeModel
 				for rows.Next() {
 					var t ProductTypeModel
-					if err := rows.Scan(&t.ID, &t.Name, &t.Code); err == nil {
+					if err := rows.Scan(&t.ID, &t.Name, &t.Code, &t.IsActive); err == nil {
 						pgTypes = append(pgTypes, t)
 					}
 				}
@@ -1118,6 +1124,12 @@ func initDB() {
 		}
 		store.mu.RUnlock()
 		log.Printf("🐘 [PostgreSQL] Sembradas %d rifas en tabla 'raffles'", len(store.raffles))
+	}
+
+	// Sincronizar secuencias autonuméricas de PostgreSQL (1 en 1)
+	tableSeqs := []string{"users", "products", "stock_movements", "orders", "order_items", "partial_payments", "raffles", "raffle_tickets", "expenses", "purchase_orders", "brands", "product_types"}
+	for _, tbl := range tableSeqs {
+		_, _ = db.Exec(fmt.Sprintf(`SELECT setval(pg_get_serial_sequence('%s', 'id'), COALESCE((SELECT MAX(id) FROM %s WHERE id < 1000000000), 0) + 1, false)`, tbl, tbl))
 	}
 }
 
@@ -1594,8 +1606,18 @@ func main() {
 			return
 		}
 
+		var maxID int64 = 0
+		if dbActive && db != nil {
+			_ = db.QueryRow("SELECT COALESCE(MAX(id), 0) FROM users WHERE id < 1000000000").Scan(&maxID)
+		}
+		for _, eu := range store.users {
+			if eu.ID > maxID && eu.ID < 1000000000 {
+				maxID = eu.ID
+			}
+		}
+
 		newUser := User{
-			ID:                  int64(len(store.users) + 1),
+			ID:                  maxID + 1,
 			Email:               req.Email,
 			Password:            hashedPassword,
 			Role:                "CLIENT",
@@ -1758,8 +1780,18 @@ func main() {
 		}
 
 		// Crear nuevo usuario desde Google
+		var maxID int64 = 0
+		if dbActive && db != nil {
+			_ = db.QueryRow("SELECT COALESCE(MAX(id), 0) FROM users WHERE id < 1000000000").Scan(&maxID)
+		}
+		for _, eu := range store.users {
+			if eu.ID > maxID && eu.ID < 1000000000 {
+				maxID = eu.ID
+			}
+		}
+
 		newUser := User{
-			ID:                  int64(len(store.users) + 1),
+			ID:                  maxID + 1,
 			Email:               req.Email,
 			Role:                "CLIENT",
 			GoogleID:            "goog_" + strconv.FormatInt(time.Now().Unix(), 10),
@@ -2343,7 +2375,22 @@ func main() {
 			return
 		}
 
-		p.ID = time.Now().UnixNano()
+		// Asignación de ID autonumérico de 1 en 1
+		if p.ID == 0 {
+			var maxID int64 = 0
+			if dbActive && db != nil {
+				_ = db.QueryRow("SELECT COALESCE(MAX(id), 0) FROM products WHERE id < 1000000000").Scan(&maxID)
+			}
+			store.mu.RLock()
+			for _, ep := range store.products {
+				if ep.ID > maxID && ep.ID < 1000000000 {
+					maxID = ep.ID
+				}
+			}
+			store.mu.RUnlock()
+			p.ID = maxID + 1
+		}
+
 		if p.Handle == "" {
 			p.Handle = strings.ToLower(strings.ReplaceAll(p.Title, " ", "-"))
 		}
@@ -2366,6 +2413,48 @@ func main() {
 			"product": p,
 			"message": "Artículo agregado correctamente al catálogo",
 		})
+	}))
+
+	// Toggle Activo en Catálogo / Artículos
+	mux.HandleFunc("/api/admin/products/toggle-active", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method != http.MethodPost {
+			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			ProductID int64 `json:"product_id"`
+			IsActive  *bool `json:"is_active,omitempty"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		store.mu.Lock()
+		defer store.mu.Unlock()
+
+		for i := range store.products {
+			if store.products[i].ID == req.ProductID {
+				if req.IsActive != nil {
+					store.products[i].IsActive = *req.IsActive
+				} else {
+					store.products[i].IsActive = !store.products[i].IsActive
+				}
+				newActive := store.products[i].IsActive
+				pgSaveProduct(store.products[i])
+
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"success":    true,
+					"product_id": req.ProductID,
+					"is_active":  newActive,
+					"message":    fmt.Sprintf("Artículo '%s' marcado como %s", store.products[i].Title, map[bool]string{true: "ACTIVO", false: "INACTIVO"}[newActive]),
+				})
+				return
+			}
+		}
+		http.Error(w, "Artículo no encontrado", http.StatusNotFound)
 	}))
 
 	// Carga Masiva de Stock
@@ -2490,8 +2579,20 @@ func main() {
 			return
 		}
 
+		var maxID int64 = 0
+		if dbActive && db != nil {
+			_ = db.QueryRow("SELECT COALESCE(MAX(id), 0) FROM raffles WHERE id < 1000000000").Scan(&maxID)
+		}
+		store.mu.RLock()
+		for _, er := range store.raffles {
+			if er.ID > maxID && er.ID < 1000000000 {
+				maxID = er.ID
+			}
+		}
+		store.mu.RUnlock()
+
 		newRaffle := Raffle{
-			ID:               int64(len(store.raffles) + 1),
+			ID:               maxID + 1,
 			RaffleNumber:     req.RaffleNumber,
 			Title:            req.Title,
 			PrizeDescription: req.PrizeDescription,
@@ -2701,6 +2802,47 @@ func main() {
 					"success": true,
 					"message": "Rifa restablecida a estado ACTIVA para sorteo",
 					"raffle":  store.raffles[i],
+				})
+				return
+			}
+		}
+		http.Error(w, "Rifa no encontrada", http.StatusNotFound)
+	}))
+
+	// Toggle Estado de Rifa (ACTIVA <-> PAUSADA)
+	mux.HandleFunc("/api/admin/raffles/toggle-status", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method != http.MethodPost {
+			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			RaffleID int64 `json:"raffle_id"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		store.mu.Lock()
+		defer store.mu.Unlock()
+
+		for i := range store.raffles {
+			if store.raffles[i].ID == req.RaffleID {
+				if store.raffles[i].Status == "ACTIVA" {
+					store.raffles[i].Status = "PAUSADA"
+				} else {
+					store.raffles[i].Status = "ACTIVA"
+				}
+				newStatus := store.raffles[i].Status
+				pgSaveRaffle(store.raffles[i])
+
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"success":   true,
+					"raffle_id": req.RaffleID,
+					"status":    newStatus,
+					"message":   fmt.Sprintf("Rifa '%s' estado: %s", store.raffles[i].Title, newStatus),
 				})
 				return
 			}

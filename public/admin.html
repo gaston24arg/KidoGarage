@@ -296,6 +296,7 @@
                 <th class="p-3">Precio ARS</th>
                 <th class="p-3">Stock Disponible</th>
                 <th class="p-3">Estado</th>
+                <th class="p-3 text-center">Activo</th>
                 <th class="p-3 text-right">Ajuste</th>
               </tr>
             </thead>
@@ -594,6 +595,7 @@
                   <th class="p-3">Nombre del Tipo</th>
                   <th class="p-3 font-mono">Código</th>
                   <th class="p-3 text-center">Artículos Asociados</th>
+                  <th class="p-3 text-center">Activo</th>
                   <th class="p-3 text-right rounded-r-xl">Acciones</th>
                 </tr>
               </thead>
@@ -1266,7 +1268,9 @@
             </div>
           </td>
           <td class="p-3 text-center">
-            ${b.carrusel ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">SÍ</span>' : '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-500/10 text-gray-500 border border-gray-500/20">NO</span>'}
+            <button onclick="toggleBrandCarrusel(${b.id})" title="Click para cambiar visibilidad en carrusel" class="px-3 py-1 rounded-full text-[10px] font-black tracking-wider transition ${b.carrusel ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-500/30' : 'bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20'}">
+              ${b.carrusel ? 'SÍ' : 'NO'}
+            </button>
           </td>
           <td class="p-3 text-right">
             <button onclick="editBrandById(${b.id})" class="text-blue-400 hover:text-blue-300 text-[10px] uppercase font-bold tracking-wider px-2.5 py-1.5 border border-blue-500/30 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 transition inline-flex items-center gap-1">
@@ -1275,6 +1279,33 @@
           </td>
         </tr>
       `).join('');
+    }
+
+    async function toggleBrandCarrusel(id) {
+      const b = adminBrands.find(x => x.id === id);
+      if (!b) return;
+      const newStatus = !b.carrusel;
+      b.carrusel = newStatus;
+      renderBrandsAdminTable();
+
+      try {
+        const res = await fetch('/api/admin/brands/toggle-carrusel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ brand_id: id, carrusel: newStatus })
+        });
+        if (res.ok) {
+          kidoToast(`Marca "${b.name}" carrusel: ${newStatus ? 'SÍ (Visible)' : 'NO (Oculto)'}`, 'success', 'Directorio de Marcas');
+        } else {
+          b.carrusel = !newStatus;
+          renderBrandsAdminTable();
+          kidoToast('No se pudo actualizar el estado de la marca', 'error');
+        }
+      } catch (err) {
+        b.carrusel = !newStatus;
+        renderBrandsAdminTable();
+        kidoToast('Error de conexión con el servidor', 'error');
+      }
     }
 
     function editBrandById(id) {
@@ -1385,11 +1416,12 @@
       if (badge) badge.textContent = `${adminProductTypes ? adminProductTypes.length : 0} Tipos`;
       if (!tbody) return;
       if (!adminProductTypes || adminProductTypes.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-500 italic">No hay tipos de artículos registrados.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-gray-500 italic">No hay tipos de artículos registrados.</td></tr>';
         return;
       }
       tbody.innerHTML = adminProductTypes.map(t => {
         const count = adminProducts ? adminProducts.filter(p => p.product_type_id === t.id || p.product_type === t.name).length : 0;
+        const isActive = t.is_active !== false;
         return `
           <tr class="hover:bg-brandCard/40 transition">
             <td class="p-3 text-xs font-mono text-gray-400">#${t.id}</td>
@@ -1403,6 +1435,11 @@
                 ${count} artículo(s)
               </span>
             </td>
+            <td class="p-3 text-center">
+              <button onclick="toggleProductTypeActive(${t.id})" title="Click para activar/desactivar tipo de producto" class="px-3 py-1 rounded-full text-[10px] font-black tracking-wider transition ${isActive ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-500/30' : 'bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20'}">
+                ${isActive ? 'SÍ' : 'NO'}
+              </button>
+            </td>
             <td class="p-3 text-right">
               <button onclick="editProductTypeById(${t.id})" class="text-blue-400 hover:text-blue-300 text-[10px] uppercase font-bold tracking-wider px-2.5 py-1.5 border border-blue-500/30 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 transition inline-flex items-center gap-1">
                 <span>✏️</span> Editar
@@ -1411,6 +1448,33 @@
           </tr>
         `;
       }).join('');
+    }
+
+    async function toggleProductTypeActive(id) {
+      const t = adminProductTypes.find(x => x.id === id);
+      if (!t) return;
+      const newStatus = t.is_active === false ? true : false;
+      t.is_active = newStatus;
+      renderProductTypesAdminTable();
+
+      try {
+        const res = await fetch('/api/admin/product-types/toggle-active', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type_id: id, is_active: newStatus })
+        });
+        if (res.ok) {
+          kidoToast(`Tipo "${t.name}" activo: ${newStatus ? 'SÍ (Habilitado)' : 'NO (Deshabilitado)'}`, 'success', 'Tipos de Artículos');
+        } else {
+          t.is_active = !newStatus;
+          renderProductTypesAdminTable();
+          kidoToast('No se pudo actualizar el tipo de artículo', 'error');
+        }
+      } catch (err) {
+        t.is_active = !newStatus;
+        renderProductTypesAdminTable();
+        kidoToast('Error de conexión', 'error');
+      }
     }
 
     function editProductTypeById(id) {
@@ -1510,7 +1574,7 @@
             <td class="p-3"><img src="${img}" class="w-12 h-10 object-contain bg-black/40 rounded border border-brandBorder"></td>
             <td class="p-3">
               <div class="font-bold text-white">${p.title}</div>
-              <div class="text-[10px] text-gray-500">ID: ${p.id}</div>
+              <div class="text-[10px] text-gray-500 font-mono">ID: #${p.id}</div>
             </td>
             <td class="p-3 text-gray-300">${p.product_type} ${p.scale ? `(${p.scale})` : ''} ${p.apparel_size ? `(Talle: ${p.apparel_size})` : ''}</td>
             <td class="p-3 font-semibold text-gray-300">${p.vendor}</td>
@@ -1521,6 +1585,11 @@
               </span>
             </td>
             <td class="p-3">${statusBadge}</td>
+            <td class="p-3 text-center">
+              <button onclick="toggleProductActive(${p.id})" title="Click para cambiar estado de visibilidad en la tienda" class="px-3 py-1 rounded-full text-[10px] font-black tracking-wider transition ${p.is_active ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-500/30' : 'bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20'}">
+                ${p.is_active ? 'SÍ' : 'NO'}
+              </button>
+            </td>
             <td class="p-3 text-right">
               <button onclick="quickAddStock(${p.id})" class="bg-brandCard hover:bg-brandBorder text-gray-200 border border-brandBorder px-2.5 py-1 rounded-lg text-xs font-bold transition">
                 + Sumar
@@ -1535,18 +1604,51 @@
       const tbody = document.getElementById('productsAdminTableBody');
       tbody.innerHTML = adminProducts.map(p => `
         <tr class="hover:bg-brandCardHover transition">
-          <td class="p-2.5 font-bold text-white">${p.title}</td>
+          <td class="p-2.5 font-bold text-white">
+            <div>${p.title}</div>
+            <div class="text-[10px] text-gray-500 font-mono">ID: #${p.id}</div>
+          </td>
           <td class="p-2.5 text-gray-400">${p.product_type}</td>
           <td class="p-2.5 text-gray-300">${p.vendor}</td>
           <td class="p-2.5 font-bold text-white">${formatARS(p.price_ars)}</td>
           <td class="p-2.5 text-gray-300">${p.stock_quantity} u.</td>
-          <td class="p-2.5">
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${p.is_active ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-700 text-gray-400'}">
-              ${p.is_active ? 'Sí' : 'No'}
-            </span>
+          <td class="p-2.5 text-center">
+            <button onclick="toggleProductActive(${p.id})" title="Click para activar/desactivar en catálogo" class="px-3 py-1 rounded-full text-[10px] font-black tracking-wider transition ${p.is_active ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-500/30' : 'bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20'}">
+              ${p.is_active ? 'SÍ' : 'NO'}
+            </button>
           </td>
         </tr>
       `).join('');
+    }
+
+    async function toggleProductActive(id) {
+      const p = adminProducts.find(x => x.id === id);
+      if (!p) return;
+      const newStatus = !p.is_active;
+      p.is_active = newStatus;
+      renderProductsAdminTable();
+      renderStockTable();
+
+      try {
+        const res = await fetch('/api/admin/products/toggle-active', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ product_id: id, is_active: newStatus })
+        });
+        if (res.ok) {
+          kidoToast(`Artículo "${p.title}" marcado como ${newStatus ? 'ACTIVO (Visible)' : 'INACTIVO (Oculto)'}`, 'success', 'Catálogo & Stock');
+        } else {
+          p.is_active = !newStatus;
+          renderProductsAdminTable();
+          renderStockTable();
+          kidoToast('No se pudo actualizar el estado del artículo', 'error');
+        }
+      } catch (err) {
+        p.is_active = !newStatus;
+        renderProductsAdminTable();
+        renderStockTable();
+        kidoToast('Error de conexión con el servidor', 'error');
+      }
     }
 
     function populateBulkSelect() {
@@ -1714,10 +1816,13 @@
         return `
           <div class="bg-brandCard border border-brandBorder rounded-2xl p-4 space-y-3">
             <div class="flex items-center justify-between">
-              <span class="font-mono text-xs font-bold text-amber-400">${raf.raffle_number}</span>
-              <span class="text-[10px] font-black uppercase px-2.5 py-0.5 rounded ${
-                isDrawn ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-emerald-500/20 text-emerald-400'
-              }">${raf.status}</span>
+              <span class="font-mono text-xs font-bold text-amber-400">${raf.raffle_number} (ID: #${raf.id})</span>
+              <button onclick="toggleRaffleStatus(${raf.id})" title="Click para alternar estado Activa/Pausada" class="px-3 py-1 rounded-full text-[10px] font-black tracking-wider transition ${
+                raf.status === 'ACTIVA' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-500/30' :
+                (raf.status === 'PAUSADA' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 hover:bg-amber-500/30' : 'bg-purple-500/20 text-purple-300 border border-purple-500/30')
+              }">
+                ${raf.status === 'ACTIVA' ? 'ACTIVA (SÍ)' : (raf.status === 'PAUSADA' ? 'PAUSADA (NO)' : raf.status)}
+              </button>
             </div>
             <h4 class="font-bold text-white text-sm">${raf.title}</h4>
             <p class="text-xs text-gray-400 leading-relaxed">${raf.prize_description}</p>
@@ -1746,7 +1851,7 @@
                   <span>📺</span> Ver Placa de Transmisión
                 </a>
               ` : `
-                <span class="text-[11px] text-gray-500">Sorteo activo listo para ruleta</span>
+                <span class="text-[11px] text-gray-500">Sorteo listo para ruleta</span>
                 <a href="./stream-raffle.html?id=${raf.id}" target="_blank" class="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white font-bold px-3.5 py-1.5 rounded-xl text-xs uppercase tracking-wider transition shadow-lg shadow-red-600/20 flex items-center gap-1.5 hover:scale-105">
                   <span>🎰</span> Sortear en Vivo con Ruleta
                 </a>
@@ -1755,6 +1860,32 @@
           </div>
         `;
       }).join('');
+    }
+
+    async function toggleRaffleStatus(id) {
+      const raf = adminRaffles.find(x => x.id === id);
+      if (!raf) return;
+      if (raf.status === 'SORTEADA') {
+        if (!confirm('Esta rifa ya fue sorteada. ¿Deseas restablecerla a estado ACTIVA?')) return;
+      }
+
+      try {
+        const res = await fetch('/api/admin/raffles/toggle-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ raffle_id: id })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          raf.status = data.status;
+          renderAdminRaffles();
+          kidoToast(`Rifa "${raf.title}" ahora está: ${data.status}`, 'success', 'Rifas & Sorteos');
+        } else {
+          kidoToast('No se pudo cambiar el estado de la rifa', 'error');
+        }
+      } catch (err) {
+        kidoToast('Error de conexión con el servidor', 'error');
+      }
     }
 
     async function handleCreateRaffle(e) {
@@ -2047,23 +2178,6 @@
       const tbody = document.getElementById('usersTableBody');
       tbody.innerHTML = adminUsers.map(u => {
         const isClient = u.role === 'CLIENT';
-        let actionBtn = '<span class="text-gray-500 text-[10px]">N/A</span>';
-        if (isClient) {
-          if (u.is_frequent_customer) {
-            actionBtn = `
-              <button onclick="toggleFrequentBadge(${u.id}, false)" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/40 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ml-auto shadow-sm">
-                <span>✕</span> Quitar Insignia
-              </button>
-            `;
-          } else {
-            actionBtn = `
-              <button onclick="toggleFrequentBadge(${u.id}, true)" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/40 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ml-auto shadow-sm hover:scale-[1.02]">
-                <span>⭐</span> Otorgar Insignia
-              </button>
-            `;
-          }
-        }
-
         return `
           <tr class="hover:bg-brandCardHover transition">
             <td class="p-3">
@@ -2071,7 +2185,7 @@
                 ${u.name}
                 ${u.is_frequent_customer ? '<span title="Insignia Activa" class="inline-flex items-center text-amber-400 text-xs">⭐</span>' : ''}
               </div>
-              <div class="text-[10px] text-gray-400 font-mono">${u.email}</div>
+              <div class="text-[10px] text-gray-400 font-mono">${u.email} (ID: #${u.id})</div>
             </td>
             <td class="p-3">
               <span class="px-2 py-0.5 rounded text-[10px] font-bold ${u.role === 'ADMIN' ? 'bg-red-500/20 text-brandAccent' : 'bg-brandCard text-gray-300'}">
@@ -2083,15 +2197,21 @@
               <div class="text-[10px] text-gray-500">${u.address || '-'}</div>
             </td>
             <td class="p-3 font-bold text-white">${u.consecutive_months} meses</td>
-            <td class="p-3">
-              <span class="px-2.5 py-1 rounded-full text-[10px] font-black tracking-wide inline-flex items-center gap-1 ${u.is_frequent_customer ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm shadow-amber-500/10' : 'bg-gray-800 text-gray-400 border border-gray-700'}">
-                ${u.is_frequent_customer ? '⭐ FRECUENTE' : 'ESTÁNDAR'}
-              </span>
+            <td class="p-3 text-center">
+              ${isClient ? `
+                <button onclick="toggleFrequentBadge(${u.id}, ${!u.is_frequent_customer})" title="Click para alternar estado de Cliente Frecuente" class="px-3 py-1 rounded-full text-[10px] font-black tracking-wider transition ${u.is_frequent_customer ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 hover:bg-amber-500/30 shadow-sm' : 'bg-gray-800 text-gray-400 border border-gray-700 hover:bg-gray-700'}">
+                  ${u.is_frequent_customer ? '⭐ SÍ' : 'NO'}
+                </button>
+              ` : '<span class="text-gray-500 text-[10px]">ADMIN</span>'}
             </td>
             <td class="p-3 font-black text-amber-400 font-display">${u.frequent_points} pts</td>
             <td class="p-3 font-bold text-white">${u.total_purchases_count} compras</td>
             <td class="p-3 text-right">
-              ${actionBtn}
+              ${isClient ? `
+                <button onclick="toggleFrequentBadge(${u.id}, ${!u.is_frequent_customer})" class="${u.is_frequent_customer ? 'bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/40' : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/40'} px-2.5 py-1 rounded-lg text-xs font-bold transition">
+                  ${u.is_frequent_customer ? '✕ Quitar' : '⭐ Activar'}
+                </button>
+              ` : '<span class="text-gray-500 text-[10px]">N/A</span>'}
             </td>
           </tr>
         `;
@@ -2101,11 +2221,9 @@
     async function toggleFrequentBadge(userId, makeFrequent) {
       const u = adminUsers.find(x => x.id === userId);
       const name = u ? u.name : 'este cliente';
-      const promptMsg = makeFrequent
-        ? `¿Deseas otorgar manualmente la insignia de "Cliente Frecuente" a ${name}?\n\nAl activarla, el cliente obtendrá los beneficios de socio (1 número de rifa gratis por sorteo y acceso a pre-ventas).`
-        : `¿Deseas retirar la insignia de "Cliente Frecuente" a ${name}?`;
       
-      if (!confirm(promptMsg)) return;
+      u.is_frequent_customer = makeFrequent;
+      renderUsersTable();
 
       try {
         const res = await fetch('/api/admin/users/toggle-frequent', {
@@ -2115,13 +2233,17 @@
         });
         const data = await res.json();
         if (data.success) {
+          kidoToast(`Cliente "${name}" marcado como: ${makeFrequent ? 'Cliente Frecuente (SÍ ⭐)' : 'Estándar (NO)'}`, 'success', 'Clientes');
           await loadUsers();
         } else {
-          alert(data.error || 'Error actualizando insignia.');
+          u.is_frequent_customer = !makeFrequent;
+          renderUsersTable();
+          kidoToast(data.error || 'Error actualizando insignia.', 'error');
         }
       } catch (err) {
-        console.error(err);
-        alert('Error al conectar con el servidor.');
+        u.is_frequent_customer = !makeFrequent;
+        renderUsersTable();
+        kidoToast('Error al conectar con el servidor.', 'error');
       }
     }
 
