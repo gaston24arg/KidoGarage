@@ -483,6 +483,243 @@
       -ms-overflow-style: none;
       scrollbar-width: none;
     }
+
+    /* ======================================================== */
+    /* 6. LUCES DE NEÓN TUNING BAJO CHASIS (FAST & FURIOUS JDM) */
+    /* ======================================================== */
+    :root {
+      --neon-violet: #a855f7;
+      --neon-violet-glow: rgba(168, 85, 247, 0.75);
+      --neon-blue: #00d2ff;
+      --neon-blue-glow: rgba(0, 210, 255, 0.75);
+      --neon-green: #22c55e;
+      --neon-green-glow: rgba(34, 197, 94, 0.75);
+      --neon-red: #ff003c;
+      --neon-red-glow: rgba(255, 0, 60, 0.92);
+    }
+
+    /* --- MARCOS DE SEPARACIÓN CON NEÓN UNDERGLOW --- */
+    .neon-chassis-divider {
+      position: relative;
+      width: 100%;
+      height: 20px;
+      margin: 1.75rem 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Tubo central de neón (emula el tubo de gas neón bajo chasis) */
+    .neon-chassis-divider::before {
+      content: '';
+      position: absolute;
+      left: 2%;
+      right: 2%;
+      height: 3px;
+      border-radius: 9999px;
+      background: linear-gradient(90deg, 
+        transparent 0%, 
+        var(--neon-violet) 18%, 
+        var(--neon-blue) 50%, 
+        var(--neon-green) 82%, 
+        transparent 100%
+      );
+      box-shadow: 
+        0 0 6px rgba(255, 255, 255, 0.9),
+        0 0 14px var(--neon-violet),
+        0 0 24px var(--neon-blue),
+        0 0 32px var(--neon-green);
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 2;
+    }
+
+    /* Reflejo difuso sobre el suelo / asfalto mojado */
+    .neon-chassis-divider::after {
+      content: '';
+      position: absolute;
+      left: 6%;
+      right: 6%;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(90deg, 
+        var(--neon-violet-glow) 0%, 
+        var(--neon-blue-glow) 50%, 
+        var(--neon-green-glow) 100%
+      );
+      filter: blur(11px);
+      opacity: 0.7;
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* Variantes monotono para cada color temático */
+    .neon-chassis-divider.neon-violet::before {
+      background: linear-gradient(90deg, transparent 0%, var(--neon-violet) 25%, #c084fc 50%, var(--neon-violet) 75%, transparent 100%);
+      box-shadow: 0 0 6px #fff, 0 0 16px var(--neon-violet), 0 0 32px var(--neon-violet);
+    }
+    .neon-chassis-divider.neon-violet::after {
+      background: var(--neon-violet-glow);
+    }
+
+    .neon-chassis-divider.neon-blue::before {
+      background: linear-gradient(90deg, transparent 0%, var(--neon-blue) 25%, #7dd3fc 50%, var(--neon-blue) 75%, transparent 100%);
+      box-shadow: 0 0 6px #fff, 0 0 16px var(--neon-blue), 0 0 32px var(--neon-blue);
+    }
+    .neon-chassis-divider.neon-blue::after {
+      background: var(--neon-blue-glow);
+    }
+
+    .neon-chassis-divider.neon-green::before {
+      background: linear-gradient(90deg, transparent 0%, var(--neon-green) 25%, #86efac 50%, var(--neon-green) 75%, transparent 100%);
+      box-shadow: 0 0 6px #fff, 0 0 16px var(--neon-green), 0 0 32px var(--neon-green);
+    }
+    .neon-chassis-divider.neon-green::after {
+      background: var(--neon-green-glow);
+    }
+
+    /* Soporte metálico / abrazadera del chasis */
+    .neon-chassis-divider .neon-mount {
+      position: absolute;
+      width: 14px;
+      height: 8px;
+      background: linear-gradient(180deg, #374151 0%, #111827 100%);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 2px;
+      z-index: 3;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 2px 5px rgba(0, 0, 0, 0.8);
+      pointer-events: none;
+    }
+    .neon-chassis-divider .neon-mount-left { left: 4%; }
+    .neon-chassis-divider .neon-mount-center { left: 50%; transform: translateX(-50%); }
+    .neon-chassis-divider .neon-mount-right { right: 4%; }
+
+    /* HOVER Y CLICK (ACTIVE): DISPARO A ROJO NITRO / RACING RED */
+    .neon-chassis-divider:hover::before,
+    .neon-chassis-divider:active::before,
+    .neon-chassis-divider.is-nitro::before {
+      background: linear-gradient(90deg, transparent 0%, #ff003c 20%, #ff1744 50%, #ef4444 80%, transparent 100%) !important;
+      box-shadow: 
+        0 0 8px #ffffff,
+        0 0 22px var(--neon-red),
+        0 0 38px var(--neon-red),
+        0 0 55px rgba(255, 0, 60, 0.95) !important;
+      height: 4px;
+    }
+
+    .neon-chassis-divider:hover::after,
+    .neon-chassis-divider:active::after,
+    .neon-chassis-divider.is-nitro::after {
+      background: var(--neon-red-glow) !important;
+      filter: blur(14px) !important;
+      opacity: 0.98 !important;
+      height: 30px;
+    }
+
+    /* --- LUCES DE NEÓN BAJO LOS BOTONES (TUNING UNDERGLOW) --- */
+    .btn-underglow {
+      position: relative !important;
+      isolation: isolate;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease !important;
+    }
+
+    /* El tubo de neón debajo del botón */
+    .btn-underglow::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 8%;
+      right: 8%;
+      height: 3.5px;
+      border-radius: 9999px;
+      pointer-events: none;
+      z-index: -1;
+      opacity: 0.9;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* El reflejo amplio en el piso */
+    .btn-underglow::before {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 4%;
+      right: 4%;
+      height: 14px;
+      border-radius: 50%;
+      filter: blur(7px);
+      pointer-events: none;
+      z-index: -2;
+      opacity: 0.7;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Variantes de Color por defecto: Violeta, Azul, Verde, Trio */
+    .btn-underglow-violet::after {
+      background: var(--neon-violet);
+      box-shadow: 0 0 8px var(--neon-violet), 0 0 16px var(--neon-violet);
+    }
+    .btn-underglow-violet::before {
+      background: var(--neon-violet-glow);
+    }
+
+    .btn-underglow-blue::after {
+      background: var(--neon-blue);
+      box-shadow: 0 0 8px var(--neon-blue), 0 0 16px var(--neon-blue);
+    }
+    .btn-underglow-blue::before {
+      background: var(--neon-blue-glow);
+    }
+
+    .btn-underglow-green::after {
+      background: var(--neon-green);
+      box-shadow: 0 0 8px var(--neon-green), 0 0 16px var(--neon-green);
+    }
+    .btn-underglow-green::before {
+      background: var(--neon-green-glow);
+    }
+
+    .btn-underglow-trio::after {
+      background: linear-gradient(90deg, var(--neon-violet), var(--neon-blue), var(--neon-green));
+      box-shadow: 0 0 8px var(--neon-blue), 0 0 16px var(--neon-violet);
+    }
+    .btn-underglow-trio::before {
+      background: linear-gradient(90deg, var(--neon-violet-glow), var(--neon-blue-glow), var(--neon-green-glow));
+    }
+
+    /* CAMBIO A ROJO NITRO EN HOVER Y CLICK (ACTIVE) */
+    .btn-underglow:hover::after,
+    .btn-underglow:active::after,
+    .btn-underglow:focus-visible::after {
+      background: var(--neon-red) !important;
+      box-shadow: 
+        0 0 8px #ffffff,
+        0 0 18px var(--neon-red),
+        0 0 30px var(--neon-red) !important;
+      bottom: -5px;
+      height: 5px;
+      opacity: 1 !important;
+    }
+
+    .btn-underglow:hover::before,
+    .btn-underglow:active::before,
+    .btn-underglow:focus-visible::before {
+      background: var(--neon-red-glow) !important;
+      filter: blur(10px) !important;
+      opacity: 1 !important;
+      bottom: -10px;
+      height: 18px;
+    }
+
+    .btn-underglow:hover {
+      transform: translateY(-2px);
+    }
+    .btn-underglow:active {
+      transform: translateY(1px);
+    }
   </style>
 </head>
 
@@ -571,14 +808,14 @@
         <div id="authHeaderContainer">
           <!-- Rendered by JS: either 'Ingresar' button or user profile avatar -->
           <button onclick="openAuthModal('login')"
-            class="bg-brandSurface hover:bg-brandBorder border border-brandBorder text-gray-200 px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+            class="btn-underglow btn-underglow-violet bg-brandSurface hover:bg-brandBorder border border-brandBorder text-gray-200 px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
             <span>👤</span> Ingresar
           </button>
         </div>
 
         <!-- Carrito -->
         <button id="cartBtn" onclick="toggleCartDrawer(true)"
-          class="relative bg-brandCard hover:bg-brandCardHover p-2 rounded-xl border border-brandBorder hover:border-brandAccent transition duration-200 flex items-center gap-2 group"
+          class="btn-underglow btn-underglow-blue relative bg-brandCard hover:bg-brandCardHover p-2 rounded-xl border border-brandBorder hover:border-brandAccent transition duration-200 flex items-center gap-2 group"
           aria-label="Ver Carrito">
           <span class="text-base">🛒</span>
           <span class="hidden sm:inline text-xs font-bold text-gray-200">Carrito</span>
@@ -588,7 +825,7 @@
 
         <!-- Link al Panel Admin -->
         <a href="admin.html"
-          class="hidden sm:inline-flex items-center gap-1 bg-brandCard hover:bg-brandBorder text-gray-400 hover:text-white px-2.5 py-1.5 rounded-xl text-xs font-bold border border-brandBorder transition"
+          class="btn-underglow btn-underglow-green hidden sm:inline-flex items-center gap-1 bg-brandCard hover:bg-brandBorder text-gray-400 hover:text-white px-2.5 py-1.5 rounded-xl text-xs font-bold border border-brandBorder transition"
           title="Módulo de Administración">
           <span>⚙️</span>
         </a>
@@ -605,7 +842,7 @@
         <a href="#catalogo" onclick="filterByStatus('ALL')" class="hover:text-brandAccent transition text-gray-300 whitespace-nowrap">Catálogo</a>
         <a href="#catalogo" onclick="filterByStatus('PRE_VENTA')" class="hover:text-brandAccent transition text-gray-300 whitespace-nowrap">Pre-Ventas</a>
         <a href="#catalogo" onclick="filterByType('Remera')" class="hover:text-brandAccent transition text-gray-300 whitespace-nowrap">Remeras</a>
-        <button onclick="openRafflesModal()" class="text-amber-400 font-bold hover:text-amber-300 transition flex items-center gap-1 whitespace-nowrap">
+        <button onclick="openRafflesModal()" class="btn-underglow btn-underglow-green text-amber-400 font-bold hover:text-amber-300 transition flex items-center gap-1 whitespace-nowrap px-2 py-0.5 rounded-lg">
           <span>🎟️</span> Rifas
         </button>
         <button onclick="openRankingsModal()" class="text-gray-300 hover:text-white transition flex items-center gap-1 whitespace-nowrap">
@@ -614,6 +851,15 @@
       </nav>
     </div>
   </header>
+
+  <!-- MARCO DE SEPARACIÓN NEÓN UNDERGLOW (CABECERA A CONTENIDO) -->
+  <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 w-full -mb-2 pt-2">
+    <div class="neon-chassis-divider" title="Neón Underglow Tuning KIDO - Pasa el mouse o haz clic para activar Nitro Rojo">
+      <span class="neon-mount neon-mount-left"></span>
+      <span class="neon-mount neon-mount-center"></span>
+      <span class="neon-mount neon-mount-right"></span>
+    </div>
+  </div>
 
   <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-grow flex flex-col md:flex-row gap-8">
     
@@ -700,10 +946,17 @@
     </div>
   </section>
 
+  <!-- MARCO DE SEPARACIÓN NEÓN UNDERGLOW (SLIDER A MARCAS) -->
+  <div class="neon-chassis-divider neon-blue" title="Neón Underglow Tuning KIDO - Pasa el mouse o haz clic para activar Nitro Rojo">
+    <span class="neon-mount neon-mount-left"></span>
+    <span class="neon-mount neon-mount-center"></span>
+    <span class="neon-mount neon-mount-right"></span>
+  </div>
+
   <!-- ======================================================== -->
   <!-- 4. CARRUSEL DE MARCAS CON LAS QUE TRABAJAMOS             -->
   <!-- ======================================================== -->
-  <section class="w-full py-6">
+  <section class="w-full py-2">
     <div class="flex items-center justify-between mb-3">
       <h2 class="text-xs uppercase tracking-widest text-gray-400 font-extrabold flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-brandAccent inline-block"></span> Marcas Oficiales con las que Trabajamos
@@ -718,6 +971,13 @@
       </div>
     </div>
   </section>
+
+  <!-- MARCO DE SEPARACIÓN NEÓN UNDERGLOW (MARCAS A CATÁLOGO) -->
+  <div class="neon-chassis-divider neon-green" title="Neón Underglow Tuning KIDO - Pasa el mouse o haz clic para activar Nitro Rojo">
+    <span class="neon-mount neon-mount-left"></span>
+    <span class="neon-mount neon-mount-center"></span>
+    <span class="neon-mount neon-mount-right"></span>
+  </div>
 
   <!-- ======================================================== -->
   <!-- ======================================================== -->
@@ -784,6 +1044,15 @@
   
     </div> <!-- Fin CONTENIDO PRINCIPAL -->
   </div> <!-- Fin WRAPPER LAYOUT -->
+
+  <!-- MARCO DE SEPARACIÓN NEÓN UNDERGLOW (CONTENIDO A PIE DE PÁGINA) -->
+  <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 w-full -mb-6">
+    <div class="neon-chassis-divider neon-violet" title="Neón Underglow Tuning KIDO - Pasa el mouse o haz clic para activar Nitro Rojo">
+      <span class="neon-mount neon-mount-left"></span>
+      <span class="neon-mount neon-mount-center"></span>
+      <span class="neon-mount neon-mount-right"></span>
+    </div>
+  </div>
 
   <!-- ======================================================== -->
   <!-- 7. FOOTER                                                -->
@@ -1377,6 +1646,15 @@
       updateAuthUI();
       updateCartUI();
       checkPaymentReturnUrl();
+      initNeonInteractivity();
+    }
+
+    function initNeonInteractivity() {
+      document.querySelectorAll('.neon-chassis-divider').forEach(el => {
+        el.addEventListener('click', function() {
+          this.classList.toggle('is-nitro');
+        });
+      });
     }
 
     function checkPaymentReturnUrl() {
@@ -1487,10 +1765,10 @@
           </div>
 
           <div class="mt-6 flex flex-wrap gap-3">
-            <button onclick="addToCart(${p.id})" class="bg-brandAccent hover:bg-brandAccentHover text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition shadow-lg flex items-center gap-2">
+            <button onclick="addToCart(${p.id})" class="btn-underglow btn-underglow-trio bg-brandAccent hover:bg-brandAccentHover text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition shadow-lg flex items-center gap-2">
               <span>🛒</span> ${p.status === 'PRE_VENTA' ? 'Reservar Preventa' : 'Comprar Ahora'}
             </button>
-            <button onclick="openProductDetail(${p.id})" class="bg-brandSurface hover:bg-brandBorder text-gray-200 border border-brandBorder px-4 py-3 rounded-xl font-semibold text-xs transition">
+            <button onclick="openProductDetail(${p.id})" class="btn-underglow btn-underglow-blue bg-brandSurface hover:bg-brandBorder text-gray-200 border border-brandBorder px-4 py-3 rounded-xl font-semibold text-xs transition">
               Ver Detalles
             </button>
           </div>
@@ -1659,7 +1937,7 @@
         return;
       }
 
-      container.innerHTML = displayedProducts.map(p => {
+      container.innerHTML = displayedProducts.map((p, pIdx) => {
         const img = (p.images && p.images[0] && p.images[0].src) ? p.images[0].src : (p.gallery_images && p.gallery_images[0] ? p.gallery_images[0] : 'https://via.placeholder.com/300');
 
         let statusBadge = '';
@@ -1676,6 +1954,7 @@
           : '';
 
         const typeInfo = p.product_type === 'Autito' ? (p.scale || '1:64') : (p.product_type === 'Remera' ? (p.apparel_size || 'Talles S-XL') : 'Sticker Vinilo');
+        const underglowColor = (pIdx % 3 === 0) ? 'btn-underglow-violet' : ((pIdx % 3 === 1) ? 'btn-underglow-blue' : 'btn-underglow-green');
 
         return `
           <div class="blister-card-wrapper">
@@ -1730,7 +2009,7 @@
                   
                   <button 
                     onclick="addToCart(${p.id})"
-                    class="bg-brandAccent hover:bg-brandAccentHover text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow"
+                    class="btn-underglow ${underglowColor} bg-brandAccent hover:bg-brandAccentHover text-white px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow"
                     ${p.stock_quantity === 0 && p.status !== 'PRE_VENTA' ? 'disabled' : ''}
                   >
                     <span>🛒</span> ${p.status === 'PRE_VENTA' ? 'Reservar' : 'Comprar'}
@@ -1843,17 +2122,19 @@
           if (carouselContainer && carruselBrands.length > 0) {
             let html = '';
             const elementsToRender = [...carruselBrands, ...carruselBrands, ...carruselBrands];
-            elementsToRender.forEach(b => {
+            elementsToRender.forEach((b, bIdx) => {
               const safeName = (b.name || '').replace(/'/g, "\\'");
               const safeCode = (b.code || '').replace(/'/g, "\\'");
               const imgHtml = b.imagen 
                 ? `<img src="${b.imagen}" alt="${b.name}" class="h-11 md:h-13 max-w-[130px] object-contain group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_2px_6px_rgba(0,0,0,0.7)]" onerror="this.parentElement.innerHTML=getBrandFallbackGraphic({name:'${safeName}', code:'${safeCode}'})" />`
                 : getBrandFallbackGraphic(b);
 
+              const brandUnderglow = (bIdx % 3 === 0) ? 'btn-underglow-violet' : ((bIdx % 3 === 1) ? 'btn-underglow-blue' : 'btn-underglow-green');
+
               html += `
                 <button onclick="filterByBrand('${safeName}')"
                   title="Ver modelos ${b.name}"
-                  class="flex-shrink-0 bg-gradient-to-b from-brandCard to-brandDark border border-brandBorder/80 hover:border-brandAccent px-4 py-2.5 rounded-2xl flex flex-col items-center justify-between hover:bg-brandCardHover transition-all duration-300 group min-w-[150px] md:min-w-[170px] h-[92px] md:h-[102px] mx-1.5 shadow-md hover:shadow-brandAccent/20 hover:-translate-y-0.5">
+                  class="btn-underglow ${brandUnderglow} flex-shrink-0 bg-gradient-to-b from-brandCard to-brandDark border border-brandBorder/80 hover:border-brandAccent px-4 py-2.5 rounded-2xl flex flex-col items-center justify-between hover:bg-brandCardHover transition-all duration-300 group min-w-[150px] md:min-w-[170px] h-[92px] md:h-[102px] mx-1.5 shadow-md hover:shadow-brandAccent/20 hover:-translate-y-0.5">
                   <div class="h-12 md:h-14 w-full flex items-center justify-center overflow-hidden">
                     ${imgHtml}
                   </div>

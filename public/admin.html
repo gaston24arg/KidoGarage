@@ -116,6 +116,208 @@
       from { transform: scaleX(1); }
       to { transform: scaleX(0); }
     }
+
+    /* ======================================================== */
+    /* LUCES DE NEÓN TUNING BAJO CHASIS (FAST & FURIOUS JDM)    */
+    /* ======================================================== */
+    :root {
+      --neon-violet: #a855f7;
+      --neon-violet-glow: rgba(168, 85, 247, 0.75);
+      --neon-blue: #00d2ff;
+      --neon-blue-glow: rgba(0, 210, 255, 0.75);
+      --neon-green: #22c55e;
+      --neon-green-glow: rgba(34, 197, 94, 0.75);
+      --neon-red: #ff003c;
+      --neon-red-glow: rgba(255, 0, 60, 0.92);
+    }
+
+    .neon-chassis-divider {
+      position: relative;
+      width: 100%;
+      height: 18px;
+      margin: 1.5rem 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .neon-chassis-divider::before {
+      content: '';
+      position: absolute;
+      left: 2%;
+      right: 2%;
+      height: 3px;
+      border-radius: 9999px;
+      background: linear-gradient(90deg, 
+        transparent 0%, 
+        var(--neon-violet) 18%, 
+        var(--neon-blue) 50%, 
+        var(--neon-green) 82%, 
+        transparent 100%
+      );
+      box-shadow: 
+        0 0 6px rgba(255, 255, 255, 0.9),
+        0 0 14px var(--neon-violet),
+        0 0 24px var(--neon-blue),
+        0 0 32px var(--neon-green);
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 2;
+    }
+
+    .neon-chassis-divider::after {
+      content: '';
+      position: absolute;
+      left: 6%;
+      right: 6%;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(90deg, 
+        var(--neon-violet-glow) 0%, 
+        var(--neon-blue-glow) 50%, 
+        var(--neon-green-glow) 100%
+      );
+      filter: blur(11px);
+      opacity: 0.7;
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .neon-chassis-divider .neon-mount {
+      position: absolute;
+      width: 14px;
+      height: 8px;
+      background: linear-gradient(180deg, #374151 0%, #111827 100%);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 2px;
+      z-index: 3;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 2px 5px rgba(0, 0, 0, 0.8);
+      pointer-events: none;
+    }
+    .neon-chassis-divider .neon-mount-left { left: 4%; }
+    .neon-chassis-divider .neon-mount-center { left: 50%; transform: translateX(-50%); }
+    .neon-chassis-divider .neon-mount-right { right: 4%; }
+
+    .neon-chassis-divider:hover::before,
+    .neon-chassis-divider:active::before,
+    .neon-chassis-divider.is-nitro::before {
+      background: linear-gradient(90deg, transparent 0%, #ff003c 20%, #ff1744 50%, #ef4444 80%, transparent 100%) !important;
+      box-shadow: 
+        0 0 8px #ffffff,
+        0 0 22px var(--neon-red),
+        0 0 38px var(--neon-red),
+        0 0 55px rgba(255, 0, 60, 0.95) !important;
+      height: 4px;
+    }
+
+    .neon-chassis-divider:hover::after,
+    .neon-chassis-divider:active::after,
+    .neon-chassis-divider.is-nitro::after {
+      background: var(--neon-red-glow) !important;
+      filter: blur(14px) !important;
+      opacity: 0.98 !important;
+      height: 30px;
+    }
+
+    .btn-underglow {
+      position: relative !important;
+      isolation: isolate;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease !important;
+    }
+
+    .btn-underglow::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 8%;
+      right: 8%;
+      height: 3.5px;
+      border-radius: 9999px;
+      pointer-events: none;
+      z-index: -1;
+      opacity: 0.9;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn-underglow::before {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 4%;
+      right: 4%;
+      height: 14px;
+      border-radius: 50%;
+      filter: blur(7px);
+      pointer-events: none;
+      z-index: -2;
+      opacity: 0.7;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn-underglow-violet::after {
+      background: var(--neon-violet);
+      box-shadow: 0 0 8px var(--neon-violet), 0 0 16px var(--neon-violet);
+    }
+    .btn-underglow-violet::before {
+      background: var(--neon-violet-glow);
+    }
+
+    .btn-underglow-blue::after {
+      background: var(--neon-blue);
+      box-shadow: 0 0 8px var(--neon-blue), 0 0 16px var(--neon-blue);
+    }
+    .btn-underglow-blue::before {
+      background: var(--neon-blue-glow);
+    }
+
+    .btn-underglow-green::after {
+      background: var(--neon-green);
+      box-shadow: 0 0 8px var(--neon-green), 0 0 16px var(--neon-green);
+    }
+    .btn-underglow-green::before {
+      background: var(--neon-green-glow);
+    }
+
+    .btn-underglow-trio::after {
+      background: linear-gradient(90deg, var(--neon-violet), var(--neon-blue), var(--neon-green));
+      box-shadow: 0 0 8px var(--neon-blue), 0 0 16px var(--neon-violet);
+    }
+    .btn-underglow-trio::before {
+      background: linear-gradient(90deg, var(--neon-violet-glow), var(--neon-blue-glow), var(--neon-green-glow));
+    }
+
+    .btn-underglow:hover::after,
+    .btn-underglow:active::after,
+    .btn-underglow:focus-visible::after {
+      background: var(--neon-red) !important;
+      box-shadow: 
+        0 0 8px #ffffff,
+        0 0 18px var(--neon-red),
+        0 0 30px var(--neon-red) !important;
+      bottom: -5px;
+      height: 5px;
+      opacity: 1 !important;
+    }
+
+    .btn-underglow:hover::before,
+    .btn-underglow:active::before,
+    .btn-underglow:focus-visible::before {
+      background: var(--neon-red-glow) !important;
+      filter: blur(10px) !important;
+      opacity: 1 !important;
+      bottom: -10px;
+      height: 18px;
+    }
+
+    .btn-underglow:hover {
+      transform: translateY(-2px);
+    }
+    .btn-underglow:active {
+      transform: translateY(1px);
+    }
   </style>
 </head>
 <body class="bg-brandDark text-gray-100 font-sans antialiased min-h-screen flex flex-col selection:bg-brandAccent selection:text-white">
@@ -260,6 +462,13 @@
       </div>
 
     </section>
+
+    <!-- MARCO DE SEPARACIÓN NEÓN UNDERGLOW (MÉTRICAS A CONTENIDO) -->
+    <div class="neon-chassis-divider -mt-2 mb-6" title="Neón Underglow Tuning KIDO - Pasa el mouse o haz clic para activar Nitro Rojo">
+      <span class="neon-mount neon-mount-left"></span>
+      <span class="neon-mount neon-mount-center"></span>
+      <span class="neon-mount neon-mount-right"></span>
+    </div>
 
     <!-- 2. NAVIGATION TABS MOVIDAS AL SIDEBAR -->
 
