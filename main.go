@@ -1084,16 +1084,18 @@ func initDB() {
 			}
 		}
 
-		// Sincronizar contraseña de administrador configurada
-		if h, err := hashPassword("Lujo$2404"); err == nil {
-			_, _ = db.Exec("UPDATE users SET password_hash = $1 WHERE LOWER(email) = 'admin@kido.com.ar'", h)
-			store.mu.Lock()
-			for i := range store.users {
-				if strings.EqualFold(store.users[i].Email, "admin@kido.com.ar") {
-					store.users[i].Password = h
+		// Sincronizar contraseña de administrador desde variable de entorno si está configurada
+		if envPwd := os.Getenv("ADMIN_INITIAL_PASSWORD"); envPwd != "" {
+			if h, err := hashPassword(envPwd); err == nil {
+				_, _ = db.Exec("UPDATE users SET password_hash = $1 WHERE LOWER(email) = 'admin@kido.com.ar'", h)
+				store.mu.Lock()
+				for i := range store.users {
+					if strings.EqualFold(store.users[i].Email, "admin@kido.com.ar") {
+						store.users[i].Password = h
+					}
 				}
+				store.mu.Unlock()
 			}
-			store.mu.Unlock()
 		}
 	}
 
@@ -1649,7 +1651,30 @@ func processMPPayment(paymentID string) {
 // SERVIDOR HTTP & APIS
 // ==========================================
 
+func loadDotEnv() {
+	data, err := os.ReadFile(".env")
+	if err != nil {
+		return
+	}
+	lines := strings.Split(string(data), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) == 2 {
+			k := strings.TrimSpace(parts[0])
+			v := strings.TrimSpace(parts[1])
+			if os.Getenv(k) == "" {
+				os.Setenv(k, v)
+			}
+		}
+	}
+}
+
 func main() {
+	loadDotEnv()
 	initSessionSecret()
 	loadCatalog()
 	initRaffles()
