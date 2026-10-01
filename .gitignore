@@ -3,6 +3,7 @@
 *.msi
 *.zip
 *.dll
+*.xlsx
 
 # OS files
 Thumbs.db
