@@ -382,29 +382,44 @@ type ProductTypeModel struct {
 
 type Product struct {
 	ID             int64            `json:"id"`
-	InternalCode   string           `json:"internal_code,omitempty"`
-	Title          string           `json:"title"`
+	InternalCode   string           `json:"internal_code,omitempty"`   // ID PRODUCTO (ej: PRD-0001)
+	SKU            string           `json:"sku,omitempty"`             // SKU (ej: MJTTE-001)
+	Barcode        string           `json:"barcode,omitempty"`         // CÓDIGO / BARCODE (ej: 3467452079928)
+	Title          string           `json:"title"`                     // MODELO / TÍTULO
 	Handle         string           `json:"handle"`
 	BodyHTML       string           `json:"body_html"`
-	Vendor         string           `json:"vendor"`
+	Vendor         string           `json:"vendor"`                    // MARCA
 	BrandID        *int64           `json:"brand_id,omitempty"`
-	ProductType    string           `json:"product_type"` // "Autito", "Remera", "Sticker"
+	ProductType    string           `json:"product_type"`              // CATEGORÍA / TIPO (Autito, Remera, Diecast, etc.)
 	ProductTypeID  *int64           `json:"product_type_id,omitempty"`
-	Scale          string           `json:"scale,omitempty"`        // Requerido si Autito (1:64, 1:43, 1:18)
-	ApparelSize    string           `json:"apparel_size,omitempty"` // Requerido si Remera (S, M, L, XL, XXL)
+	Scale          string           `json:"scale,omitempty"`           // ESCALA (1:64, 1:43, 1:18, etc.)
+	ApparelSize    string           `json:"apparel_size,omitempty"`    // TALLE si es indumentaria
+	Series         string           `json:"series,omitempty"`          // SERIE / COLECCIÓN (ej: BMW EDITION)
+	Category       string           `json:"category,omitempty"`        // CATEGORÍA (ej: Diecast, Premium, RLC, etc.)
+	EditionVariant string           `json:"edition_variant,omitempty"` // EDICIÓN / VARIANTE
+	Year           string           `json:"year,omitempty"`            // AÑO
+	Color          string           `json:"color,omitempty"`           // COLOR (ROJO, AZUL, etc.)
+	ItemCondition  string           `json:"item_condition,omitempty"`  // ESTADO (Nuevo, Abierto, Usado, etc.)
+	Supplier       string           `json:"supplier,omitempty"`        // PROVEEDOR (ej: GASTON MASSA)
+	Location       string           `json:"location,omitempty"`        // UBICACIÓN (Depósito, Vitrina, etc.)
+	CostPriceARS   int64            `json:"cost_price_ars"`            // COSTO UNITARIO
+	PriceARS       int              `json:"price_ars"`                 // PRECIO VENTA
+	Currency       string           `json:"currency,omitempty"`        // MONEDA (ARS, USD)
+	PriceUSD       string           `json:"price_usd"`
+	StockQuantity  int              `json:"stock_quantity"`            // STOCK ACTUAL
+	MinStock       int              `json:"min_stock"`                 // STOCK MÍNIMO
+	Status         string           `json:"status"`                    // ESTADO STOCK (DISPONIBLE, AGOTADO, etc.)
+	IsActive       bool             `json:"is_active"`                 // ACTIVO EN WEB
 	Tags           []string         `json:"tags"`
 	Variants       []ProductVariant `json:"variants"`
 	Images         []ProductImage   `json:"images"`
 	GalleryImages  []string         `json:"gallery_images"`
-	ImageSource    string           `json:"image_source,omitempty"` // "MANUAL" o "GOOGLE_SEARCH"
+	ImageSource    string           `json:"image_source,omitempty"`    // "MANUAL" o "GOOGLE_SEARCH"
 	ShortVideoURL  string           `json:"short_video_url,omitempty"` // Video muy corto del artículo
-	PriceARS       int              `json:"price_ars"`
-	PriceUSD       string           `json:"price_usd"`
-	Status         string           `json:"status"` // "STOCK", "PRE_VENTA", "AGOTADO"
-	StockQuantity  int              `json:"stock_quantity"`
-	IsActive       bool             `json:"is_active"` // Activo Sí/No
 	HasChaseChance bool             `json:"has_chase_chance"`
-	InSlider       bool             `json:"in_slider"` // Mostrar en Slider / Carrusel
+	InSlider       bool             `json:"in_slider"`                 // Mostrar en Slider / Carrusel
+	Notes          string           `json:"notes,omitempty"`           // OBSERVACIONES
+	CreatedAt      string           `json:"created_at,omitempty"`
 }
 
 type SliderConfig struct {
@@ -414,14 +429,24 @@ type SliderConfig struct {
 
 type BulkImportProductItem struct {
 	InternalCode   string `json:"codigo_interno"`
-	Title          string `json:"titulo"`
-	ProductType    string `json:"tipo_articulo"`
+	SKU            string `json:"sku"`
+	Barcode        string `json:"codigo_barras"`
 	Vendor         string `json:"marca"`
+	Title          string `json:"titulo"`
+	Series         string `json:"serie_coleccion"`
 	Scale          string `json:"escala"`
-	ApparelSize    string `json:"talle"`
-	PriceARS       int    `json:"precio_ars"`
-	PriceUSD       string `json:"precio_usd"`
+	ProductType    string `json:"tipo_articulo"`
+	EditionVariant string `json:"edicion_variante"`
+	Year           string `json:"anio"`
+	Color          string `json:"color"`
+	ItemCondition  string `json:"estado_condicion"`
+	Supplier       string `json:"proveedor"`
+	Location       string `json:"ubicacion"`
+	CostPriceARS   int64  `json:"costo_unitario"`
+	PriceARS       int    `json:"precio_venta"`
+	Currency       string `json:"moneda"`
 	StockQuantity  int    `json:"stock_cantidad"`
+	MinStock       int    `json:"stock_minimo"`
 	Status         string `json:"estado"`
 	Activo         string `json:"activo"`
 	HasChaseChance string `json:"chance_chase"`
@@ -429,6 +454,9 @@ type BulkImportProductItem struct {
 	GalleryImages  string `json:"imagenes_galeria"`
 	ShortVideoURL  string `json:"video_url"`
 	Description    string `json:"descripcion"`
+	Notes          string `json:"observaciones"`
+	ApparelSize    string `json:"talle"`
+	PriceUSD       string `json:"precio_usd"`
 }
 
 type ProductCatalog struct {
@@ -974,6 +1002,19 @@ func initDB() {
 	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS product_type_id BIGINT REFERENCES product_types(id)")
 	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS in_slider BOOLEAN DEFAULT FALSE")
 	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS image_source VARCHAR(50) DEFAULT 'MANUAL'")
+	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS sku VARCHAR(100) DEFAULT ''")
+	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS barcode VARCHAR(100) DEFAULT ''")
+	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS series VARCHAR(255) DEFAULT ''")
+	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS edition_variant VARCHAR(255) DEFAULT ''")
+	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS year VARCHAR(50) DEFAULT ''")
+	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS color VARCHAR(100) DEFAULT ''")
+	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS item_condition VARCHAR(100) DEFAULT 'Nuevo'")
+	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS supplier VARCHAR(255) DEFAULT ''")
+	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS location VARCHAR(255) DEFAULT 'Depósito'")
+	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS cost_price_ars NUMERIC(12, 2) DEFAULT 0.00")
+	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS min_stock INT DEFAULT 0")
+	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS currency VARCHAR(20) DEFAULT 'ARS'")
+	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT ''")
 	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS site_settings (
 		key VARCHAR(100) PRIMARY KEY,
 		value TEXT NOT NULL
@@ -1117,14 +1158,27 @@ func initDB() {
 			store.mu.RUnlock()
 			log.Printf("🐘 [PostgreSQL] Sembrados %d productos en tabla 'products'", len(store.products))
 		} else {
-			rows, err := db.Query("SELECT id, COALESCE(internal_code,''), title, handle, product_type, product_type_id, COALESCE(scale,''), COALESCE(apparel_size,''), vendor, brand_id, price_ars, price_usd, stock_quantity, status, is_active, has_chase_chance, COALESCE(gallery_images::text,'[]'), COALESCE(short_video_url,''), COALESCE(description,''), COALESCE(in_slider, false), COALESCE(image_source, 'MANUAL') FROM products ORDER BY id DESC")
+			rows, err := db.Query(`SELECT id, COALESCE(internal_code,''), title, handle, product_type, product_type_id, 
+				COALESCE(scale,''), COALESCE(apparel_size,''), vendor, brand_id, price_ars, price_usd, stock_quantity, 
+				status, is_active, has_chase_chance, COALESCE(gallery_images::text,'[]'), COALESCE(short_video_url,''), 
+				COALESCE(description,''), COALESCE(in_slider, false), COALESCE(image_source, 'MANUAL'),
+				COALESCE(sku, ''), COALESCE(barcode, ''), COALESCE(series, ''), COALESCE(edition_variant, ''),
+				COALESCE(year, ''), COALESCE(color, ''), COALESCE(item_condition, 'Nuevo'), COALESCE(supplier, ''),
+				COALESCE(location, 'Depósito'), COALESCE(cost_price_ars, 0), COALESCE(min_stock, 0), COALESCE(currency, 'ARS'),
+				COALESCE(notes, '') 
+				FROM products ORDER BY id DESC`)
 			if err == nil {
 				var pgProducts []Product
 				for rows.Next() {
 					var p Product
 					var imgRaw string
 					var brandID, typeID sql.NullInt64
-					if err := rows.Scan(&p.ID, &p.InternalCode, &p.Title, &p.Handle, &p.ProductType, &typeID, &p.Scale, &p.ApparelSize, &p.Vendor, &brandID, &p.PriceARS, &p.PriceUSD, &p.StockQuantity, &p.Status, &p.IsActive, &p.HasChaseChance, &imgRaw, &p.ShortVideoURL, &p.BodyHTML, &p.InSlider, &p.ImageSource); err == nil {
+					if err := rows.Scan(&p.ID, &p.InternalCode, &p.Title, &p.Handle, &p.ProductType, &typeID, 
+						&p.Scale, &p.ApparelSize, &p.Vendor, &brandID, &p.PriceARS, &p.PriceUSD, &p.StockQuantity, 
+						&p.Status, &p.IsActive, &p.HasChaseChance, &imgRaw, &p.ShortVideoURL, &p.BodyHTML, 
+						&p.InSlider, &p.ImageSource, &p.SKU, &p.Barcode, &p.Series, &p.EditionVariant, 
+						&p.Year, &p.Color, &p.ItemCondition, &p.Supplier, &p.Location, &p.CostPriceARS, 
+						&p.MinStock, &p.Currency, &p.Notes); err == nil {
 						if brandID.Valid {
 							b := brandID.Int64
 							p.BrandID = &b
@@ -1295,8 +1349,21 @@ func pgSaveProduct(p Product) {
 	}
 	go func() {
 		imgJSON, _ := json.Marshal(p.GalleryImages)
-		_, err := db.Exec(`INSERT INTO products (id, internal_code, title, handle, product_type, product_type_id, scale, apparel_size, vendor, brand_id, price_ars, price_usd, stock_quantity, status, is_active, has_chase_chance, gallery_images, short_video_url, description, in_slider, image_source)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+		currency := p.Currency
+		if currency == "" {
+			currency = "ARS"
+		}
+		itemCond := p.ItemCondition
+		if itemCond == "" {
+			itemCond = "Nuevo"
+		}
+		location := p.Location
+		if location == "" {
+			location = "Depósito"
+		}
+
+		_, err := db.Exec(`INSERT INTO products (id, internal_code, title, handle, product_type, product_type_id, scale, apparel_size, vendor, brand_id, price_ars, price_usd, stock_quantity, status, is_active, has_chase_chance, gallery_images, short_video_url, description, in_slider, image_source, sku, barcode, series, edition_variant, year, color, item_condition, supplier, location, cost_price_ars, min_stock, currency, notes)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34)
 		ON CONFLICT (id) DO UPDATE SET
 			internal_code = EXCLUDED.internal_code,
 			title = EXCLUDED.title,
@@ -1318,8 +1385,21 @@ func pgSaveProduct(p Product) {
 			description = EXCLUDED.description,
 			in_slider = EXCLUDED.in_slider,
 			image_source = EXCLUDED.image_source,
+			sku = EXCLUDED.sku,
+			barcode = EXCLUDED.barcode,
+			series = EXCLUDED.series,
+			edition_variant = EXCLUDED.edition_variant,
+			year = EXCLUDED.year,
+			color = EXCLUDED.color,
+			item_condition = EXCLUDED.item_condition,
+			supplier = EXCLUDED.supplier,
+			location = EXCLUDED.location,
+			cost_price_ars = EXCLUDED.cost_price_ars,
+			min_stock = EXCLUDED.min_stock,
+			currency = EXCLUDED.currency,
+			notes = EXCLUDED.notes,
 			updated_at = CURRENT_TIMESTAMP`,
-			p.ID, p.InternalCode, p.Title, p.Handle, p.ProductType, p.ProductTypeID, p.Scale, p.ApparelSize, p.Vendor, p.BrandID, p.PriceARS, p.PriceUSD, p.StockQuantity, p.Status, p.IsActive, p.HasChaseChance, string(imgJSON), p.ShortVideoURL, p.BodyHTML, p.InSlider, p.ImageSource)
+			p.ID, p.InternalCode, p.Title, p.Handle, p.ProductType, p.ProductTypeID, p.Scale, p.ApparelSize, p.Vendor, p.BrandID, p.PriceARS, p.PriceUSD, p.StockQuantity, p.Status, p.IsActive, p.HasChaseChance, string(imgJSON), p.ShortVideoURL, p.BodyHTML, p.InSlider, p.ImageSource, p.SKU, p.Barcode, p.Series, p.EditionVariant, p.Year, p.Color, itemCond, p.Supplier, location, p.CostPriceARS, p.MinStock, currency, p.Notes)
 		if err != nil {
 			log.Printf("⚠️ Error guardando producto en PostgreSQL: %v", err)
 		}
@@ -3390,9 +3470,24 @@ func main() {
 				internalCode = fmt.Sprintf("SKU-%04d", prodID)
 			}
 
+			currency := strings.TrimSpace(item.Currency)
+			if currency == "" {
+				currency = "ARS"
+			}
+			location := strings.TrimSpace(item.Location)
+			if location == "" {
+				location = "Depósito"
+			}
+			itemCond := strings.TrimSpace(item.ItemCondition)
+			if itemCond == "" {
+				itemCond = "Nuevo"
+			}
+
 			prod := Product{
 				ID:             prodID,
 				InternalCode:   internalCode,
+				SKU:            strings.TrimSpace(item.SKU),
+				Barcode:        strings.TrimSpace(item.Barcode),
 				Title:          title,
 				Handle:         handle,
 				BodyHTML:       strings.TrimSpace(item.Description),
@@ -3402,13 +3497,25 @@ func main() {
 				ProductTypeID:  typeID,
 				Scale:          strings.TrimSpace(item.Scale),
 				ApparelSize:    strings.TrimSpace(item.ApparelSize),
+				Series:         strings.TrimSpace(item.Series),
+				Category:       typeName,
+				EditionVariant: strings.TrimSpace(item.EditionVariant),
+				Year:           strings.TrimSpace(item.Year),
+				Color:          strings.TrimSpace(item.Color),
+				ItemCondition:  itemCond,
+				Supplier:       strings.TrimSpace(item.Supplier),
+				Location:       location,
+				CostPriceARS:   item.CostPriceARS,
 				PriceARS:       item.PriceARS,
+				Currency:       currency,
 				PriceUSD:       priceUSD,
 				StockQuantity:  item.StockQuantity,
+				MinStock:       item.MinStock,
 				Status:         status,
 				IsActive:       isActive,
 				HasChaseChance: hasChase,
 				InSlider:       inSlider,
+				Notes:          strings.TrimSpace(item.Notes),
 				GalleryImages:  gallery,
 				ImageSource:    imgSource,
 				Images:         []ProductImage{{ID: 1, Position: 1, Src: gallery[0]}},
@@ -3463,6 +3570,16 @@ func main() {
 		if strings.EqualFold(p.ProductType, "Remera") && p.ApparelSize == "" {
 			http.Error(w, "Para artículos tipo 'Remera' es obligatorio especificar el Talle (ej: S, M, L, XL, XXL)", http.StatusBadRequest)
 			return
+		}
+
+		if p.Location == "" {
+			p.Location = "Depósito"
+		}
+		if p.ItemCondition == "" {
+			p.ItemCondition = "Nuevo"
+		}
+		if p.Currency == "" {
+			p.Currency = "ARS"
 		}
 
 		// Limpiar imágenes recibidas (descartar vacíos o placeholders)

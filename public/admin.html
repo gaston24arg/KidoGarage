@@ -614,12 +614,14 @@
                 <thead class="bg-brandCard text-gray-400 uppercase font-semibold text-[10px] tracking-wider border-b border-brandBorder sticky top-0">
                   <tr>
                     <th class="p-2.5">#</th>
-                    <th class="p-2.5">Código</th>
-                    <th class="p-2.5">Título / Nombre</th>
-                    <th class="p-2.5">Tipo</th>
+                    <th class="p-2.5">ID / SKU</th>
+                    <th class="p-2.5">Modelo / Artículo</th>
                     <th class="p-2.5">Marca</th>
-                    <th class="p-2.5">Escala / Talle</th>
-                    <th class="p-2.5">Precio ARS</th>
+                    <th class="p-2.5">Escala</th>
+                    <th class="p-2.5">Ubicación</th>
+                    <th class="p-2.5">Costo</th>
+                    <th class="p-2.5">Precio Venta</th>
+                    <th class="p-2.5">Ganancia</th>
                     <th class="p-2.5">Stock</th>
                     <th class="p-2.5 text-center">Estado</th>
                   </tr>
@@ -686,38 +688,57 @@
 
           <form onsubmit="handleCreateProduct(event)" class="space-y-3 text-xs">
             <div>
-              <label class="block text-gray-400 font-semibold mb-1">Nombre / Título del Artículo</label>
-              <input required id="pTitle" type="text" placeholder="Ej: Kaido House Datsun 510 Wagon Pink" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white">
+              <label class="block text-gray-400 font-semibold mb-1">Modelo / Nombre del Artículo *</label>
+              <input required id="pTitle" type="text" placeholder="Ej: BMW M3, Porsche 911 GT3 RS, Datsun 510..." class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white">
             </div>
 
-            <div>
-              <label class="block text-gray-400 font-semibold mb-1">Código Interno (Opcional)</label>
-              <input id="pInternalCode" type="text" placeholder="Ej: SKU-1001" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white font-mono text-sm">
+            <!-- Fila: ID Producto, SKU, Código de Barras -->
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="block text-gray-400 font-semibold mb-1 text-[11px]">ID Producto</label>
+                <input id="pInternalCode" type="text" placeholder="PRD-0001" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2 text-white font-mono text-xs">
+              </div>
+              <div>
+                <label class="block text-gray-400 font-semibold mb-1 text-[11px]">SKU</label>
+                <input id="pSKU" type="text" placeholder="MJTTE-001" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2 text-white font-mono text-xs">
+              </div>
+              <div>
+                <label class="block text-gray-400 font-semibold mb-1 text-[11px]">Código / Barcode</label>
+                <input id="pBarcode" type="text" placeholder="3467452079928" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2 text-white font-mono text-xs">
+              </div>
             </div>
 
-            <!-- TIPO DE ARTÍCULO -->
-            <div>
-              <label class="block text-gray-400 font-semibold mb-1">Tipo de Artículo</label>
-              <select id="pType" onchange="handleProductTypeChange(this.options[this.selectedIndex].text)" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white">
-                <option value="">Cargando tipos...</option>
-              </select>
-            </div>
-
-            <!-- CAMPO CONDICIONAL: ESCALA (Solo si es Autito) -->
-            <div id="fieldScaleGroup">
-              <label class="block text-gray-400 font-semibold mb-1">Escala del Autito *</label>
-              <select id="pScale" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white">
-                <option value="1:64">1:64 Scale</option>
-                <option value="1:18">1:18 Scale</option>
-                <option value="1:43">1:43 Scale</option>
-                <option value="1:24">1:24 Scale</option>
-              </select>
+            <!-- Fila: Marca, Tipo, Escala -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div>
+                <label class="block text-gray-400 font-semibold mb-1 text-[11px]">Marca / Fabricante *</label>
+                <select required id="pVendor" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2 text-white text-xs">
+                  <option value="">Cargando marcas...</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-gray-400 font-semibold mb-1 text-[11px]">Tipo de Artículo *</label>
+                <select id="pType" onchange="handleProductTypeChange(this.options[this.selectedIndex].text)" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2 text-white text-xs">
+                  <option value="">Cargando tipos...</option>
+                </select>
+              </div>
+              <div id="fieldScaleGroup">
+                <label class="block text-gray-400 font-semibold mb-1 text-[11px]">Escala *</label>
+                <select id="pScale" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2 text-white text-xs">
+                  <option value="1:64">1:64 Scale</option>
+                  <option value="1:43">1:43 Scale</option>
+                  <option value="1:18">1:18 Scale</option>
+                  <option value="1:24">1:24 Scale</option>
+                  <option value="1:12">1:12 Scale</option>
+                  <option value="Otra">Otra</option>
+                </select>
+              </div>
             </div>
 
             <!-- CAMPO CONDICIONAL: TALLE (Solo si es Remera) -->
             <div id="fieldSizeGroup" class="hidden">
-              <label class="block text-gray-400 font-semibold mb-1">Talle de la Remera *</label>
-              <select id="pSize" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white">
+              <label class="block text-gray-400 font-semibold mb-1 text-[11px]">Talle de la Remera *</label>
+              <select id="pSize" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2 text-white text-xs">
                 <option value="S">Talle S</option>
                 <option value="M">Talle M</option>
                 <option value="L">Talle L</option>
@@ -727,32 +748,108 @@
               </select>
             </div>
 
-            <div class="grid grid-cols-2 gap-2">
+            <!-- Fila: Serie/Colección, Edición/Variante, Año -->
+            <div class="grid grid-cols-3 gap-2">
               <div>
-                <label class="block text-gray-400 font-semibold mb-1">Marca / Vendor</label>
-                <select required id="pVendor" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white">
-                  <option value="">Cargando marcas...</option>
-                </select>
+                <label class="block text-gray-400 font-semibold mb-1 text-[11px]">Serie / Colección</label>
+                <input id="pSeries" type="text" placeholder="Ej: BMW EDITION" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2 text-white text-xs">
               </div>
               <div>
-                <label class="block text-gray-400 font-semibold mb-1">Precio ARS ($)</label>
-                <input required id="pPriceARS" type="number" placeholder="22990" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white">
+                <label class="block text-gray-400 font-semibold mb-1 text-[11px]">Edición / Variante</label>
+                <input id="pEditionVariant" type="text" placeholder="Ej: Chase / RLC" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2 text-white text-xs">
+              </div>
+              <div>
+                <label class="block text-gray-400 font-semibold mb-1 text-[11px]">Año</label>
+                <input id="pYear" type="text" placeholder="Ej: 2024" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2 text-white text-xs">
               </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-2">
+            <!-- Fila: Color, Estado, Ubicación -->
+            <div class="grid grid-cols-3 gap-2">
               <div>
-                <label class="block text-gray-400 font-semibold mb-1">Stock Inicial</label>
-                <input required id="pStock" type="number" value="12" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white">
+                <label class="block text-gray-400 font-semibold mb-1 text-[11px]">Color</label>
+                <input id="pColor" type="text" placeholder="Ej: ROJO, AZUL" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2 text-white text-xs">
               </div>
               <div>
-                <label class="block text-gray-400 font-semibold mb-1">Estado</label>
-                <select id="pStatus" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2.5 text-white">
+                <label class="block text-gray-400 font-semibold mb-1 text-[11px]">Estado / Condición</label>
+                <select id="pCondition" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2 text-white text-xs">
+                  <option value="Nuevo">Nuevo</option>
+                  <option value="Abierto">Abierto</option>
+                  <option value="Usado">Usado</option>
+                  <option value="Con detalle">Con detalle</option>
+                  <option value="Custom">Custom</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-gray-400 font-semibold mb-1 text-[11px]">Ubicación</label>
+                <select id="pLocation" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2 text-white text-xs">
+                  <option value="Depósito">Depósito</option>
+                  <option value="Vitrina">Vitrina</option>
+                  <option value="Estante 1">Estante 1</option>
+                  <option value="Estante 2">Estante 2</option>
+                  <option value="Estante 3">Estante 3</option>
+                  <option value="Caja">Caja</option>
+                  <option value="Otro">Otro</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Fila: Proveedor y Moneda -->
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-gray-400 font-semibold mb-1 text-[11px]">Proveedor</label>
+                <input id="pSupplier" type="text" placeholder="Ej: GASTON MASSA" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2 text-white text-xs">
+              </div>
+              <div>
+                <label class="block text-gray-400 font-semibold mb-1 text-[11px]">Moneda</label>
+                <select id="pCurrency" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2 text-white text-xs">
+                  <option value="ARS">ARS ($)</option>
+                  <option value="USD">USD (U$S)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Precios y Calculador de Ganancia Neta -->
+            <div class="p-3 bg-brandCard/60 border border-brandBorder rounded-2xl space-y-2">
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-gray-400 font-semibold mb-1 text-[11px]">Costo Unitario ($)</label>
+                  <input id="pCostPrice" type="number" placeholder="10000" class="w-full bg-brandSurface border border-brandBorder rounded-xl p-2 text-white text-xs font-mono" oninput="updateProfitBadge()">
+                </div>
+                <div>
+                  <label class="block text-gray-400 font-semibold mb-1 text-[11px]">Precio Venta ($) *</label>
+                  <input required id="pPriceARS" type="number" placeholder="15000" class="w-full bg-brandSurface border border-brandBorder rounded-xl p-2 text-white font-bold text-xs font-mono" oninput="updateProfitBadge()">
+                </div>
+              </div>
+              <div id="pProfitBadge" class="text-[11px] font-bold text-emerald-400 flex items-center justify-between px-2.5 py-1 rounded-xl bg-emerald-950/40 border border-emerald-500/30">
+                <span>Ganancia Neta: <span id="pProfitVal" class="font-mono text-emerald-300">$0</span></span>
+                <span id="pProfitMargin" class="text-gray-400 font-normal text-[10px]">Margen: -</span>
+              </div>
+            </div>
+
+            <!-- Stock y Estado -->
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="block text-gray-400 font-semibold mb-1 text-[11px]">Stock Actual *</label>
+                <input required id="pStock" type="number" value="1" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2 text-white font-bold text-xs">
+              </div>
+              <div>
+                <label class="block text-gray-400 font-semibold mb-1 text-[11px]">Stock Mínimo</label>
+                <input id="pMinStock" type="number" value="1" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2 text-white text-xs">
+              </div>
+              <div>
+                <label class="block text-gray-400 font-semibold mb-1 text-[11px]">Estado</label>
+                <select id="pStatus" class="w-full bg-brandCard border border-brandBorder rounded-xl p-2 text-white text-xs">
                   <option value="STOCK">En Stock</option>
                   <option value="PRE_VENTA">Pre-Venta</option>
                   <option value="AGOTADO">Agotado</option>
                 </select>
               </div>
+            </div>
+
+            <div>
+              <label class="block text-gray-400 font-semibold mb-1 text-[11px]">Observaciones (Notas)</label>
+              <textarea id="pNotes" rows="2" placeholder="Notas sobre el estado, empaque, ruedas de goma o detalles..." class="w-full bg-brandCard border border-brandBorder rounded-xl p-2 text-white text-[11px]"></textarea>
             </div>
 
             <!-- Galería de Fotos (Múltiples) & Integración Google Custom Search -->
@@ -2618,16 +2715,25 @@
           <tr class="hover:bg-brandCardHover transition">
             <td class="p-3"><img src="${img}" class="w-12 h-10 object-contain bg-black/40 rounded border border-brandBorder" onerror="this.src='https://via.placeholder.com/60'"></td>
             <td class="p-3">
-              <div class="font-bold text-white">${p.title}</div>
-              <div class="text-[10px] text-gray-500 font-mono">ID: #${p.id} ${p.has_chase_chance ? '<span class="text-amber-400 font-bold">★ CHASE</span>' : ''}</div>
+              <div class="font-bold text-white">${escapeHtml(p.title)}</div>
+              <div class="text-[10px] text-gray-400 font-mono flex flex-wrap items-center gap-1.5 mt-0.5">
+                <span>#${p.id}</span>
+                ${p.sku ? `<span class="px-1.5 py-0.2 rounded bg-brandBorder text-emerald-300 font-bold">SKU: ${escapeHtml(p.sku)}</span>` : ''}
+                ${p.location ? `<span class="text-blue-300">📍 ${escapeHtml(p.location)}</span>` : ''}
+                ${p.has_chase_chance ? '<span class="text-amber-400 font-bold">★ CHASE</span>' : ''}
+              </div>
             </td>
-            <td class="p-3 text-gray-300">${p.product_type} ${p.scale ? `(${p.scale})` : ''} ${p.apparel_size ? `(Talle: ${p.apparel_size})` : ''}</td>
-            <td class="p-3 font-semibold text-gray-300">${p.vendor}</td>
-            <td class="p-3 font-bold text-white font-display">${formatARS(p.price_ars)}</td>
+            <td class="p-3 text-gray-300">${escapeHtml(p.product_type || '')} ${p.scale ? `(${escapeHtml(p.scale)})` : ''} ${p.apparel_size ? `(Talle: ${escapeHtml(p.apparel_size)})` : ''}</td>
+            <td class="p-3 font-semibold text-gray-300">${escapeHtml(p.vendor || '')}</td>
+            <td class="p-3 font-display">
+              <div class="font-bold text-white">${formatARS(p.price_ars)}</div>
+              ${p.cost_price_ars > 0 ? `<div class="text-[10px] text-gray-400 font-mono">Costo: ${formatARS(p.cost_price_ars)}</div><div class="text-[10px] text-emerald-400 font-bold font-mono">+${formatARS(p.price_ars - p.cost_price_ars)} (${Math.round(((p.price_ars - p.cost_price_ars)/p.price_ars)*100)}%)</div>` : ''}
+            </td>
             <td class="p-3">
-              <span class="font-bold text-sm ${stock === 0 ? 'text-red-400' : (stock <= 5 ? 'text-amber-400' : 'text-emerald-400')}">
+              <span class="font-bold text-sm ${stock === 0 ? 'text-red-400' : (stock <= (p.min_stock || 5) ? 'text-amber-400' : 'text-emerald-400')}">
                 ${stock} u.
               </span>
+              ${p.min_stock > 1 ? `<div class="text-[9px] text-gray-500">Mín: ${p.min_stock} u.</div>` : ''}
             </td>
             <td class="p-3">${statusBadge}</td>
             <td class="p-3 text-center">
@@ -2673,18 +2779,33 @@
                 </div>
                 <div class="min-w-0">
                   <div class="truncate max-w-[190px] font-bold text-white" title="${escapeHtml(p.title)}">${escapeHtml(p.title)}</div>
-                  <div class="text-[10px] text-gray-500 font-mono flex items-center gap-1 mt-0.5">
+                  <div class="text-[10px] text-gray-400 font-mono flex flex-wrap items-center gap-1 mt-0.5">
                     <span>#${p.id}</span>
+                    ${p.sku ? `<span class="px-1 rounded bg-brandDark text-emerald-300 font-bold">SKU: ${escapeHtml(p.sku)}</span>` : ''}
+                    ${p.location ? `<span class="text-blue-300">📍 ${escapeHtml(p.location)}</span>` : ''}
                     ${p.has_chase_chance ? '<span class="text-amber-400 font-bold">★ CHASE</span>' : ''}
                     ${hasImg ? (isGoogle ? '<span class="text-[9px] font-bold px-1 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">🌐 Google</span>' : '<span class="text-[9px] font-bold px-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">📷 Manual</span>') : '<span class="text-[9px] font-bold px-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Sin Foto</span>'}
                   </div>
                 </div>
               </div>
             </td>
-            <td class="p-2.5 text-gray-400">${escapeHtml(p.product_type || '')}</td>
-            <td class="p-2.5 text-gray-300">${escapeHtml(p.vendor || '')}</td>
-            <td class="p-2.5 font-bold text-white">${formatARS(p.price_ars)}</td>
-            <td class="p-2.5 text-gray-300">${p.stock_quantity} u.</td>
+            <td class="p-2.5 text-gray-400">
+              <div>${escapeHtml(p.product_type || '')}</div>
+              ${p.scale ? `<div class="text-[10px] text-gray-500">${escapeHtml(p.scale)}</div>` : ''}
+              ${p.series ? `<div class="text-[9px] text-amber-400/80 font-mono">${escapeHtml(p.series)}</div>` : ''}
+            </td>
+            <td class="p-2.5 text-gray-300">
+              <div class="font-semibold">${escapeHtml(p.vendor || '')}</div>
+              ${p.supplier ? `<div class="text-[10px] text-gray-500">Prov: ${escapeHtml(p.supplier)}</div>` : ''}
+            </td>
+            <td class="p-2.5 font-bold text-white font-display">
+              <div>${formatARS(p.price_ars)}</div>
+              ${p.cost_price_ars > 0 ? `<div class="text-[10px] text-gray-400 font-mono font-normal">Costo: ${formatARS(p.cost_price_ars)}</div><div class="text-[10px] text-emerald-400 font-mono font-bold">+${formatARS(p.price_ars - p.cost_price_ars)}</div>` : ''}
+            </td>
+            <td class="p-2.5 text-gray-300">
+              <div class="font-bold ${p.stock_quantity === 0 ? 'text-red-400' : 'text-white'}">${p.stock_quantity} u.</div>
+              ${p.item_condition ? `<div class="text-[10px] text-gray-500">${escapeHtml(p.item_condition)}</div>` : ''}
+            </td>
             <td class="p-2.5 text-center">
               <button onclick="toggleProductActive(${p.id})" title="Click para activar/desactivar en catálogo" class="px-3 py-1 rounded-full text-[10px] font-black tracking-wider transition ${p.is_active ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-500/30' : 'bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20'}">
                 ${p.is_active ? 'SÍ' : 'NO'}
@@ -2963,50 +3084,110 @@
 
     function downloadExcelTemplate() {
       try {
-        const headers = [
-          "codigo_interno",
-          "titulo",
-          "tipo_articulo",
-          "marca",
-          "escala",
-          "talle",
-          "precio_ars",
-          "precio_usd",
-          "stock_cantidad",
-          "estado",
-          "activo",
-          "chance_chase",
-          "imagenes_galeria",
-          "video_url",
-          "descripcion"
+        // Hoja 1: STOCK (Formato idéntico a STOCK KIDO GARAGE.xlsx)
+        const stockHeaders = [
+          "ID PRODUCTO",
+          "SKU",
+          "CÓDIGO / BARCODE",
+          "MARCA",
+          "MODELO",
+          "SERIE / COLECCIÓN",
+          "ESCALA",
+          "CATEGORÍA",
+          "EDICIÓN / VARIANTE",
+          "AÑO",
+          "COLOR",
+          "ESTADO",
+          "PROVEEDOR",
+          "UBICACIÓN",
+          "COSTO UNITARIO",
+          "PRECIO VENTA",
+          "MONEDA",
+          "STOCK ACTUAL",
+          "STOCK MÍNIMO",
+          "ESTADO STOCK",
+          "ACTIVO EN WEB",
+          "FECHA DE ALTA",
+          "OBSERVACIONES",
+          "IMAGEN / URL"
         ];
 
-        const wsData = [headers];
-        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        const todayStr = new Date().toISOString().split('T')[0];
 
-        ws['!cols'] = [
-          { wch: 16 }, // codigo_interno
-          { wch: 45 }, // titulo
-          { wch: 16 }, // tipo_articulo
-          { wch: 20 }, // marca
-          { wch: 12 }, // escala
-          { wch: 12 }, // talle
-          { wch: 14 }, // precio_ars
-          { wch: 14 }, // precio_usd
-          { wch: 16 }, // stock_cantidad
-          { wch: 14 }, // estado
-          { wch: 10 }, // activo
-          { wch: 14 }, // chance_chase
-          { wch: 50 }, // imagenes_galeria
-          { wch: 40 }, // video_url
-          { wch: 60 }  // descripcion
+        const stockData = [
+          ["KIDO — INVENTARIO DE AUTITOS DE COLECCIÓN"],
+          ["Hoja maestra de stock. La columna STOCK ACTUAL es la cantidad disponible que consume la tienda online."],
+          [],
+          stockHeaders,
+          ["PRD-0001", "MJTTE-001", "3467452079928", "Majorette", "BMW M3", "BMW EDITION", "1:64", "Diecast", "", "2024", "ROJO", "Nuevo", "GASTON MASSA", "Depósito", 10000, 15000, "ARS", 2, 1, "DISPONIBLE", "SI", todayStr, "Ruedas de goma y apertura de puertas", ""],
+          ["PRD-0002", "HW-001", "027084120134", "Hot Wheels", "Porsche 911 GT3 RS", "Car Culture", "1:64", "Premium", "", "2024", "AZUL", "Nuevo", "GASTON MASSA", "Vitrina", 12000, 18000, "ARS", 3, 1, "DISPONIBLE", "SI", todayStr, "", ""],
+          ["PRD-0003", "KH-001", "081005885001", "Kaido House", "Datsun 510 Pro Street", "Kaido House", "1:64", "RLC / Exclusivo", "Chase", "2024", "VERDE", "Nuevo", "GASTON MASSA", "Estante 1", 20000, 32000, "ARS", 1, 1, "DISPONIBLE", "SI", todayStr, "Edición especial Chase", ""]
         ];
+
+        const wsStock = XLSX.utils.aoa_to_sheet(stockData);
+        wsStock['!cols'] = [
+          { wch: 14 }, // ID PRODUCTO
+          { wch: 14 }, // SKU
+          { wch: 20 }, // CÓDIGO / BARCODE
+          { wch: 18 }, // MARCA
+          { wch: 32 }, // MODELO
+          { wch: 20 }, // SERIE / COLECCIÓN
+          { wch: 10 }, // ESCALA
+          { wch: 18 }, // CATEGORÍA
+          { wch: 20 }, // EDICIÓN / VARIANTE
+          { wch: 8 },  // AÑO
+          { wch: 14 }, // COLOR
+          { wch: 12 }, // ESTADO
+          { wch: 20 }, // PROVEEDOR
+          { wch: 14 }, // UBICACIÓN
+          { wch: 15 }, // COSTO UNITARIO
+          { wch: 15 }, // PRECIO VENTA
+          { wch: 10 }, // MONEDA
+          { wch: 14 }, // STOCK ACTUAL
+          { wch: 14 }, // STOCK MÍNIMO
+          { wch: 14 }, // ESTADO STOCK
+          { wch: 14 }, // ACTIVO EN WEB
+          { wch: 14 }, // FECHA DE ALTA
+          { wch: 30 }, // OBSERVACIONES
+          { wch: 40 }  // IMAGEN / URL
+        ];
+
+        // Hoja 2: CATÁLOGOS (Opciones oficiales de referencia)
+        const catalogData = [
+          ["LISTAS PARA CARGA"],
+          [],
+          ["MARCA", "ESCALA", "CATEGORÍA", "ESTADO", "MONEDA", "ACTIVO WEB", "UBICACIÓN"],
+          ["Hot Wheels", "1:64", "Diecast", "Nuevo", "ARS", "SI", "Vitrina"],
+          ["Mini GT", "1:43", "Premium", "Abierto", "USD", "NO", "Estante 1"],
+          ["Kaido House", "1:18", "RLC / Exclusivo", "Usado", "", "", "Estante 2"],
+          ["Pop Race", "1:24", "Limited Edition", "Con detalle", "", "", "Estante 3"],
+          ["Majorette", "1:12", "JDM", "Custom", "", "", "Caja"],
+          ["Tarmac Works", "Otra", "Europeo", "", "", "", "Depósito"],
+          ["Tomica", "", "Americano", "", "", "", "Otro"],
+          ["Matchbox", "", "Juguete / Otros", "", "", "", ""]
+        ];
+        const wsCatalog = XLSX.utils.aoa_to_sheet(catalogData);
+
+        // Hoja 3: RESUMEN
+        const summaryData = [
+          ["RESUMEN DE INVENTARIO"],
+          [],
+          ["Indicador", "Valor"],
+          ["Productos cargados", 3],
+          ["Unidades en stock", 6],
+          [],
+          ["Importante", "La columna STOCK ACTUAL es el dato maestro de cantidad. Si no incluyes foto en 'IMAGEN / URL', el sistema buscará una automáticamente en Google libre de copyright."]
+        ];
+        const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
 
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Articulos_Kido");
-        XLSX.writeFile(wb, "Plantilla_Articulos_Kido_Garage.xlsx");
+        XLSX.utils.book_append_sheet(wb, wsStock, "STOCK");
+        XLSX.utils.book_append_sheet(wb, wsCatalog, "CATÁLOGOS");
+        XLSX.utils.book_append_sheet(wb, wsSummary, "RESUMEN");
 
-        kidoToast("Plantilla Excel generada y descargada exitosamente.", "success", "Plantilla Excel");
+        XLSX.writeFile(wb, "STOCK KIDO GARAGE.xlsx");
+
+        kidoToast("Plantilla oficial 'STOCK KIDO GARAGE.xlsx' descargada con éxito.", "success", "Plantilla Excel");
       } catch (err) {
         console.error("Error generando Excel:", err);
         kidoToast("No se pudo generar la plantilla Excel.", "error");
@@ -3055,57 +3236,129 @@
         try {
           const data = e.target.result;
           const workbook = XLSX.read(data, { type: 'binary' });
-          const firstSheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[firstSheetName];
-          const rawJson = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+          const sheetName = workbook.SheetNames.find(s => s.trim().toUpperCase() === 'STOCK') || workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const aoa = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
 
-          if (!rawJson || rawJson.length === 0) {
+          if (!aoa || aoa.length === 0) {
             kidoToast("El archivo Excel está vacío o no contiene filas con datos.", "warning", "Archivo Vacío");
             return;
           }
 
-          parsedExcelProducts = rawJson.map((row, idx) => {
-            const normalized = {};
-            for (const key of Object.keys(row)) {
-              const cleanKey = key.trim().toLowerCase().replace(/[\s\-_]+/g, '_');
-              normalized[cleanKey] = row[key];
+          // Detectar dinámicamente la fila de cabecera buscando palabras clave
+          let headerRowIndex = -1;
+          for (let r = 0; r < Math.min(10, aoa.length); r++) {
+            const rowStr = (aoa[r] || []).map(c => String(c).trim().toUpperCase()).join(' | ');
+            if (rowStr.includes('MODELO') || rowStr.includes('TITULO') || rowStr.includes('MARCA') || rowStr.includes('ID PRODUCTO') || rowStr.includes('SKU')) {
+              headerRowIndex = r;
+              break;
             }
-            return {
-              codigo_interno: String(normalized.codigo_interno || normalized.codigo || normalized.sku || '').trim(),
-              titulo: String(normalized.titulo || normalized.nombre || normalized.articulo || normalized.title || '').trim(),
-              tipo_articulo: String(normalized.tipo_articulo || normalized.tipo || normalized.product_type || '').trim(),
-              marca: String(normalized.marca || normalized.vendor || normalized.brand || '').trim(),
-              escala: String(normalized.escala || normalized.scale || '').trim(),
-              talle: String(normalized.talle || normalized.size || normalized.apparel_size || '').trim(),
-              precio_ars: parseInt(normalized.precio_ars || normalized.precio || normalized.price_ars || normalized.price || 0, 10) || 0,
-              precio_usd: String(normalized.precio_usd || normalized.usd || normalized.price_usd || '').trim(),
-              stock_cantidad: parseInt(normalized.stock_cantidad || normalized.stock || normalized.cantidad || normalized.quantity || 0, 10) || 0,
-              estado: String(normalized.estado || normalized.status || 'STOCK').trim().toUpperCase(),
-              activo: String(normalized.activo || normalized.is_active || 'SI').trim().toUpperCase(),
-              chance_chase: String(normalized.chance_chase || normalized.chase || normalized.has_chase || 'NO').trim().toUpperCase(),
-              imagenes_galeria: String(normalized.imagenes_galeria || normalized.fotos || normalized.images || normalized.galeria || '').trim(),
-              video_url: String(normalized.video_url || normalized.video || '').trim(),
-              descripcion: String(normalized.descripcion || normalized.detalles || normalized.body_html || '').trim(),
-              _rowNum: idx + 2
+          }
+          if (headerRowIndex === -1) {
+            headerRowIndex = 0;
+          }
+
+          const rawHeaders = aoa[headerRowIndex].map(h => String(h || '').trim());
+          const dataRows = aoa.slice(headerRowIndex + 1);
+
+          parsedExcelProducts = [];
+          dataRows.forEach((row, idx) => {
+            if (!row || row.every(c => c === '' || c === undefined || c === null)) return;
+
+            const rowMap = {};
+            rawHeaders.forEach((h, colIdx) => {
+              if (h) {
+                const normH = h.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z0-9]/g, "_");
+                rowMap[normH] = row[colIdx] !== undefined ? row[colIdx] : '';
+              }
+            });
+
+            const getVal = (patterns) => {
+              for (const p of patterns) {
+                for (const k of Object.keys(rowMap)) {
+                  if (k.includes(p)) {
+                    const val = rowMap[k];
+                    if (val !== undefined && val !== null && String(val).trim() !== '') {
+                      return String(val).trim();
+                    }
+                  }
+                }
+              }
+              return '';
             };
+
+            const getNum = (patterns) => {
+              const str = getVal(patterns);
+              if (!str) return 0;
+              const clean = String(str).replace(/[$. ]/g, '').replace(',', '.');
+              const num = parseFloat(clean);
+              return isNaN(num) ? 0 : Math.round(num);
+            };
+
+            const title = getVal(['MODELO', 'TITULO', 'NOMBRE', 'PRODUCTO']);
+            const vendor = getVal(['MARCA', 'VENDOR', 'FABRICANTE']);
+            const code = getVal(['ID_PRODUCTO', 'CODIGO_INTERNO', 'CODIGO', 'ID']);
+            const sku = getVal(['SKU']);
+            const barcode = getVal(['BARCODE', 'BARRAS', 'EAN']);
+            const series = getVal(['SERIE', 'COLECCION']);
+            const scale = getVal(['ESCALA']);
+            const category = getVal(['CATEGORIA', 'TIPO']);
+            const variant = getVal(['EDICION', 'VARIANTE']);
+            const year = getVal(['ANO', 'YEAR']);
+            const color = getVal(['COLOR']);
+            const condition = getVal(['ESTADO_CONDICION', 'CONDICION', 'ESTADO']) || 'Nuevo';
+            const supplier = getVal(['PROVEEDOR']);
+            const location = getVal(['UBICACION']) || 'Depósito';
+            const costPrice = getNum(['COSTO_UNITARIO', 'COSTO']);
+            const salePrice = getNum(['PRECIO_VENTA', 'PRECIO_ARS', 'PRECIO']);
+            const currency = getVal(['MONEDA']) || 'ARS';
+            const stock = getNum(['STOCK_ACTUAL', 'STOCK_CANTIDAD', 'STOCK', 'CANTIDAD']);
+            const minStock = getNum(['STOCK_MINIMO', 'MINIMO']);
+            const stockStatus = getVal(['ESTADO_STOCK', 'STATUS']) || (stock > 0 ? 'STOCK' : 'AGOTADO');
+            const activeWeb = getVal(['ACTIVO_EN_WEB', 'ACTIVO_WEB', 'ACTIVO', 'WEB']) || 'SI';
+            const notes = getVal(['OBSERVACIONES', 'DESCRIPCION', 'NOTAS']);
+            const gallery = getVal(['IMAGEN', 'URL', 'FOTO', 'GALERIA']);
+
+            if (!title && !vendor && !code && !sku) return;
+
+            parsedExcelProducts.push({
+              codigo_interno: code || (sku ? sku : `PRD-${String(parsedExcelProducts.length + 1).padStart(4, '0')}`),
+              sku: sku,
+              codigo_barras: barcode,
+              marca: vendor,
+              titulo: title,
+              serie_coleccion: series,
+              escala: scale,
+              tipo_articulo: category || 'Diecast',
+              categoria: category || 'Diecast',
+              edicion_variante: variant,
+              anio: year,
+              color: color,
+              estado_condicion: condition,
+              proveedor: supplier,
+              ubicacion: location,
+              costo_unitario: costPrice,
+              precio_venta: salePrice,
+              precio_ars: salePrice,
+              moneda: currency,
+              stock_actual: stock,
+              stock_cantidad: stock,
+              stock_minimo: minStock,
+              estado: stockStatus,
+              activo: activeWeb,
+              observaciones: notes,
+              imagenes_galeria: gallery,
+              _rowNum: headerRowIndex + 2 + idx
+            });
           });
 
           // Pre-validación local
           const localErrors = [];
           parsedExcelProducts.forEach(item => {
-            if (!item.titulo) localErrors.push(`Fila ${item._rowNum}: Falta el 'Título / Nombre' del artículo.`);
-            if (!item.tipo_articulo) localErrors.push(`Fila ${item._rowNum}: Falta el 'Tipo de Artículo' (ej: Autito, Remera, Sticker).`);
+            if (!item.titulo) localErrors.push(`Fila ${item._rowNum}: Falta el 'Título / Modelo' del artículo.`);
             if (!item.marca) localErrors.push(`Fila ${item._rowNum}: Falta la 'Marca'.`);
-            
-            const tLow = item.tipo_articulo.toLowerCase();
-            if ((tLow.includes('autito') || tLow.includes('diecast') || tLow.includes('auto')) && !item.escala) {
-              localErrors.push(`Fila ${item._rowNum}: Para tipo '${item.tipo_articulo}' es obligatoria la 'Escala' (ej: 1:64, 1:43).`);
-            }
-            if ((tLow.includes('remera') || tLow.includes('ropa') || tLow.includes('indumentaria') || tLow.includes('apparel') || tLow.includes('buzo')) && !item.talle) {
-              localErrors.push(`Fila ${item._rowNum}: Para tipo '${item.tipo_articulo}' es obligatorio el 'Talle' (ej: S, M, L, XL, XXL).`);
-            }
             if (item.precio_ars <= 0) {
-              localErrors.push(`Fila ${item._rowNum}: El 'Precio ARS' debe ser mayor a 0 (ingresado: ${item.precio_ars}).`);
+              localErrors.push(`Fila ${item._rowNum}: El 'Precio Venta' debe ser mayor a 0 (ingresado: ${item.precio_ars}).`);
             }
             if (item.stock_cantidad < 0) {
               localErrors.push(`Fila ${item._rowNum}: El 'Stock' no puede ser negativo.`);
@@ -3113,23 +3366,31 @@
           });
 
           document.getElementById('excelFileName').textContent = file.name;
-          document.getElementById('excelFileStats').innerHTML = `<b class="text-white">${parsedExcelProducts.length} artículos detectados</b> ${localErrors.length > 0 ? `<span class="text-red-400 font-bold ml-2">(${localErrors.length} advertencias/errores)</span>` : '<span class="text-emerald-400 font-bold ml-2">(Estructura válida ✓)</span>'}`;
+          document.getElementById('excelFileStats').innerHTML = `<b class="text-white">${parsedExcelProducts.length} artículos detectados</b> ${localErrors.length > 0 ? `<span class="text-red-400 font-bold ml-2">(${localErrors.length} inconsistencias)</span>` : '<span class="text-emerald-400 font-bold ml-2">(Estructura válida ✓)</span>'}`;
           
           const tbody = document.getElementById('excelPreviewTableBody');
           tbody.innerHTML = parsedExcelProducts.map((p, idx) => {
             const hasErr = localErrors.some(e => e.startsWith(`Fila ${p._rowNum}:`));
+            const profit = p.precio_ars - p.costo_unitario;
             return `
               <tr class="${hasErr ? 'bg-red-500/10' : 'hover:bg-brandCard/50'} transition">
                 <td class="p-2.5 font-mono text-gray-400">${idx + 1}</td>
-                <td class="p-2.5 font-mono text-amber-300 font-bold">${p.codigo_interno || '-'}</td>
-                <td class="p-2.5 font-bold text-white">${p.titulo || '<span class="text-red-400 italic">Falta título</span>'}</td>
-                <td class="p-2.5 text-gray-300">${p.tipo_articulo || '<span class="text-red-400 italic">Falta tipo</span>'}</td>
-                <td class="p-2.5 text-gray-300 font-semibold">${p.marca || '<span class="text-red-400 italic">Falta marca</span>'}</td>
-                <td class="p-2.5 text-gray-400">${p.escala || p.talle || '-'}</td>
+                <td class="p-2.5 font-mono text-amber-300 font-bold text-xs">${p.sku || p.codigo_interno || '-'}</td>
+                <td class="p-2.5 font-bold text-white">
+                  <div>${escapeHtml(p.titulo || 'Sin Título')}</div>
+                  ${p.serie_coleccion ? `<div class="text-[10px] text-gray-400">${escapeHtml(p.serie_coleccion)}</div>` : ''}
+                </td>
+                <td class="p-2.5 text-gray-300 font-semibold">${escapeHtml(p.marca || '-')}</td>
+                <td class="p-2.5 text-gray-400">${p.escala || '-'}</td>
+                <td class="p-2.5 text-gray-400 font-mono text-[11px]">${escapeHtml(p.ubicacion || 'Depósito')}</td>
+                <td class="p-2.5 font-mono text-gray-300">${p.costo_unitario > 0 ? formatARS(p.costo_unitario) : '-'}</td>
                 <td class="p-2.5 font-display font-bold ${p.precio_ars > 0 ? 'text-white' : 'text-red-400'}">${formatARS(p.precio_ars)}</td>
+                <td class="p-2.5 font-bold ${profit > 0 ? 'text-emerald-400' : 'text-gray-400'}">
+                  ${profit > 0 ? `+${formatARS(profit)}` : '-'}
+                </td>
                 <td class="p-2.5 font-bold ${p.stock_cantidad > 0 ? 'text-emerald-400' : 'text-amber-400'}">${p.stock_cantidad} u.</td>
                 <td class="p-2.5 text-center">
-                  <span class="px-2 py-0.5 rounded text-[10px] font-bold ${p.estado === 'STOCK' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-blue-500/20 text-blue-300'}">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold ${p.estado === 'DISPONIBLE' || p.estado === 'STOCK' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'}">
                     ${p.estado}
                   </span>
                 </td>
@@ -3279,6 +3540,36 @@
       }
     }
 
+    // Calculador de ganancia neta en formulario de creación
+    function updateProfitBadge() {
+      const cost = parseInt(document.getElementById('pCostPrice')?.value, 10) || 0;
+      const price = parseInt(document.getElementById('pPriceARS')?.value, 10) || 0;
+      const profitVal = document.getElementById('pProfitVal');
+      const profitMargin = document.getElementById('pProfitMargin');
+      const profitBadge = document.getElementById('pProfitBadge');
+      if (!profitVal) return;
+
+      const profit = price - cost;
+      profitVal.textContent = `$${profit.toLocaleString('es-AR')}`;
+      
+      if (price > 0 && cost > 0) {
+        const margin = Math.round((profit / price) * 100);
+        if (profitMargin) profitMargin.textContent = `Margen: ${margin}%`;
+      } else {
+        if (profitMargin) profitMargin.textContent = 'Margen: -';
+      }
+
+      if (profitBadge) {
+        if (profit >= 0) {
+          profitBadge.className = 'text-[11px] font-bold text-emerald-400 flex items-center justify-between px-2.5 py-1 rounded-xl bg-emerald-950/40 border border-emerald-500/30';
+          profitVal.className = 'font-mono text-emerald-300';
+        } else {
+          profitBadge.className = 'text-[11px] font-bold text-red-400 flex items-center justify-between px-2.5 py-1 rounded-xl bg-red-950/40 border border-red-500/30';
+          profitVal.className = 'font-mono text-red-300';
+        }
+      }
+    }
+
     // Campos condicionales del formulario
     function handleProductTypeChange(val) {
       const scaleGrp = document.getElementById('fieldScaleGroup');
@@ -3321,6 +3612,19 @@
       const payload = {
         title: title,
         internal_code: internalCode,
+        sku: (document.getElementById('pSKU')?.value || '').trim(),
+        barcode: (document.getElementById('pBarcode')?.value || '').trim(),
+        series: (document.getElementById('pSeries')?.value || '').trim(),
+        edition_variant: (document.getElementById('pEditionVariant')?.value || '').trim(),
+        year: parseInt(document.getElementById('pYear')?.value, 10) || 0,
+        color: (document.getElementById('pColor')?.value || '').trim(),
+        item_condition: (document.getElementById('pCondition')?.value || 'Nuevo').trim(),
+        supplier: (document.getElementById('pSupplier')?.value || '').trim(),
+        location: (document.getElementById('pLocation')?.value || 'Depósito').trim(),
+        currency: (document.getElementById('pCurrency')?.value || 'ARS').trim(),
+        cost_price_ars: parseInt(document.getElementById('pCostPrice')?.value, 10) || 0,
+        min_stock: parseInt(document.getElementById('pMinStock')?.value, 10) || 1,
+        notes: (document.getElementById('pNotes')?.value || '').trim(),
         product_type: typeText,
         product_type_id: typeId,
         brand_id: vendorId,
@@ -3346,8 +3650,18 @@
           kidoToast(data.message || '¡Artículo guardado con éxito en el catálogo!', 'success', 'Artículo Creado');
           document.getElementById('pTitle').value = '';
           document.getElementById('pInternalCode').value = '';
+          if (document.getElementById('pSKU')) document.getElementById('pSKU').value = '';
+          if (document.getElementById('pBarcode')) document.getElementById('pBarcode').value = '';
+          if (document.getElementById('pSeries')) document.getElementById('pSeries').value = '';
+          if (document.getElementById('pEditionVariant')) document.getElementById('pEditionVariant').value = '';
+          if (document.getElementById('pYear')) document.getElementById('pYear').value = '';
+          if (document.getElementById('pColor')) document.getElementById('pColor').value = '';
+          if (document.getElementById('pSupplier')) document.getElementById('pSupplier').value = '';
+          if (document.getElementById('pCostPrice')) document.getElementById('pCostPrice').value = '';
+          if (document.getElementById('pNotes')) document.getElementById('pNotes').value = '';
           document.getElementById('pGalleryImages').value = '';
           document.getElementById('pShortVideo').value = '';
+          updateProfitBadge();
           handleGalleryInputChange();
           loadProducts();
           loadMetrics();

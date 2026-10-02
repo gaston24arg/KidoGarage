@@ -57,6 +57,21 @@ CREATE TABLE IF NOT EXISTS products (
     short_video_url TEXT, -- Video muy corto del artículo
     
     description TEXT,
+    -- Campos extendidos de inventario (Kido Stock Master)
+    sku VARCHAR(100) DEFAULT '',
+    barcode VARCHAR(100) DEFAULT '',
+    series VARCHAR(255) DEFAULT '', -- Serie / Colección (ej: BMW EDITION)
+    edition_variant VARCHAR(255) DEFAULT '', -- Edición / Variante
+    year VARCHAR(50) DEFAULT '', -- Año
+    color VARCHAR(100) DEFAULT '', -- Color
+    item_condition VARCHAR(100) DEFAULT 'Nuevo', -- Nuevo, Abierto, Usado, Con detalle, Custom
+    supplier VARCHAR(255) DEFAULT '', -- Proveedor (ej: Gaston Massa)
+    location VARCHAR(255) DEFAULT 'Depósito', -- Depósito, Vitrina, Estante 1, etc.
+    cost_price_ars NUMERIC(12, 2) DEFAULT 0.00, -- Costo unitario
+    min_stock INT DEFAULT 0, -- Stock mínimo de alerta
+    currency VARCHAR(20) DEFAULT 'ARS', -- ARS, USD
+    notes TEXT DEFAULT '', -- Observaciones
+    
     tags TEXT[],
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
