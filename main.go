@@ -23,6 +23,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"net"
+	"net/url"
 
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
@@ -395,6 +396,7 @@ type Product struct {
 	Variants       []ProductVariant `json:"variants"`
 	Images         []ProductImage   `json:"images"`
 	GalleryImages  []string         `json:"gallery_images"`
+	ImageSource    string           `json:"image_source,omitempty"` // "MANUAL" o "GOOGLE_SEARCH"
 	ShortVideoURL  string           `json:"short_video_url,omitempty"` // Video muy corto del artículo
 	PriceARS       int              `json:"price_ars"`
 	PriceUSD       string           `json:"price_usd"`
@@ -971,6 +973,7 @@ func initDB() {
 	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS brand_id BIGINT REFERENCES brands(id)")
 	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS product_type_id BIGINT REFERENCES product_types(id)")
 	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS in_slider BOOLEAN DEFAULT FALSE")
+	_, _ = db.Exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS image_source VARCHAR(50) DEFAULT 'MANUAL'")
 	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS site_settings (
 		key VARCHAR(100) PRIMARY KEY,
 		value TEXT NOT NULL
@@ -1114,14 +1117,14 @@ func initDB() {
 			store.mu.RUnlock()
 			log.Printf("🐘 [PostgreSQL] Sembrados %d productos en tabla 'products'", len(store.products))
 		} else {
-			rows, err := db.Query("SELECT id, COALESCE(internal_code,''), title, handle, product_type, product_type_id, COALESCE(scale,''), COALESCE(apparel_size,''), vendor, brand_id, price_ars, price_usd, stock_quantity, status, is_active, has_chase_chance, COALESCE(gallery_images::text,'[]'), COALESCE(short_video_url,''), COALESCE(description,''), COALESCE(in_slider, false) FROM products ORDER BY id DESC")
+			rows, err := db.Query("SELECT id, COALESCE(internal_code,''), title, handle, product_type, product_type_id, COALESCE(scale,''), COALESCE(apparel_size,''), vendor, brand_id, price_ars, price_usd, stock_quantity, status, is_active, has_chase_chance, COALESCE(gallery_images::text,'[]'), COALESCE(short_video_url,''), COALESCE(description,''), COALESCE(in_slider, false), COALESCE(image_source, 'MANUAL') FROM products ORDER BY id DESC")
 			if err == nil {
 				var pgProducts []Product
 				for rows.Next() {
 					var p Product
 					var imgRaw string
 					var brandID, typeID sql.NullInt64
-					if err := rows.Scan(&p.ID, &p.InternalCode, &p.Title, &p.Handle, &p.ProductType, &typeID, &p.Scale, &p.ApparelSize, &p.Vendor, &brandID, &p.PriceARS, &p.PriceUSD, &p.StockQuantity, &p.Status, &p.IsActive, &p.HasChaseChance, &imgRaw, &p.ShortVideoURL, &p.BodyHTML, &p.InSlider); err == nil {
+					if err := rows.Scan(&p.ID, &p.InternalCode, &p.Title, &p.Handle, &p.ProductType, &typeID, &p.Scale, &p.ApparelSize, &p.Vendor, &brandID, &p.PriceARS, &p.PriceUSD, &p.StockQuantity, &p.Status, &p.IsActive, &p.HasChaseChance, &imgRaw, &p.ShortVideoURL, &p.BodyHTML, &p.InSlider, &p.ImageSource); err == nil {
 						if brandID.Valid {
 							b := brandID.Int64
 							p.BrandID = &b
@@ -1292,8 +1295,8 @@ func pgSaveProduct(p Product) {
 	}
 	go func() {
 		imgJSON, _ := json.Marshal(p.GalleryImages)
-		_, err := db.Exec(`INSERT INTO products (id, internal_code, title, handle, product_type, product_type_id, scale, apparel_size, vendor, brand_id, price_ars, price_usd, stock_quantity, status, is_active, has_chase_chance, gallery_images, short_video_url, description, in_slider)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+		_, err := db.Exec(`INSERT INTO products (id, internal_code, title, handle, product_type, product_type_id, scale, apparel_size, vendor, brand_id, price_ars, price_usd, stock_quantity, status, is_active, has_chase_chance, gallery_images, short_video_url, description, in_slider, image_source)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
 		ON CONFLICT (id) DO UPDATE SET
 			internal_code = EXCLUDED.internal_code,
 			title = EXCLUDED.title,
@@ -1314,8 +1317,9 @@ func pgSaveProduct(p Product) {
 			short_video_url = EXCLUDED.short_video_url,
 			description = EXCLUDED.description,
 			in_slider = EXCLUDED.in_slider,
+			image_source = EXCLUDED.image_source,
 			updated_at = CURRENT_TIMESTAMP`,
-			p.ID, p.InternalCode, p.Title, p.Handle, p.ProductType, p.ProductTypeID, p.Scale, p.ApparelSize, p.Vendor, p.BrandID, p.PriceARS, p.PriceUSD, p.StockQuantity, p.Status, p.IsActive, p.HasChaseChance, string(imgJSON), p.ShortVideoURL, p.BodyHTML, p.InSlider)
+			p.ID, p.InternalCode, p.Title, p.Handle, p.ProductType, p.ProductTypeID, p.Scale, p.ApparelSize, p.Vendor, p.BrandID, p.PriceARS, p.PriceUSD, p.StockQuantity, p.Status, p.IsActive, p.HasChaseChance, string(imgJSON), p.ShortVideoURL, p.BodyHTML, p.InSlider, p.ImageSource)
 		if err != nil {
 			log.Printf("⚠️ Error guardando producto en PostgreSQL: %v", err)
 		}
@@ -1648,6 +1652,371 @@ func processMPPayment(paymentID string) {
 }
 
 // ==========================================
+// INTEGRACIÓN GOOGLE CUSTOM SEARCH API & CC
+// ==========================================
+
+type GoogleSearchConfig struct {
+	APIKey         string `json:"api_key"`
+	SearchEngineID string `json:"search_engine_id"` // CX
+	RightsFilter   string `json:"rights_filter"`    // cc_publicdomain,cc_attribute,cc_sharealike
+	AutoDownload   bool   `json:"auto_download"`    // Descargar a uploads local
+	Enabled        bool   `json:"enabled"`
+}
+
+var googleSearchConfig = GoogleSearchConfig{
+	APIKey:         os.Getenv("GOOGLE_SEARCH_API_KEY"),
+	SearchEngineID: os.Getenv("GOOGLE_SEARCH_CX"),
+	RightsFilter:   "cc_publicdomain,cc_attribute,cc_sharealike",
+	AutoDownload:   true,
+	Enabled:        true,
+}
+
+func loadGoogleSearchConfig() {
+	if k := os.Getenv("GOOGLE_SEARCH_API_KEY"); k != "" {
+		googleSearchConfig.APIKey = k
+	}
+	if cx := os.Getenv("GOOGLE_SEARCH_CX"); cx != "" {
+		googleSearchConfig.SearchEngineID = cx
+	}
+	data, err := os.ReadFile("google_search_config.json")
+	if err == nil {
+		var cfg GoogleSearchConfig
+		if json.Unmarshal(data, &cfg) == nil {
+			if cfg.APIKey != "" {
+				googleSearchConfig.APIKey = cfg.APIKey
+			}
+			if cfg.SearchEngineID != "" {
+				googleSearchConfig.SearchEngineID = cfg.SearchEngineID
+			}
+			if cfg.RightsFilter != "" {
+				googleSearchConfig.RightsFilter = cfg.RightsFilter
+			}
+			googleSearchConfig.AutoDownload = cfg.AutoDownload
+			googleSearchConfig.Enabled = cfg.Enabled
+		}
+	}
+	if googleSearchConfig.APIKey != "" && googleSearchConfig.SearchEngineID != "" {
+		log.Printf("🔍 Google Custom Search CONFIGURADO (CX: %s, API Key: %s, Derechos: %s)", googleSearchConfig.SearchEngineID, maskToken(googleSearchConfig.APIKey), googleSearchConfig.RightsFilter)
+	} else {
+		log.Printf("🔍 Google Custom Search en MODO HÍBRIDO/CREATIVE COMMONS (API Key no configurada, usando repositorio libre de derechos)")
+	}
+}
+
+func saveGoogleSearchConfig(cfg GoogleSearchConfig) error {
+	googleSearchConfig = cfg
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile("google_search_config.json", data, 0644)
+}
+
+type SearchCandidate struct {
+	Title        string `json:"title"`
+	URL          string `json:"url"`
+	Thumbnail    string `json:"thumbnail"`
+	Mime         string `json:"mime"`
+	Source       string `json:"source"`
+	RightsStatus string `json:"rights_status"` // "Creative Commons / Libre de derechos"
+}
+
+func callGoogleCustomSearch(query, rights string) ([]SearchCandidate, error) {
+	if googleSearchConfig.APIKey == "" || googleSearchConfig.SearchEngineID == "" {
+		return nil, fmt.Errorf("Google Search API Key o CX no configurados")
+	}
+
+	apiURL := "https://www.googleapis.com/customsearch/v1"
+	u, err := url.Parse(apiURL)
+	if err != nil {
+		return nil, err
+	}
+	q := u.Query()
+	q.Set("key", googleSearchConfig.APIKey)
+	q.Set("cx", googleSearchConfig.SearchEngineID)
+	q.Set("q", query)
+	q.Set("searchType", "image")
+	q.Set("num", "10")
+	q.Set("safe", "active")
+	q.Set("imgType", "photo")
+	q.Set("fileType", "jpg,png,webp")
+	if rights != "" {
+		q.Set("rights", rights)
+	}
+	u.RawQuery = q.Encode()
+
+	client := &http.Client{Timeout: 8 * time.Second}
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) KidoGarage/1.0")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("Google API HTTP %d: %s", resp.StatusCode, string(body))
+	}
+
+	var gResp struct {
+		Items []struct {
+			Title string `json:"title"`
+			Link  string `json:"link"`
+			Mime  string `json:"mime"`
+			Image struct {
+				ThumbnailLink string `json:"thumbnailLink"`
+				ContextLink   string `json:"contextLink"`
+				Height        int    `json:"height"`
+				Width         int    `json:"width"`
+			} `json:"image"`
+		} `json:"items"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&gResp); err != nil {
+		return nil, err
+	}
+
+	blockedDomains := []string{
+		"shutterstock.com", "gettyimages.", "alamy.com", "123rf.com",
+		"istockphoto.com", "dreamstime.com", "depositphotos.com", "stock.adobe.com",
+	}
+
+	var list []SearchCandidate
+	for _, it := range gResp.Items {
+		link := strings.TrimSpace(it.Link)
+		if link == "" || !strings.HasPrefix(link, "http") {
+			continue
+		}
+		isBlocked := false
+		lowerLink := strings.ToLower(link)
+		for _, bd := range blockedDomains {
+			if strings.Contains(lowerLink, bd) {
+				isBlocked = true
+				break
+			}
+		}
+		if isBlocked {
+			continue
+		}
+
+		thumb := it.Image.ThumbnailLink
+		if thumb == "" {
+			thumb = link
+		}
+
+		list = append(list, SearchCandidate{
+			Title:        it.Title,
+			URL:          link,
+			Thumbnail:    thumb,
+			Mime:         it.Mime,
+			Source:       "Google Custom Search",
+			RightsStatus: "Verificado: Creative Commons / Libre de derechos",
+		})
+	}
+	return list, nil
+}
+
+func callWikimediaCommonsSearch(query string) ([]SearchCandidate, error) {
+	apiURL := fmt.Sprintf("https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=%s&gsrnamespace=6&prop=imageinfo&iiprop=url|mime|size&format=json&origin=*", url.QueryEscape(query))
+
+	client := &http.Client{Timeout: 8 * time.Second}
+	req, err := http.NewRequest("GET", apiURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", "KidoGarageBot/1.0 (info@kido.com.ar)")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Wikimedia API HTTP %d", resp.StatusCode)
+	}
+
+	var wResp struct {
+		Query struct {
+			Pages map[string]struct {
+				Title     string `json:"title"`
+				ImageInfo []struct {
+					URL      string `json:"url"`
+					Mime     string `json:"mime"`
+					Size     int    `json:"size"`
+					ThumbURL string `json:"thumburl"`
+				} `json:"imageinfo"`
+			} `json:"pages"`
+		} `json:"query"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&wResp); err != nil {
+		return nil, err
+	}
+
+	var list []SearchCandidate
+	for _, page := range wResp.Query.Pages {
+		if len(page.ImageInfo) > 0 {
+			info := page.ImageInfo[0]
+			mime := strings.ToLower(info.Mime)
+			if strings.HasPrefix(mime, "image/jpeg") || strings.HasPrefix(mime, "image/png") || strings.HasPrefix(mime, "image/webp") {
+				thumb := info.ThumbURL
+				if thumb == "" {
+					thumb = info.URL
+				}
+				list = append(list, SearchCandidate{
+					Title:        page.Title,
+					URL:          info.URL,
+					Thumbnail:    thumb,
+					Mime:         info.Mime,
+					Source:       "Wikimedia Commons (Public Domain / CC)",
+					RightsStatus: "Dominio Público / Creative Commons (100% Libre)",
+				})
+			}
+		}
+	}
+	return list, nil
+}
+
+func searchCopyrightFreeImages(query string) ([]SearchCandidate, error) {
+	query = strings.TrimSpace(query)
+	if query == "" {
+		return nil, fmt.Errorf("el término de búsqueda no puede estar vacío")
+	}
+
+	var candidates []SearchCandidate
+
+	// 1. Si Google Custom Search API está configurada y habilitada, consultar Google
+	if googleSearchConfig.Enabled && googleSearchConfig.APIKey != "" && googleSearchConfig.SearchEngineID != "" {
+		googleItems, err := callGoogleCustomSearch(query, googleSearchConfig.RightsFilter)
+		if err == nil && len(googleItems) > 0 {
+			candidates = append(candidates, googleItems...)
+		} else if err != nil {
+			log.Printf("⚠️ [Google Search] Error en llamada a Google API: %v (intentando fallback CC)", err)
+		}
+	}
+
+	// 2. Si no hay suficientes resultados o Google no está configurado, consultar Wikimedia Commons (100% CC / Public Domain)
+	if len(candidates) < 3 {
+		wikiItems, err := callWikimediaCommonsSearch(query)
+		if err == nil && len(wikiItems) > 0 {
+			candidates = append(candidates, wikiItems...)
+		}
+	}
+
+	// 3. Si aún no hay resultados y la consulta contiene múltiples palabras, intentar una versión simplificada
+	if len(candidates) == 0 && strings.Contains(query, " ") {
+		words := strings.Fields(query)
+		if len(words) > 2 {
+			simplifiedQuery := strings.Join(words[:2], " ")
+			wikiItems, err := callWikimediaCommonsSearch(simplifiedQuery)
+			if err == nil && len(wikiItems) > 0 {
+				candidates = append(candidates, wikiItems...)
+			}
+		}
+	}
+
+	return candidates, nil
+}
+
+func verifyAndDownloadImage(imgURL, cleanTitle string) (string, error) {
+	imgURL = strings.TrimSpace(imgURL)
+	if imgURL == "" || !strings.HasPrefix(imgURL, "http") {
+		return "", fmt.Errorf("URL inválida: %s", imgURL)
+	}
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	req, err := http.NewRequest("GET", imgURL, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("la imagen remota respondió con HTTP %d", resp.StatusCode)
+	}
+
+	cType := strings.ToLower(resp.Header.Get("Content-Type"))
+	ext := ".jpg"
+	if strings.Contains(cType, "png") {
+		ext = ".png"
+	} else if strings.Contains(cType, "webp") {
+		ext = ".webp"
+	} else if strings.Contains(cType, "gif") {
+		ext = ".gif"
+	} else if !strings.Contains(cType, "image") {
+		return "", fmt.Errorf("el tipo de contenido no es una imagen válida (%s)", cType)
+	}
+
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 15*1024*1024))
+	if err != nil {
+		return "", err
+	}
+	if len(data) < 3000 {
+		return "", fmt.Errorf("imagen demasiado pequeña o inválida (%d bytes)", len(data))
+	}
+
+	if !googleSearchConfig.AutoDownload {
+		return imgURL, nil
+	}
+
+	_ = os.MkdirAll(filepath.Join("public", "uploads"), 0755)
+	filename := fmt.Sprintf("google_%d_%d%s", time.Now().Unix(), rand.Intn(10000), ext)
+	savePath := filepath.Join("public", "uploads", filename)
+
+	if err := os.WriteFile(savePath, data, 0644); err != nil {
+		log.Printf("⚠️ [Google Search] Error guardando archivo local, retornando URL remota: %v", err)
+		return imgURL, nil
+	}
+
+	return "/uploads/" + filename, nil
+}
+
+func searchAndAssignImageForProduct(title, vendor, pType string) (string, error) {
+	query := strings.TrimSpace(title)
+	if vendor != "" && !strings.Contains(strings.ToLower(query), strings.ToLower(vendor)) {
+		query = vendor + " " + query
+	}
+	if strings.EqualFold(pType, "Autito") && !strings.Contains(strings.ToLower(query), "diecast") && !strings.Contains(strings.ToLower(query), "scale") {
+		query += " diecast"
+	}
+
+	candidates, err := searchCopyrightFreeImages(query)
+	if err != nil || len(candidates) == 0 {
+		if strings.TrimSpace(title) != "" && strings.TrimSpace(title) != query {
+			candidates, _ = searchCopyrightFreeImages(strings.TrimSpace(title))
+		}
+	}
+
+	if len(candidates) == 0 {
+		return "", fmt.Errorf("no se encontraron imágenes libres de derechos para '%s'", title)
+	}
+
+	for _, cand := range candidates {
+		localURL, err := verifyAndDownloadImage(cand.URL, title)
+		if err == nil && localURL != "" {
+			return localURL, nil
+		}
+	}
+
+	if len(candidates) > 0 && candidates[0].URL != "" {
+		return candidates[0].URL, nil
+	}
+
+	return "", fmt.Errorf("no se pudo verificar ninguna de las imágenes candidatas")
+}
+
+// ==========================================
 // SERVIDOR HTTP & APIS
 // ==========================================
 
@@ -1681,6 +2050,7 @@ func main() {
 	initOrders()
 	initDB()
 	loadMPConfig()
+	loadGoogleSearchConfig()
 
 	mux := http.NewServeMux()
 
@@ -2972,8 +3342,15 @@ func main() {
 					}
 				}
 			}
+			imgSource := "MANUAL"
 			if len(gallery) == 0 {
-				gallery = []string{"https://images.unsplash.com/photo-1581235720704-06d3acfcb36f?auto=format&fit=crop&w=600&q=80"}
+				foundURL, err := searchAndAssignImageForProduct(item.Title, item.Vendor, item.ProductType)
+				if err == nil && foundURL != "" {
+					gallery = []string{foundURL}
+					imgSource = "GOOGLE_SEARCH"
+				} else {
+					gallery = []string{"https://images.unsplash.com/photo-1581235720704-06d3acfcb36f?auto=format&fit=crop&w=600&q=80"}
+				}
 			}
 
 			title := strings.TrimSpace(item.Title)
@@ -3033,6 +3410,7 @@ func main() {
 				HasChaseChance: hasChase,
 				InSlider:       inSlider,
 				GalleryImages:  gallery,
+				ImageSource:    imgSource,
 				Images:         []ProductImage{{ID: 1, Position: 1, Src: gallery[0]}},
 				ShortVideoURL:  strings.TrimSpace(item.ShortVideoURL),
 			}
@@ -3087,8 +3465,42 @@ func main() {
 			return
 		}
 
-		// Asignación de ID autonumérico de 1 en 1
-		if p.ID == 0 {
+		// Limpiar imágenes recibidas (descartar vacíos o placeholders)
+		var cleanImgs []string
+		for _, img := range p.GalleryImages {
+			img = strings.TrimSpace(img)
+			if img != "" && !strings.Contains(img, "placeholder") && !strings.Contains(img, "via.placeholder.com") {
+				cleanImgs = append(cleanImgs, img)
+			}
+		}
+		p.GalleryImages = cleanImgs
+
+		isNew := p.ID == 0
+		autoImgUsed := false
+
+		if len(p.GalleryImages) == 0 {
+			// El artículo no tiene imagen o se ha eliminado su imagen previa:
+			// El sistema debe utilizar la API para colocar una imagen libre de derechos.
+			log.Printf("🔍 [Google Search] El artículo '%s' no tiene foto. Buscando imagen automática en internet...", p.Title)
+			foundURL, err := searchAndAssignImageForProduct(p.Title, p.Vendor, p.ProductType)
+			if err == nil && foundURL != "" {
+				p.GalleryImages = []string{foundURL}
+				p.Images = []ProductImage{{ID: 1, Position: 1, Src: foundURL}}
+				p.ImageSource = "GOOGLE_SEARCH"
+				autoImgUsed = true
+				log.Printf("✅ [Google Search] Imagen auto-asignada con éxito: %s", foundURL)
+			} else {
+				log.Printf("⚠️ [Google Search] No se pudo encontrar imagen para '%s': %v", p.Title, err)
+			}
+		} else {
+			// El artículo ya tiene una foto o se cargó manualmente:
+			// La funcionalidad de búsqueda automática queda suspendida.
+			p.ImageSource = "MANUAL"
+			p.Images = []ProductImage{{ID: 1, Position: 1, Src: p.GalleryImages[0]}}
+		}
+
+		// Asignación de ID autonumérico de 1 en 1 si es nuevo
+		if isNew {
 			var maxID int64 = 0
 			if dbActive && db != nil {
 				_ = db.QueryRow("SELECT COALESCE(MAX(id), 0) FROM products WHERE id < 1000000000").Scan(&maxID)
@@ -3104,7 +3516,8 @@ func main() {
 		}
 
 		if p.Handle == "" {
-			p.Handle = strings.ToLower(strings.ReplaceAll(p.Title, " ", "-"))
+			baseHandle := strings.ToLower(strings.ReplaceAll(p.Title, " ", "-"))
+			p.Handle = fmt.Sprintf("%s-%d", baseHandle, p.ID)
 		}
 		if p.PriceUSD == "" {
 			p.PriceUSD = fmt.Sprintf("%.2f", float64(p.PriceARS)/1350.0)
@@ -3116,14 +3529,315 @@ func main() {
 		}
 
 		store.mu.Lock()
-		store.products = append([]Product{p}, store.products...)
+		updatedExisting := false
+		for i := range store.products {
+			if store.products[i].ID == p.ID {
+				store.products[i] = p
+				updatedExisting = true
+				break
+			}
+		}
+		if !updatedExisting {
+			store.products = append([]Product{p}, store.products...)
+		}
 		store.mu.Unlock()
 		pgSaveProduct(p)
+
+		msg := "Artículo agregado correctamente al catálogo"
+		if !isNew {
+			msg = "Artículo actualizado correctamente"
+		}
+		if autoImgUsed {
+			msg += " (con foto libre de derechos asignada automáticamente vía Google Custom Search)"
+		}
 
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
 			"product": p,
-			"message": "Artículo agregado correctamente al catálogo",
+			"message": msg,
+		})
+	}))
+
+	// ==========================================
+	// ENDPOINTS GOOGLE CUSTOM SEARCH API
+	// ==========================================
+
+	// Configuración de Google Custom Search (Admin)
+	mux.HandleFunc("/api/admin/google-search/config", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodPost {
+			var newCfg GoogleSearchConfig
+			if err := json.NewDecoder(r.Body).Decode(&newCfg); err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			newCfg.APIKey = strings.TrimSpace(newCfg.APIKey)
+			newCfg.SearchEngineID = strings.TrimSpace(newCfg.SearchEngineID)
+			if newCfg.RightsFilter == "" {
+				newCfg.RightsFilter = "cc_publicdomain,cc_attribute,cc_sharealike"
+			}
+
+			if err := saveGoogleSearchConfig(newCfg); err != nil {
+				http.Error(w, "Error guardando configuración de Google Search", http.StatusInternalServerError)
+				return
+			}
+
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success":          true,
+				"message":          "Configuración de Google Custom Search guardada exitosamente",
+				"is_configured":    googleSearchConfig.APIKey != "" && googleSearchConfig.SearchEngineID != "",
+				"masked_key":       maskToken(googleSearchConfig.APIKey),
+				"search_engine_id": googleSearchConfig.SearchEngineID,
+				"rights_filter":    googleSearchConfig.RightsFilter,
+				"auto_download":    googleSearchConfig.AutoDownload,
+				"enabled":          googleSearchConfig.Enabled,
+			})
+			return
+		}
+
+		// GET
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"is_configured":    googleSearchConfig.APIKey != "" && googleSearchConfig.SearchEngineID != "",
+			"masked_key":       maskToken(googleSearchConfig.APIKey),
+			"api_key":          googleSearchConfig.APIKey,
+			"search_engine_id": googleSearchConfig.SearchEngineID,
+			"rights_filter":    googleSearchConfig.RightsFilter,
+			"auto_download":    googleSearchConfig.AutoDownload,
+			"enabled":          googleSearchConfig.Enabled,
+		})
+	}))
+
+	// Búsqueda interactiva de imágenes con Google Custom Search / CC
+	mux.HandleFunc("/api/admin/google-search/search", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method != http.MethodPost && r.Method != http.MethodGet {
+			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+			return
+		}
+
+		query := r.URL.Query().Get("q")
+		if r.Method == http.MethodPost {
+			var body struct {
+				Query string `json:"query"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			if body.Query != "" {
+				query = body.Query
+			}
+		}
+
+		query = strings.TrimSpace(query)
+		if query == "" {
+			http.Error(w, "Debe especificar un término de búsqueda", http.StatusBadRequest)
+			return
+		}
+
+		candidates, err := searchCopyrightFreeImages(query)
+		if err != nil {
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   err.Error(),
+				"items":   []SearchCandidate{},
+			})
+			return
+		}
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"query":   query,
+			"count":   len(candidates),
+			"items":   candidates,
+		})
+	}))
+
+	// Asignar o reasignar automáticamente imagen a un artículo existente
+	mux.HandleFunc("/api/admin/products/auto-image", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method != http.MethodPost {
+			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			ID        int64 `json:"id"`
+			ProductID int64 `json:"product_id"`
+			Force     bool  `json:"force"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if req.ID == 0 && req.ProductID != 0 {
+			req.ID = req.ProductID
+		}
+
+		store.mu.Lock()
+		var targetProd *Product
+		for i := range store.products {
+			if store.products[i].ID == req.ID {
+				targetProd = &store.products[i]
+				break
+			}
+		}
+
+		if targetProd == nil {
+			store.mu.Unlock()
+			http.Error(w, "Artículo no encontrado", http.StatusNotFound)
+			return
+		}
+
+		// Si ya tiene imagen y no se fuerza, suspender búsqueda automática
+		if len(targetProd.GalleryImages) > 0 && !req.Force {
+			img := targetProd.GalleryImages[0]
+			prodCopy := *targetProd
+			store.mu.Unlock()
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success":        true,
+				"suspended":      true,
+				"message":        "El artículo ya cuenta con imagen asignada. La búsqueda automática se encuentra suspendida.",
+				"image_url":      img,
+				"gallery_images": []string{img},
+				"product":        prodCopy,
+			})
+			return
+		}
+
+		title := targetProd.Title
+		vendor := targetProd.Vendor
+		pType := targetProd.ProductType
+		store.mu.Unlock()
+
+		imgURL, err := searchAndAssignImageForProduct(title, vendor, pType)
+		if err != nil {
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   fmt.Sprintf("No se pudo obtener imagen libre de derechos: %v", err),
+			})
+			return
+		}
+
+		var updatedProd Product
+		store.mu.Lock()
+		for i := range store.products {
+			if store.products[i].ID == req.ID {
+				store.products[i].GalleryImages = []string{imgURL}
+				store.products[i].Images = []ProductImage{{ID: 1, Position: 1, Src: imgURL}}
+				store.products[i].ImageSource = "GOOGLE_SEARCH"
+				pgSaveProduct(store.products[i])
+				updatedProd = store.products[i]
+				break
+			}
+		}
+		store.mu.Unlock()
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success":   true,
+			"message":   "¡Imagen asignada exitosamente mediante búsqueda automática libre de derechos!",
+			"image_url": imgURL,
+			"product":   updatedProd,
+		})
+	}))
+
+	// Quitar imagen de un artículo (y por defecto, re-buscar automáticamente de inmediato)
+	mux.HandleFunc("/api/admin/products/remove-image", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method != http.MethodPost {
+			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			ID         int64 `json:"id"`
+			ProductID  int64 `json:"product_id"`
+			NoReSearch bool  `json:"no_re_search"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if req.ID == 0 && req.ProductID != 0 {
+			req.ID = req.ProductID
+		}
+
+		store.mu.Lock()
+		var targetProd *Product
+		for i := range store.products {
+			if store.products[i].ID == req.ID {
+				targetProd = &store.products[i]
+				break
+			}
+		}
+
+		if targetProd == nil {
+			store.mu.Unlock()
+			http.Error(w, "Artículo no encontrado", http.StatusNotFound)
+			return
+		}
+
+		title := targetProd.Title
+		vendor := targetProd.Vendor
+		pType := targetProd.ProductType
+
+		if req.NoReSearch {
+			targetProd.GalleryImages = []string{}
+			targetProd.Images = nil
+			targetProd.ImageSource = ""
+			pgSaveProduct(*targetProd)
+			prodCopy := *targetProd
+			store.mu.Unlock()
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": true,
+				"message": "Imagen eliminada del artículo",
+				"product": prodCopy,
+			})
+			return
+		}
+		store.mu.Unlock()
+
+		// Re-búsqueda automática tras eliminar para que el artículo nunca quede sin imagen
+		newImgURL, err := searchAndAssignImageForProduct(title, vendor, pType)
+		if err != nil {
+			var updatedProd Product
+			store.mu.Lock()
+			for i := range store.products {
+				if store.products[i].ID == req.ID {
+					store.products[i].GalleryImages = []string{}
+					store.products[i].Images = nil
+					store.products[i].ImageSource = ""
+					pgSaveProduct(store.products[i])
+					updatedProd = store.products[i]
+					break
+				}
+			}
+			store.mu.Unlock()
+
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": true,
+				"product": updatedProd,
+				"warning": fmt.Sprintf("Imagen eliminada, pero la búsqueda automática no encontró reemplazo: %v", err),
+			})
+			return
+		}
+
+		var updatedProd Product
+		store.mu.Lock()
+		for i := range store.products {
+			if store.products[i].ID == req.ID {
+				store.products[i].GalleryImages = []string{newImgURL}
+				store.products[i].Images = []ProductImage{{ID: 1, Position: 1, Src: newImgURL}}
+				store.products[i].ImageSource = "GOOGLE_SEARCH"
+				pgSaveProduct(store.products[i])
+				updatedProd = store.products[i]
+				break
+			}
+		}
+		store.mu.Unlock()
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success":   true,
+			"message":   "Imagen anterior eliminada y nueva imagen libre de derechos asignada automáticamente",
+			"image_url": newImgURL,
+			"product":   updatedProd,
 		})
 	}))
 
